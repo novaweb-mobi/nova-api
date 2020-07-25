@@ -82,3 +82,6 @@ Also check the list of [contributors](contributors).
 
 This project is licensed under a MIT license - check the [LICENSE](LICENSE) file for details.
 
+## Acknowledgments
+
+* Thanks to [Billie Thompson/PurpleBooth](https://github.com/PurpleBooth) for this README template.
