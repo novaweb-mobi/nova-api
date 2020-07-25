@@ -5,7 +5,7 @@ from MySQLHelper import MySQLHelper
 from Entity import Entity
 
 
-class GenericMySQLDAO(object):
+class GenericSQLDAO(object):
     def __init__(self, db=None, table: str = '', fields: dict = None,
                  return_class: type = Entity) -> None:
         self.db = db

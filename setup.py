@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="nova_api",
+    name="NovaAPI",
     version="1.0a1",
     license='MIT',
     author="Mateus Berardo & Fábio Trevizolo",

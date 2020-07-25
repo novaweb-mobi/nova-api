@@ -1,0 +1,7 @@
+pytest
+pytest-cov
+pytest-mock
+mysql-connector
+flask
+setuptools
+wheel

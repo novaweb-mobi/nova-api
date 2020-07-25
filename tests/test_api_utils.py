@@ -3,7 +3,6 @@ from json import dumps
 import flask
 from mock import call, Mock
 from pytest import mark
-from pytest_assume.plugin import assume
 
 import nova_api
 
@@ -26,12 +25,12 @@ class TestAPIUtils:
                                             status_code,
                                             message,
                                             data)
-        assume(make_response_patch.mock_calls == [
+        assert make_response_patch.mock_calls == [
             call(dumps({"success": success, "message": message, "data": data}),
                  status_code,
                  {'Content-type': 'application/json'})
-        ])
-        assume(ret_val == message)
+        ]
+        assert ret_val == message
 
     @mark.parametrize("data", [None, {"test": "mydata"}])
     def test_success_response(self, mocker, data):
