@@ -1,0 +1,28 @@
+# Check style
+# Verify files that don't end with new line and add new line
+function file_ends_with_newline() {
+    if [ ! -s "$1" ]; then
+        return 0
+    else
+        [[ $(tail -c2 "$1" | wc -l) -gt 0 ]]
+    fi
+}
+
+function check_files() {
+    for folder in $1/*; do
+        if [ -d $folder ]; then
+            check_files $folder
+        elif [ -f $folder ] && [ ${folder: -3} == ".py" ]; then
+            if ! file_ends_with_newline $folder; then
+                echo "" >> "$folder"
+            fi
+        fi
+    done
+}
+
+check_files $(pwd)/backend
+             
+export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
+pylint nova_api -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
+pytest --junitxml=xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:coverage-reports/coverage-python.xml  tests/
+sonar-scanner

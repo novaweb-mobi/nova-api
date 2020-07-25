@@ -44,7 +44,7 @@ class MySQLHelper(object):
                 self.db_conn.commit()
             return self.cursor.rowcount, self.cursor.lastrowid
         except mysql.connector.Error as err:
-            raise BrokenPipeError(
+            raise RuntimeError(
                 "\nSomething went wrong with the query: {}\n\n".format(err)
             )
 
@@ -53,7 +53,7 @@ class MySQLHelper(object):
             results = self.cursor.fetchall()
             return results if len(results) > 0 else None
         except mysql.connector.Error as err:
-            raise BrokenPipeError("\nSomething went wrong: {}\n\n".format(err))
+            raise RuntimeError("\nSomething went wrong: {}\n\n".format(err))
 
     def close(self):
         self.cursor.close()

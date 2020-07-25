@@ -6,6 +6,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="nova_api",
     version="1.0a1",
+    license='MIT',
     author="Mateus Berardo & Fábio Trevizolo",
     author_email="mateust@novaweb.mobi, fabiots@novaweb.mobi",
     description="A package to accelerate REST API development",

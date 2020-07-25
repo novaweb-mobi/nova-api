@@ -1,1 +1,13 @@
 .idea/
+build/
+dist/
+nova_api.egg-info
+.coverage
+.scannerwork/
+coverage-reports/
+nova_api/__pycache__/
+reports/
+sonar-project.properties
+tests/__pycache__/
+xunit-reports/
+
