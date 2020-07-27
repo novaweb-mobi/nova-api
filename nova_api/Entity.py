@@ -18,3 +18,12 @@ class Entity(object):
     def __post_init__(self):
         if self.__class__ == Entity:
             raise NotImplementedError("Abstract class can't be instantiated")
+
+    def __iter__(self):
+        for key in self.__dict__:
+            if issubclass(type(self.__dict__[key]), Entity):
+                yield key + '_id_', self.__dict__[key].id_
+            elif type(self.__dict__[key]) == datetime:
+                yield key, self.__dict__[key].strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                yield key, self.__dict__[key]

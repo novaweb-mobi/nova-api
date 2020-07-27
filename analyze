@@ -25,6 +25,6 @@ check_files $(pwd)/backend
 export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
 pylint nova_api -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
 pytest --junitxml=xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:coverage-reports/coverage-python.xml  tests/
-if [ -f './sonar-project.properties' ] then
+if [ -f './sonar-project.properties' ]; then
 	sonar-scanner
 fi

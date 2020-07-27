@@ -6,13 +6,12 @@ from Entity import Entity
 from MySQLHelper import MySQLHelper
 from exceptions import NoRowsAffectedException
 
-SELECT_QUERY = "SELECT {fields} FROM {table} {filters} LIMIT %s OFFSET %s;"
-FILTERS = "WHERE {filters}"
-FILTER = "{column} {comparator} %s"
-
 
 class GenericSQLDAO(object):
     ALLOWED_COMPARATORS = ['=', '<=>', '<>', '!=', '>', '>=', '<=', 'LIKE']
+    SELECT_QUERY = "SELECT {fields} FROM {table} {filters} LIMIT %s OFFSET %s;"
+    FILTERS = "WHERE {filters}"
+    FILTER = "{column} {comparator} %s"
 
     def __init__(self, db=None, table: str = '', fields: dict = None,
                  return_class: type = Entity, prefix: str = None) -> None:
@@ -20,6 +19,8 @@ class GenericSQLDAO(object):
         if db is None:
             self.db = MySQLHelper()
         self.TABLE = table
+        if self.TABLE == '':
+            raise ValueError("Table must have a name")
         self.PREFIX = prefix or return_class.__name__.lower() + "_"
         self.FIELDS = fields
         if not self.FIELDS:
@@ -34,11 +35,11 @@ class GenericSQLDAO(object):
         if len(id_) != 32:
             raise ValueError("UUID must be a 32-char string!")
 
-        query = SELECT_QUERY.format(
+        query = GenericSQLDAO.SELECT_QUERY.format(
             fields=', '.join(self.FIELDS.values()),
             table=self.TABLE,
-            filters=FILTERS.format(
-                filters=FILTER.format(
+            filters=GenericSQLDAO.FILTERS.format(
+                filters=GenericSQLDAO.FILTER.format(
                     column=self.FIELDS['id_'],
                     comparator="="
                 )
@@ -81,18 +82,21 @@ class GenericSQLDAO(object):
                     )
                 )
 
-        query = SELECT_QUERY.format(
+        filters_for_query = [
+            GenericSQLDAO.FILTER.format(
+                column=self.FIELDS[filter_],
+                comparator=(filters[filter_][0]
+                            if type(filters[filter_]) == list
+                            else '='))
+            for filter_ in filters.keys()
+        ]
+
+        query = GenericSQLDAO.SELECT_QUERY.format(
             fields=', '.join(self.FIELDS.values()),
             table=self.TABLE,
-            filters=FILTERS.format(
-                filters=' AND '.join(
-                    [FILTER.format(
-                        column=self.FIELDS[filter_],
-                        comparator=(filters[filter_][0]
-                                    if type(filters[filter_]) == list
-                                    else '='),
-                    ) for filter_ in filters.keys()]
-                )
+            filters=GenericSQLDAO.FILTERS.format(
+                filters=' AND '.join(filters_for_query)
+
             )
         )
 
@@ -157,13 +161,7 @@ class GenericSQLDAO(object):
             values=', '.join(['%s'] * len(
                 self.FIELDS.values())))
 
-        ent_values = entity.__dict__.copy()
-        for key in ent_values.keys():
-            value = ent_values[key]
-            if type(value) == datetime:
-                ent_values[key] = value.strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                )
+        ent_values = dict(entity).copy()
         row_count, last_row = self.db.query(query,
                                             list(ent_values.values()))
 
@@ -194,13 +192,17 @@ class GenericSQLDAO(object):
         )
 
         row_count, last_row = self.db.query(query,
-                                            list(entity.__dict__.values())
+                                            list(dict(entity).values())
                                             + [entity.id_])
 
         if row_count == 0:
             raise NoRowsAffectedException
 
         return entity.id_
+
+    def create_table_if_not_exists(self):
+        # TODO create base table
+        pass
 
     def close(self):
         self.db.close()
