@@ -1,41 +1,52 @@
 from datetime import datetime
-from typing import List, Optional, Dict
+from inspect import getfullargspec
+from typing import List, Optional
 
-from MySQLHelper import MySQLHelper
 from Entity import Entity
+from MySQLHelper import MySQLHelper
+from exceptions import NoRowsAffectedException
+
+SELECT_QUERY = "SELECT {fields} FROM {table} {filters} LIMIT %s OFFSET %s;"
+FILTERS = "WHERE {filters}"
+FILTER = "{column} {comparator} %s"
 
 
 class GenericSQLDAO(object):
+    ALLOWED_COMPARATORS = ['=', '<=>', '<>', '!=', '>', '>=', '<=', 'LIKE']
+
     def __init__(self, db=None, table: str = '', fields: dict = None,
-                 return_class: type = Entity) -> None:
+                 return_class: type = Entity, prefix: str = None) -> None:
         self.db = db
         if db is None:
             self.db = MySQLHelper()
         self.TABLE = table
+        self.PREFIX = prefix or return_class.__name__.lower() + "_"
         self.FIELDS = fields
+        if not self.FIELDS:
+            class_args = getfullargspec(return_class.__init__).args
+            class_args.pop(class_args.index('self'))
+            self.FIELDS = {arg: self.PREFIX + arg for arg in class_args}
         self.RETURN_CLASS = return_class
 
-    def get(self, id_: str, fields: List[str] = None,
-            filters: Dict[str, str] = None) -> Optional[Entity]:
+    def get(self, id_: str) -> Optional[Entity]:
         if type(id_) != str:
             raise TypeError("UUID must be a 32-char string!")
         if len(id_) != 32:
             raise ValueError("UUID must be a 32-char string!")
 
-        if not fields:
-            fields_ = '*'
-        else:
-            fields_ = ', '.join(self.FIELDS[field] for field in fields)
-
-        query = "SELECT {fields} FROM {table} WHERE {column} = %s;".format(
-            fields=fields_,
+        query = SELECT_QUERY.format(
+            fields=', '.join(self.FIELDS.values()),
             table=self.TABLE,
-            column=self.FIELDS['id_'], )
-        try:
-            self.db.query(query, [id_])
-            results = self.db.get_results()
-        except Exception as e:
-            raise e
+            filters=FILTERS.format(
+                filters=FILTER.format(
+                    column=self.FIELDS['id_'],
+                    comparator="="
+                )
+            )
+        )
+
+        self.db.query(query, [id_, 1, 0])
+        results = self.db.get_results()
 
         if results is None:
             return None
@@ -50,18 +61,50 @@ class GenericSQLDAO(object):
 
         return return_object
 
-    def get_all(self, length: int = 20, offset: int = 0) \
-            -> (int, List[Entity]):
-        query = "SELECT * FROM {table} LIMIT %s OFFSET %s;".format(
-            table=self.TABLE)
+    def get_all(self, length: int = 20, offset: int = 0,
+                filters: dict = None) -> (int, List[Entity]):
+        field_keys = self.FIELDS.keys()
+        for property_ in filters.keys():
+            if property_ not in field_keys:
+                raise ValueError(
+                    "Property {prop} not available in {entity}.".format(
+                        prop=property_,
+                        entity=self.RETURN_CLASS.__name__
+                    )
+                )
+            if type(filters[property_]) == list \
+                    and filters[property_][0] not in self.ALLOWED_COMPARATORS:
+                raise ValueError(
+                    "Comparator {comparator} not allowed for {entity}".format(
+                        comparator=filters[property_][0],
+                        entity=self.RETURN_CLASS.__name__
+                    )
+                )
+
+        query = SELECT_QUERY.format(
+            fields=', '.join(self.FIELDS.values()),
+            table=self.TABLE,
+            filters=FILTERS.format(
+                filters=' AND '.join(
+                    [FILTER.format(
+                        column=self.FIELDS[filter_],
+                        comparator=(filters[filter_][0]
+                                    if type(filters[filter_]) == list
+                                    else '='),
+                    ) for filter_ in filters.keys()]
+                )
+            )
+        )
+
         query_total = "SELECT count({column}) FROM {table};".format(
             table=self.TABLE,
             column=self.FIELDS['id_'])
-        try:
-            self.db.query(query, [length, offset])
-            results = self.db.get_results()
-        except Exception as e:
-            raise e
+
+        query_params = [item[1] if type(item) == list else item
+                        for item in filters.values()]
+
+        self.db.query(query, [*query_params, length, offset])
+        results = self.db.get_results()
 
         if results is None:
             return 0, []
@@ -76,11 +119,8 @@ class GenericSQLDAO(object):
             return_object = self.RETURN_CLASS(**result_dict)
             return_list.append(return_object)
 
-        try:
-            self.db.query(query_total)
-            total = self.db.get_results()[0][0]
-        except Exception as e:
-            raise e
+        self.db.query(query_total)
+        total = self.db.get_results()[0][0]
 
         return total, return_list
 
@@ -95,13 +135,11 @@ class GenericSQLDAO(object):
         query = 'DELETE FROM {table} WHERE {column} = %s;'.format(
             table=self.TABLE,
             column=self.FIELDS['id_'])
-        try:
-            row_count, last_row = self.db.query(query, [entity.id_])
-        except Exception as e:
-            raise e
+
+        row_count, last_row = self.db.query(query, [entity.id_])
 
         if row_count == 0:
-            raise IOError("No rows affected!")
+            raise NoRowsAffectedException()
 
     def create(self, entity: Entity) -> str:
         if type(entity) != self.RETURN_CLASS:
@@ -118,30 +156,34 @@ class GenericSQLDAO(object):
             fields=', '.join(self.FIELDS.values()),
             values=', '.join(['%s'] * len(
                 self.FIELDS.values())))
-        try:
-            ent_values = entity.__dict__.copy()
-            for key in ent_values.keys():
-                value = ent_values[key]
-                if type(value) == datetime:
-                    ent_values[key] = value.strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    )
-            row_count, last_row = self.db.query(query,
-                                                list(ent_values.values()))
-        except Exception as e:
-            raise e
+
+        ent_values = entity.__dict__.copy()
+        for key in ent_values.keys():
+            value = ent_values[key]
+            if type(value) == datetime:
+                ent_values[key] = value.strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
+        row_count, last_row = self.db.query(query,
+                                            list(ent_values.values()))
 
         if row_count == 0:
-            raise IOError("No rows affected!")
+            raise NoRowsAffectedException()
 
         return entity.id_
 
     def update(self, entity: Entity) -> str:
         if type(entity) != self.RETURN_CLASS:
-            raise TypeError("monitor must be a Monitor object!")
+            raise TypeError(
+                "Entity must be a {return_class} object!".format(
+                    return_class=self.RETURN_CLASS
+                )
+            )
 
         if self.get(entity.id_) is None:
-            raise AssertionError("monitor uuid doesn't exists in database!")
+            raise AssertionError("Entity uuid doesn't exists in database!")
+
+        entity.last_modified_datetime = datetime.now()
 
         query = "UPDATE {table} SET {fields} WHERE {column} = %s;".format(
             table=self.TABLE,
@@ -150,15 +192,13 @@ class GenericSQLDAO(object):
                  self.FIELDS.values()]),
             column=self.FIELDS['id_']
         )
-        try:
-            row_count, last_row = self.db.query(query,
-                                                list(entity.__dict__.values())
-                                                + [entity.id_])
-        except Exception as e:
-            raise e
+
+        row_count, last_row = self.db.query(query,
+                                            list(entity.__dict__.values())
+                                            + [entity.id_])
 
         if row_count == 0:
-            raise IOError("No rows affected!")
+            raise NoRowsAffectedException
 
         return entity.id_
 

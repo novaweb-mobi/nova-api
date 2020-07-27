@@ -12,7 +12,7 @@ class Entity(object):
     id_: str = field(default_factory=generate_id)
     creation_datetime: datetime = field(init=True,
                                         default_factory=datetime.now)
-    last_modified_datetime: datetime = field(init=False,
+    last_modified_datetime: datetime = field(init=True,
                                              default_factory=datetime.now)
 
     def __post_init__(self):
