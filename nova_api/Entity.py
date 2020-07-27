@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from uuid import uuid4
 
 
@@ -29,5 +29,7 @@ class Entity(object):
                 yield key + '_id_', self.__dict__[key].id_
             elif type(self.__dict__[key]) == datetime:
                 yield key, self.__dict__[key].strftime("%Y-%m-%d %H:%M:%S")
+            elif type(self.__dict__[key]) == date:
+                yield key, self.__dict__[key].strftime("%Y-%m-%d")
             else:
                 yield key, self.__dict__[key]
