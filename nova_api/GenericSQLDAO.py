@@ -1,3 +1,4 @@
+from dataclasses import fields
 from datetime import datetime
 from inspect import getfullargspec
 from typing import List, Optional
@@ -9,6 +10,17 @@ from exceptions import NoRowsAffectedException
 
 class GenericSQLDAO(object):
     ALLOWED_COMPARATORS = ['=', '<=>', '<>', '!=', '>', '>=', '<=', 'LIKE']
+    TYPE_MAPPING = {
+        "bool": "TINYINT(1)",
+        "datetime": "DATETIME",
+        "str": "VARCHAR(100)",
+        "int": "INT",
+        "float": "DECIMAL",
+        "date": "DATE"
+    }
+    CREATE_QUERY = "CREATE TABLE IF NOT EXISTS {table} ({fields}, " \
+                   "PRIMARY KEY({primary_keys})) ENGINE = InnoDB;"
+    COLUMN = "`{field}` {type} {default}"
     SELECT_QUERY = "SELECT {fields} FROM {table} {filters} LIMIT %s OFFSET %s;"
     FILTERS = "WHERE {filters}"
     FILTER = "{column} {comparator} %s"
@@ -201,8 +213,32 @@ class GenericSQLDAO(object):
         return entity.id_
 
     def create_table_if_not_exists(self):
-        # TODO create base table
-        pass
+        fields_ = list()
+        primary_keys = list()
+
+        for f in fields(self.RETURN_CLASS):
+            type_ = f.metadata.get('type') \
+                    or GenericSQLDAO.predict_db_type(f.type)
+            default = f.metadata.get('default') or "NULL"
+            field_name = self.FIELDS[f.name]
+
+            if f.metadata.get("primary_key") is True:
+                primary_keys.append('`{key}`'.format(key=field_name))
+
+            fields_.append(GenericSQLDAO.COLUMN.format(field=field_name,
+                                                       type=type_,
+                                                       default=default))
+        fields_ = ', '.join(fields_)
+        primary_keys = ', '.join(primary_keys)
+        query = GenericSQLDAO.CREATE_QUERY.format(table=self.TABLE,
+                                                  fields=fields_,
+                                                  primary_keys=primary_keys)
+        self.db.query(query)
+
+    @classmethod
+    def predict_db_type(cls, cls_to_predict):
+        return GenericSQLDAO.TYPE_MAPPING.get(cls_to_predict.__name__) \
+               or "CHAR(100)"
 
     def close(self):
         self.db.close()

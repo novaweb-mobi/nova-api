@@ -9,11 +9,15 @@ def generate_id():
 
 @dataclass
 class Entity(object):
-    id_: str = field(default_factory=generate_id)
+    id_: str = field(default_factory=generate_id,
+                     metadata={"type": "CHAR(32)",
+                               "primary_key": True})
     creation_datetime: datetime = field(init=True,
-                                        default_factory=datetime.now)
+                                        default_factory=datetime.now,
+                                        metadata={"type": "DATETIME"})
     last_modified_datetime: datetime = field(init=True,
-                                             default_factory=datetime.now)
+                                             default_factory=datetime.now,
+                                             metadata={"type": "DATETIME"})
 
     def __post_init__(self):
         if self.__class__ == Entity:
