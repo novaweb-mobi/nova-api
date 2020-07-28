@@ -1,6 +1,7 @@
 pytest
 pytest-cov
 pytest-mock
+pytest-ordering
 mysql-connector
 flask
 setuptools

@@ -7,16 +7,23 @@ def generate_id():
     return uuid4().hex
 
 
+def get_time():
+    dt = datetime.now().replace(microsecond=0)
+    return dt
+
+
 @dataclass
 class Entity(object):
     id_: str = field(default_factory=generate_id,
                      metadata={"type": "CHAR(32)",
-                               "primary_key": True})
+                               "primary_key": True,
+                               "default": "NOT NULL"})
     creation_datetime: datetime = field(init=True,
-                                        default_factory=datetime.now,
+                                        default_factory=get_time,
                                         metadata={"type": "DATETIME"})
     last_modified_datetime: datetime = field(init=True,
-                                             default_factory=datetime.now,
+                                             default_factory=get_time,
+                                             compare=False,
                                              metadata={"type": "DATETIME"})
 
     def __post_init__(self):

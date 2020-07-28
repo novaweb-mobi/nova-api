@@ -1,9 +1,7 @@
-from mock import call
-from pytest import fixture, raises, mark
-
 import mysql.connector
+from mock import call
+from pytest import fixture, mark
 
-import nova_api
 from MySQLHelper import MySQLHelper
 
 

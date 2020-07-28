@@ -3,7 +3,6 @@ from datetime import datetime
 
 from pytest import fixture, raises
 
-import nova_api
 from nova_api.Entity import Entity
 
 

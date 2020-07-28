@@ -76,32 +76,34 @@ class GenericSQLDAO(object):
 
     def get_all(self, length: int = 20, offset: int = 0,
                 filters: dict = None) -> (int, List[Entity]):
-        field_keys = self.FIELDS.keys()
-        for property_ in filters.keys():
-            if property_ not in field_keys:
-                raise ValueError(
-                    "Property {prop} not available in {entity}.".format(
-                        prop=property_,
-                        entity=self.RETURN_CLASS.__name__
+        filters_for_query = list()
+        if filters:
+            field_keys = self.FIELDS.keys()
+            for property_, value in filters.items():
+                if property_ not in field_keys:
+                    raise ValueError(
+                        "Property {prop} not available in {entity}.".format(
+                            prop=property_,
+                            entity=self.RETURN_CLASS.__name__
+                        )
                     )
-                )
-            if type(filters[property_]) == list \
-                    and filters[property_][0] not in self.ALLOWED_COMPARATORS:
-                raise ValueError(
-                    "Comparator {comparator} not allowed for {entity}".format(
-                        comparator=filters[property_][0],
-                        entity=self.RETURN_CLASS.__name__
+                if type(value) == list \
+                        and value[0] not in self.ALLOWED_COMPARATORS:
+                    raise ValueError(
+                        "Comparator {comparator} not allowed for {entity}"
+                            .format(comparator=value[0],
+                                    entity=self.RETURN_CLASS.__name__
+                                    )
                     )
-                )
 
-        filters_for_query = [
-            GenericSQLDAO.FILTER.format(
-                column=self.FIELDS[filter_],
-                comparator=(filters[filter_][0]
-                            if type(filters[filter_]) == list
-                            else '='))
-            for filter_ in filters.keys()
-        ]
+            filters_for_query = [
+                GenericSQLDAO.FILTER.format(
+                    column=self.FIELDS[filter_],
+                    comparator=(filters[filter_][0]
+                                if type(filters[filter_]) == list
+                                else '='))
+                for filter_ in filters.keys()
+            ]
 
         query = GenericSQLDAO.SELECT_QUERY.format(
             fields=', '.join(self.FIELDS.values()),

@@ -1,7 +1,6 @@
 from json import dumps
 
-import flask
-from mock import call, Mock
+from mock import Mock, call
 from pytest import mark
 
 import nova_api

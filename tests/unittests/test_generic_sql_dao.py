@@ -36,7 +36,7 @@ class TestGenericSQLDAO:
         print(mysql_mock.mock_calls)
         assert mysql_mock.mock_calls[1] == call().query(
             'CREATE TABLE IF NOT EXISTS test_table ('
-            '`id` CHAR(32) NULL, '
+            '`id` CHAR(32) NOT NULL, '
             '`creation_datetime` DATETIME NULL, '
             '`last_modified_datetime` DATETIME NULL, '
             '`name` VARCHAR(100) NULL, '
