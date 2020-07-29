@@ -1,0 +1,19 @@
+#Criação de teste de docker-compose para 
+#subir um banco de dados MySQL em um container docker
+
+#Passo 1 - Versão
+
+version: '3.1'
+
+#Passo 2 - Servicos
+
+services:
+  database:
+    image: mysql:5
+    ports:
+      - "3306:3036"
+
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_DATABASE: default
+      MYSQL_DATABASE: default
