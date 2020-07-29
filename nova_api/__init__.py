@@ -1,6 +1,12 @@
+import getopt
+import os
+import sys
+from dataclasses import fields
 from functools import wraps
 
 from flask import helpers, jsonify, make_response
+
+import BaseAPI
 
 
 def default_response(success: bool, status_code: int,
@@ -50,279 +56,72 @@ def use_dao(dao_class: type, error_message: str = "Erro"):
     return make_call
 
 
-api_base = """
-swagger: "2.0"
-info:
-  description: {entity} API
-  version: "1.0.0"
-  title: {entity} API
-consumes:
-  - "application/json"
-produces:
-  - "application/json"
+if __name__ == "__main__":
+    usage = 'Usage: %s -e entity [-d entity_dao -v api_version]'
+    entity = ''
+    entity_lower = ''
+    dao_class = ''
+    version = ''
+    if len(sys.argv) < 3:
+        print(usage % (sys.argv[0]))
+        sys.exit(1)
+    else:
+        try:
+            options, args = getopt.getopt(sys.argv[1:], "e:d:v:")
+            for option, value in options:
+                if option == '-e':
+                    entity = value
+                elif option == '-d':
+                    dao_class = value
+                elif option == '-v':
+                    version = value
+        except getopt.GetoptError as er:
+            print(er.msg)
+            print(usage % (sys.argv[0]))
+    if entity == '':
+        print(usage % (sys.argv[0]))
+        sys.exit(1)
+    try:
+        sys.path.insert(0, '')
+        mod = __import__(entity, fromlist=[entity])
+        ent = getattr(mod, entity)
+        if dao_class == '':
+            dao_class = entity + 'DAO'
+        __import__(dao_class)
+    except ModuleNotFoundError as e:
+        print("You should run the script in the same folder as your entity and"
+              " it's DAO class. You must inform the entity name with -e and "
+              "the DAO name with -d. You may inform the version with -v.")
+        print(e)
+        sys.exit(1)
 
-basePath: "/v{version}"
+    entity_lower = entity.lower()
 
-paths:
-  /health:
-    get:
-      operationId: {entity_api}.probe
-      tags:
-        - "{entity}"
-      summary: "Status check"
-      description: "Verifies if the API is ready."
-      responses:
-        200:
-          description: "API ready"
-          schema:
-            type: object
-            properties:
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  available:
-                    type: integer
-        500:
-          description: "API not ready"
+    if os.path.isfile(
+            "{entity_lower}_api.py".format(entity_lower=entity_lower)):
+        print("API already exists. Skipping generation...")
+    with open("{entity_lower}_api.py".format(entity_lower=entity_lower),
+              'w+') as f:
+        f.write(BaseAPI.base_api.format(DAO_CLASS=dao_class, ENTITY=entity,
+                                        ENTITY_LOWER=entity_lower))
 
-  /{entity_lower}:
-    get:
-      operationId: {entity_api}.read
-      tags:
-        - "{entity}"
-      parameters:
-        - name: length
-          in: query
-          type: integer
-          required: false
-          description: "Amount of {entity_lowe} to select"
-        - name: offset
-          in: query
-          type: integer
-          required: false
-          description: "Amount of {entity_lower} to skip"
-        - name: filters
-          in: body
-          type: object
-          required: false
-      summary: "Lists all {entity} available"
-      description: |
-        "Lists all {entity} in the database. May be filtered by all fields."
-      responses:
-        200:
-          description: "Available {entity}"
-          schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  total:
-                    type: integer
-                  results:
-                    type: array
-                    items:
-                      entities:
-                        type: object
-        500:
-          description: "An error ocurred"
-          schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  error:
-                    type: string
-    post:
-      operationId: {entity_api}.create
-      tags:
-        - "{entity}"
-      parameters:
-        - name: entity
-          in: body
-          type: object
-          required: true
-          description: "{entity} to add"
-      summary: "Create a new {entity}."
-      description: |
-        "Creates a new {entity} in the database"
-      responses:
-        201:
-          description: "{entity} created"
-          schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  entity:
-                    type: object
-        500:
-          description: "An error ocurred"
-          schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  error:
-                    type: string
-  
-  /{entity_lower}/{id_}:
-    get:
-      operationId: {entity_api}.read_one
-      tags:
-        - "{entity}"
-      parameters:
-        - name: id_
-          in: path
-          type: string
-          required: true
-          description: "Id of {entity_lower} to select"
-      summary: "Recover {entity_lower}"
-      description: |
-        "Select {entity_lower} by Id"
-      responses:
-        201:
-          description: "{entity}"
-          schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  entity:
-                    type: object
-        500:
-          description: "An error ocurred"
-          schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  error:
-                    type: string
-    put:
-      operationId: {entity_api}.update
-      tags:
-        - "{entity}"
-      parameters:
-        - name: id_
-          in: path
-          type: string
-          required: true
-          description: "Id of {entity_lower} to select"
-        - name: entity
-          in: body
-          type: object
-          required: true
-          description: "{entity} data"
-      summary: "Update {entity}"
-      description: |
-        "Update {entity} in database."
-      responses:
-        200:
-          description: "{entity}"
-          schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  entity:
-                    type: object
-        500:
-          description: "An error ocurred"
-          schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  error:
-                    type: string        
-    delete:
-      operationId: {entity_api}.delete
-      tags:
-        - "{entity}"
-      parameters:
-        - name: id_
-          in: path
-          type: string
-          required: true
-          description: "Id of {entity_lower} to select"
-      summary: "Delete {entity}"
-      description: |
-        "Delete {entity} in database."
-      responses:
-        200:
-          description: "{entity}"
-          schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  entity:
-                    type: object
-        500:
-          description: "An error ocurred"
-          schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  error:
-                    type: string
-"""
+    if version == '':
+        version = '1'
+    parameters = list()
+    for f in fields(ent):
+        parameters.append(
+            BaseAPI.parameter.format(parameter_name=f.name,
+                                     parameter_location='query',
+                                     parameter_type='string'))
 
-parameter = \
-    """        - name: {parameter_name}
-          in: {parameter_location}
-          type: {parameter_type}
-          required: false"""
+    parameters = '\n'.join(parameters)
+
+    if os.path.isfile(
+            "{entity_lower}_api.yml".format(entity_lower=entity_lower)):
+        print("API documentation already exists. Skipping generation...")
+    with open("{entity_lower}_api.yml".format(entity_lower=entity_lower),
+              'w+') as f:
+        f.write(BaseAPI.api_swagger.format(ENTITY=entity,
+                                           ENTITY_LOWER=entity_lower,
+                                           VERSION=version,
+                                           PARAMETERS=parameters))

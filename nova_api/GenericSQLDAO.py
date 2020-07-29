@@ -77,7 +77,13 @@ class GenericSQLDAO(object):
     def get_all(self, length: int = 20, offset: int = 0,
                 filters: dict = None) -> (int, List[Entity]):
         filters_for_query = list()
+        query_params = list()
+        filters_ = ''
         if filters:
+            print("received filters")
+            query_params = [item[1] if type(item) == list else item
+                            for item in filters.values()]
+
             field_keys = self.FIELDS.keys()
             for property_, value in filters.items():
                 if property_ not in field_keys:
@@ -104,22 +110,18 @@ class GenericSQLDAO(object):
                                 else '='))
                 for filter_ in filters.keys()
             ]
+            filters_ = GenericSQLDAO.FILTERS.format(
+                filters=' AND '.join(filters_for_query))
 
         query = GenericSQLDAO.SELECT_QUERY.format(
             fields=', '.join(self.FIELDS.values()),
             table=self.TABLE,
-            filters=GenericSQLDAO.FILTERS.format(
-                filters=' AND '.join(filters_for_query)
-
-            )
+            filters=filters_
         )
 
         query_total = "SELECT count({column}) FROM {table};".format(
             table=self.TABLE,
             column=self.FIELDS['id_'])
-
-        query_params = [item[1] if type(item) == list else item
-                        for item in filters.values()]
 
         self.db.query(query, [*query_params, length, offset])
         results = self.db.get_results()

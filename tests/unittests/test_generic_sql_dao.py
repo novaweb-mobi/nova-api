@@ -116,6 +116,16 @@ class TestGenericSQLDAO:
             ["2020-01-01 00:00:00", '123', 'Anom', 20, 0]
         )
 
+    def test_get_all_no_filter(self, generic_dao, mysql_mock):
+        generic_dao.get_all()
+        assert mysql_mock.mock_calls[1] == call().query(
+            "SELECT id, creation_datetime, last_modified_datetime,"
+            " name, birthday "
+            "FROM test_table  "
+            "LIMIT %s OFFSET %s;",
+            [20, 0]
+        )
+
     def test_get_all_unallowed_operator(self, generic_dao):
         with raises(ValueError):
             generic_dao.get_all(filters={"creation_datetime": ['>>', 'abc']})
