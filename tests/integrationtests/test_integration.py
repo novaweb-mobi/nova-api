@@ -1,3 +1,4 @@
+from time import sleep
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -54,9 +55,14 @@ class TestIntegration:
 
     @mark.order3
     def test_update(self, user_dao, user):
+        last_modified_old = user.last_modified_datetime
+        sleep(1)
         user.birthday = date(1998, 12, 21)
+        assert user_dao.get(user.id_).birthday != date(1998, 12, 21)
         user_dao.update(user)
-        assert user_dao.get(user.id_).birthday == date(1998, 12, 21)
+        updated_user = user_dao.get(user.id_)
+        assert updated_user.birthday == date(1998, 12, 21)
+        assert updated_user.last_modified_datetime > last_modified_old
 
     @mark.order4
     def test_delete(self, user_dao, user):

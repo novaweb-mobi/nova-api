@@ -1,3 +1,4 @@
+from re import sub
 from dataclasses import fields
 from datetime import datetime
 from inspect import getfullargspec
@@ -6,6 +7,11 @@ from typing import List, Optional
 from Entity import Entity
 from MySQLHelper import MySQLHelper
 from exceptions import NoRowsAffectedException
+
+
+def camel_to_snake(name):
+    name = sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
 
 
 class GenericSQLDAO(object):
@@ -25,21 +31,23 @@ class GenericSQLDAO(object):
     FILTERS = "WHERE {filters}"
     FILTER = "{column} {comparator} %s"
 
-    def __init__(self, db=None, table: str = '', fields: dict = None,
+    def __init__(self, db=None, table: str = None, fields: dict = None,
                  return_class: type = Entity, prefix: str = None) -> None:
         self.db = db
         if db is None:
             self.db = MySQLHelper()
-        self.TABLE = table
-        if self.TABLE == '':
-            raise ValueError("Table must have a name")
-        self.PREFIX = prefix or return_class.__name__.lower() + "_"
+
+        self.RETURN_CLASS = return_class
+
+        self.TABLE = table or camel_to_snake(return_class.__name__) + 's'
+
+        self.PREFIX = prefix or camel_to_snake(return_class.__name__) + "_"
+
         self.FIELDS = fields
         if not self.FIELDS:
             class_args = getfullargspec(return_class.__init__).args
             class_args.pop(class_args.index('self'))
             self.FIELDS = {arg: self.PREFIX + arg for arg in class_args}
-        self.RETURN_CLASS = return_class
 
     def get(self, id_: str) -> Optional[Entity]:
         if type(id_) != str:
@@ -47,40 +55,18 @@ class GenericSQLDAO(object):
         if len(id_) != 32:
             raise ValueError("UUID must be a 32-char string!")
 
-        query = GenericSQLDAO.SELECT_QUERY.format(
-            fields=', '.join(self.FIELDS.values()),
-            table=self.TABLE,
-            filters=GenericSQLDAO.FILTERS.format(
-                filters=GenericSQLDAO.FILTER.format(
-                    column=self.FIELDS['id_'],
-                    comparator="="
-                )
-            )
-        )
+        _, results = self.get_all(1, 0, {"id_": id_})
 
-        self.db.query(query, [id_, 1, 0])
-        results = self.db.get_results()
-
-        if results is None:
+        if len(results) == 0:
             return None
 
-        result = results[0]
-        result_dict = dict()
-
-        for index, result_column in enumerate(self.FIELDS.keys()):
-            result_dict[result_column] = result[index]
-
-        return_object = self.RETURN_CLASS(**result_dict)
-
-        return return_object
+        return results[0]
 
     def get_all(self, length: int = 20, offset: int = 0,
                 filters: dict = None) -> (int, List[Entity]):
-        filters_for_query = list()
         query_params = list()
         filters_ = ''
         if filters:
-            print("received filters")
             query_params = [item[1] if type(item) == list else item
                             for item in filters.values()]
 
@@ -119,25 +105,17 @@ class GenericSQLDAO(object):
             filters=filters_
         )
 
-        query_total = "SELECT count({column}) FROM {table};".format(
-            table=self.TABLE,
-            column=self.FIELDS['id_'])
-
         self.db.query(query, [*query_params, length, offset])
         results = self.db.get_results()
 
         if results is None:
             return 0, []
 
-        return_list = list()
-        for result in results:
-            result_dict = dict()
+        return_list = [self.RETURN_CLASS(*result) for result in results]
 
-            for index, result_column in enumerate(self.FIELDS.keys()):
-                result_dict[result_column] = result[index]
-
-            return_object = self.RETURN_CLASS(**result_dict)
-            return_list.append(return_object)
+        query_total = "SELECT count({column}) FROM {table};".format(
+            table=self.TABLE,
+            column=self.FIELDS['id_'])
 
         self.db.query(query_total)
         total = self.db.get_results()[0][0]
@@ -150,7 +128,11 @@ class GenericSQLDAO(object):
                 type=self.RETURN_CLASS.__name__))
 
         if self.get(entity.id_) is None:
-            raise AssertionError("monitor uuid doesn't exists in database!")
+            raise AssertionError(
+                "{entity} uuid doesn't exists in database!".format(
+                    entity=self.RETURN_CLASS.__name__
+                )
+            )
 
         query = 'DELETE FROM {table} WHERE {column} = %s;'.format(
             table=self.TABLE,
@@ -170,7 +152,12 @@ class GenericSQLDAO(object):
             )
 
         if self.get(entity.id_) is not None:
-            raise AssertionError("Entity uuid already exists in database!")
+            raise AssertionError(
+                "{entity} uuid already exists in database!".format(
+                    entity=self.RETURN_CLASS.__name__
+                )
+            )
+
         query = 'INSERT INTO {table} ({fields}) VALUES ({values});'.format(
             table=self.TABLE,
             fields=', '.join(self.FIELDS.values()),
@@ -198,6 +185,7 @@ class GenericSQLDAO(object):
             raise AssertionError("Entity uuid doesn't exists in database!")
 
         entity.last_modified_datetime = datetime.now()
+        print(entity.last_modified_datetime)
 
         query = "UPDATE {table} SET {fields} WHERE {column} = %s;".format(
             table=self.TABLE,

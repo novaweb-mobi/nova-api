@@ -1,14 +1,5 @@
-from dataclasses import dataclass
-
-from Entity import Entity
 from GenericSQLDAO import GenericSQLDAO
-
-
-@dataclass
-class User(Entity):
-    first_name: str = None
-    last_name: str = None
-    email: str = None
+from User import User
 
 
 class UserDAO(GenericSQLDAO):

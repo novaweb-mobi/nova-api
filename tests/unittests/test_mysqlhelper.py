@@ -1,3 +1,5 @@
+from os import environ
+
 import mysql.connector
 from mock import call
 from pytest import fixture, mark
