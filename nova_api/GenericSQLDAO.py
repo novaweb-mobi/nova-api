@@ -1,12 +1,12 @@
-from re import sub
 from dataclasses import fields
 from datetime import datetime
 from inspect import getfullargspec
+from re import sub
 from typing import List, Optional
 
-from Entity import Entity
-from MySQLHelper import MySQLHelper
-from exceptions import NoRowsAffectedException
+from nova_api.Entity import Entity
+from nova_api.MySQLHelper import MySQLHelper
+from nova_api.exceptions import NoRowsAffectedException
 
 
 def camel_to_snake(name):

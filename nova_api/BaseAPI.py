@@ -1,5 +1,5 @@
 base_api = """
-from GenericSQLDAO import GenericSQLDAO
+from nova_api.GenericSQLDAO import GenericSQLDAO
 from nova_api import error_response, success_response, use_dao
 
 from {DAO_CLASS} import {DAO_CLASS}

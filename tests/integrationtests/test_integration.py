@@ -1,11 +1,11 @@
-from time import sleep
 from dataclasses import dataclass, field
 from datetime import date
+from time import sleep
 
 from pytest import fixture, mark
 
-from Entity import Entity
-from GenericSQLDAO import GenericSQLDAO
+from nova_api.Entity import Entity
+from nova_api.GenericSQLDAO import GenericSQLDAO
 
 
 @dataclass

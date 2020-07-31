@@ -25,5 +25,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.7',
+    entry_points={
+        'console_scripts': ['generate_nova_api=nova_api:generate_api']
+    }
 )
-

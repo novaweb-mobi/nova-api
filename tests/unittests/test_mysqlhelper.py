@@ -1,10 +1,8 @@
-from os import environ
-
 import mysql.connector
 from mock import call
 from pytest import fixture, mark
 
-from MySQLHelper import MySQLHelper
+from nova_api.MySQLHelper import MySQLHelper
 
 
 class TestMySQLHelper:

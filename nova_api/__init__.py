@@ -6,7 +6,7 @@ from functools import wraps
 
 from flask import helpers, jsonify, make_response
 
-import BaseAPI
+import nova_api.BaseAPI as BaseAPI
 
 
 def default_response(success: bool, status_code: int,
@@ -56,28 +56,24 @@ def use_dao(dao_class: type, error_message: str = "Erro"):
     return make_call
 
 
-if __name__ == "__main__":
-    usage = 'Usage: %s -e entity [-d entity_dao -v api_version]'
+def generate_api():
     entity = ''
-    entity_lower = ''
-    dao_class = ''
     version = ''
-    if len(sys.argv) < 3:
+    dao_class = ''
+    usage = 'Usage: %s generate_api -e entity ' \
+            '[-d entity_dao -v api_version]'
+    try:
+        options, args = getopt.getopt(sys.argv[1:], "e:d:v:")
+        for option, value in options:
+            if option == '-e':
+                entity = value
+            elif option == '-d':
+                dao_class = value
+            elif option == '-v':
+                version = value
+    except getopt.GetoptError as er:
+        print(er.msg)
         print(usage % (sys.argv[0]))
-        sys.exit(1)
-    else:
-        try:
-            options, args = getopt.getopt(sys.argv[1:], "e:d:v:")
-            for option, value in options:
-                if option == '-e':
-                    entity = value
-                elif option == '-d':
-                    dao_class = value
-                elif option == '-v':
-                    version = value
-        except getopt.GetoptError as er:
-            print(er.msg)
-            print(usage % (sys.argv[0]))
     if entity == '':
         print(usage % (sys.argv[0]))
         sys.exit(1)
@@ -87,7 +83,7 @@ if __name__ == "__main__":
         ent = getattr(mod, entity)
         if dao_class == '':
             dao_class = entity + 'DAO'
-        __import__(dao_class)
+        __import__(dao_class, fromlist=[dao_class])
     except ModuleNotFoundError as e:
         print("You should run the script in the same folder as your entity and"
               " it's DAO class. You must inform the entity name with -e and "
