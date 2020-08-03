@@ -19,6 +19,8 @@ setuptools.setup(
     install_requires=[
         'mysql-connector',
         'flask',
+        'flask-cors',
+        'connexion[swagger-ui]'
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

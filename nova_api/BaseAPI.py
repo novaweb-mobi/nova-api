@@ -16,8 +16,8 @@ def probe(dao: GenericSQLDAO = None):
 def read(length: int = 20, offset: int = 0,
          dao: GenericSQLDAO = None, **kwargs):
     for key, value in kwargs.items():
-        kwargs[key] = value.split(',') \
-                        if len(value.split(',')) > 1 \
+        kwargs[key] = value.split(',') \\
+                        if len(value.split(',')) > 1 \\
                         else value
     total, results = dao.get_all(length=length, offset=offset,
                                  filters=kwargs if len(kwargs) > 0 else None)
@@ -283,7 +283,8 @@ paths:
           schema:
             type: object
           required: true
-          description: "{ENTITY} to add"      summary: "Update {ENTITY}"
+          description: "{ENTITY} to add"
+      summary: "Update {ENTITY}"
       description: |
         "Update {ENTITY} in database."
       responses:
@@ -314,7 +315,7 @@ paths:
                 type: object
                 properties:
                   error:
-                    type: string        
+                    type: string
     delete:
       operationId: {ENTITY_LOWER}_api.delete
       tags:

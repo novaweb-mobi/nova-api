@@ -6,7 +6,7 @@ from pytest import fixture, mark, raises
 
 from Entity import Entity
 from GenericSQLDAO import GenericSQLDAO
-from exceptions import NoRowsAffectedException
+from nova_api.exceptions import NoRowsAffectedException
 
 
 @dataclass
