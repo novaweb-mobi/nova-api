@@ -1,0 +1,282 @@
+swagger: "2.0"
+info:
+  description: EntityForTest API
+  version: "1.0.0"
+  title: EntityForTest API
+consumes:
+  - "application/json"
+produces:
+  - "application/json"
+
+basePath: "/v1"
+
+paths:
+  /health:
+    get:
+      operationId: entityfortest_api.probe
+      tags:
+        - "EntityForTest"
+      summary: "Status check"
+      description: "Verifies if the API is ready."
+      responses:
+        200:
+          description: "API ready"
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  available:
+                    type: integer
+        500:
+          description: "API not ready"
+
+  /entityfortest:
+    get:
+      operationId: entityfortest_api.read
+      tags:
+        - "EntityForTest"
+      parameters:
+        - name: length
+          in: query
+          type: integer
+          required: false
+          description: "Amount of entityfortest to select"
+        - name: offset
+          in: query
+          type: integer
+          required: false
+          description: "Amount of entityfortest to skip"
+        - name: id_
+          in: query
+          type: string
+          required: false
+        - name: creation_datetime
+          in: query
+          type: string
+          required: false
+        - name: last_modified_datetime
+          in: query
+          type: string
+          required: false
+        - name: test_field
+          in: query
+          type: string
+          required: false
+      summary: "Lists all EntityForTest available"
+      description: |
+        "Lists all EntityForTest in the database. May be filtered by all fields."
+      responses:
+        200:
+          description: "Available EntityForTest"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  results:
+                    type: array
+                    properties:
+                      entities:
+                        type: object
+        500:
+          description: "An error ocurred"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string
+    post:
+      operationId: entityfortest_api.create
+      tags:
+        - "EntityForTest"
+      parameters:
+        - name: entity
+          in: body
+          schema:
+            type: object
+          required: true
+          description: "EntityForTest to add"
+      summary: "Create a new EntityForTest."
+      description: |
+        "Creates a new EntityForTest in the database"
+      responses:
+        201:
+          description: "EntityForTest created"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  entity:
+                    type: object
+        500:
+          description: "An error ocurred"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /entityfortest/{id_}:
+    get:
+      operationId: entityfortest_api.read_one
+      tags:
+        - "EntityForTest"
+      parameters:
+        - name: id_
+          in: path
+          type: string
+          required: true
+          description: "Id of entityfortest to select"
+      summary: "Recover entityfortest"
+      description: |
+        "Select entityfortest by Id"
+      responses:
+        201:
+          description: "EntityForTest"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  entity:
+                    type: object
+        500:
+          description: "An error ocurred"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string
+    put:
+      operationId: entityfortest_api.update
+      tags:
+        - "EntityForTest"
+      parameters:
+        - name: id_
+          in: path
+          type: string
+          required: true
+          description: "Id of entityfortest to select"
+        - name: entity
+          in: body
+          schema:
+            type: object
+          required: true
+          description: "EntityForTest to add"
+      summary: "Update EntityForTest"
+      description: |
+        "Update EntityForTest in database."
+      responses:
+        200:
+          description: "EntityForTest"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  entity:
+                    type: object
+        500:
+          description: "An error ocurred"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string
+    delete:
+      operationId: entityfortest_api.delete
+      tags:
+        - "EntityForTest"
+      parameters:
+        - name: id_
+          in: path
+          type: string
+          required: true
+          description: "Id of entityfortest to select"
+      summary: "Delete EntityForTest"
+      description: |
+        "Delete EntityForTest in database."
+      responses:
+        200:
+          description: "EntityForTest"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  entity:
+                    type: object
+        500:
+          description: "An error ocurred"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string

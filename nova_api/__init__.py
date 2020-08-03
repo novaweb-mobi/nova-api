@@ -83,7 +83,8 @@ def generate_api():
         ent = getattr(mod, entity)
         if dao_class == '':
             dao_class = entity + 'DAO'
-        __import__(dao_class, fromlist=[dao_class])
+        mod = __import__(dao_class, fromlist=[dao_class])
+        dao = getattr(mod, dao_class)
     except ModuleNotFoundError as e:
         print("You should run the script in the same folder as your entity and"
               " it's DAO class. You must inform the entity name with -e and "
@@ -91,20 +92,25 @@ def generate_api():
         print(e)
         sys.exit(1)
 
-    entity_lower = entity.lower()
+    create_api_files(ent, dao, version)
+
+
+def create_api_files(entity, dao_class, version):
+    entity_lower = entity.__name__.lower()
 
     if os.path.isfile(
             "{entity_lower}_api.py".format(entity_lower=entity_lower)):
         print("API already exists. Skipping generation...")
     with open("{entity_lower}_api.py".format(entity_lower=entity_lower),
               'w+') as f:
-        f.write(BaseAPI.base_api.format(DAO_CLASS=dao_class, ENTITY=entity,
+        f.write(BaseAPI.base_api.format(DAO_CLASS=dao_class.__name__,
+                                        ENTITY=entity.__name__,
                                         ENTITY_LOWER=entity_lower))
 
     if version == '':
         version = '1'
     parameters = list()
-    for f in fields(ent):
+    for f in fields(entity):
         parameters.append(
             BaseAPI.parameter.format(parameter_name=f.name,
                                      parameter_location='query',
@@ -117,7 +123,7 @@ def generate_api():
         print("API documentation already exists. Skipping generation...")
     with open("{entity_lower}_api.yml".format(entity_lower=entity_lower),
               'w+') as f:
-        f.write(BaseAPI.api_swagger.format(ENTITY=entity,
+        f.write(BaseAPI.api_swagger.format(ENTITY=entity.__name__,
                                            ENTITY_LOWER=entity_lower,
                                            VERSION=version,
                                            PARAMETERS=parameters))

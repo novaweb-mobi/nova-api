@@ -1,9 +1,27 @@
+import os
+from dataclasses import dataclass
 from json import dumps
 
+from connexion.spec import Specification
 from mock import Mock, call
 from pytest import mark
 
 import nova_api
+from nova_api.Entity import Entity
+from nova_api.GenericSQLDAO import GenericSQLDAO
+
+
+@dataclass
+class EntityForTest(Entity):
+    test_field: int = 0
+
+
+class EntityDAO(GenericSQLDAO):
+    TABLE = 'entities'
+
+    def __init__(self, db=None):
+        super(EntityDAO, self).__init__(db=db, table=EntityDAO.TABLE,
+                                        return_class=EntityForTest)
 
 
 class TestAPIUtils:
@@ -78,3 +96,11 @@ class TestAPIUtils:
         ret = test()
         assert my_mock.mock_calls == [call(), call().close()]
         assert ret == "NOT OK"
+
+    def test_generate_valid_api_yml(self):
+        nova_api.create_api_files(EntityForTest, EntityDAO, '1')
+        gen_spec = Specification.load('entityfortest_api.yml')
+        base_spec = Specification.load('entityfortest_api_result.yml')
+        assert gen_spec == base_spec
+        os.remove('entityfortest_api.py')
+        os.remove('entityfortest_api_result.yml')
