@@ -54,7 +54,7 @@ jobs:
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
         mkdir reports
-        pylint nova_api -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
+        pylint nova_api --exit-zero -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
     - name: (Unit)Test with pytest
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
