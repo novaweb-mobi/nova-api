@@ -53,8 +53,11 @@ jobs:
     - name: Lint with pylint
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
+        mkdir reports
         pylint nova_api -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
     - name: (Unit)Test with pytest
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
+        mkdir xunit-reports
+        mkdir coverage-reports
         pytest --junitxml=xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:coverage-reports/coverage-python.xml  tests/unittests
