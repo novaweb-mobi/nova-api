@@ -105,3 +105,16 @@ class TestAPIUtils:
         )
         assert gen_spec == base_spec
         os.remove('entityfortest_api.yml')
+        os.remove('entityfortest_api.py')
+
+    def test_generate_api_py(self):
+        nova_api.create_api_files(EntityForTest, EntityDAO, '1')
+        gen_spec = ''
+        with open('entityfortest_api.py', 'r') as f:
+            gen_spec = f.read()
+        with open('tests/unittests/entityfortest_api_result.py') as f:
+            base_spec = f.read()
+            assert gen_spec == base_spec
+        os.remove('entityfortest_api.yml')
+        os.remove('entityfortest_api.py')
+

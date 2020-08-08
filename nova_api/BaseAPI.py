@@ -1,9 +1,9 @@
-base_api = """
-from nova_api.GenericSQLDAO import GenericSQLDAO
+base_api = """from nova_api.GenericSQLDAO import GenericSQLDAO
 from nova_api import error_response, success_response, use_dao
 
 from {DAO_CLASS} import {DAO_CLASS}
 from {ENTITY} import {ENTITY}
+
 
 @use_dao({DAO_CLASS}, "API Unavailable")
 def probe(dao: GenericSQLDAO = None):

@@ -2,6 +2,7 @@ import os
 from typing import Any, List
 
 import mysql.connector
+from mysql.connector import InterfaceError, ProgrammingError, Error
 
 
 class MySQLHelper(object):
@@ -28,7 +29,7 @@ class MySQLHelper(object):
                                                    passwd=str(password),
                                                    database=str(database))
             self.cursor = self.db_conn.cursor()
-        except mysql.connector.Error as err:
+        except (InterfaceError, ValueError) as err:
             raise ConnectionError("\nSomething went wrong when connecting "
                                   "to mysql: {err}\n\n".format(err=err))
 
@@ -43,7 +44,7 @@ class MySQLHelper(object):
                     or query.__contains__('DELETE')):
                 self.db_conn.commit()
             return self.cursor.rowcount, self.cursor.lastrowid
-        except mysql.connector.Error as err:
+        except Error as err:
             raise RuntimeError(
                 "\nSomething went wrong with the query: {}\n\n".format(err)
             )
@@ -52,7 +53,7 @@ class MySQLHelper(object):
         try:
             results = self.cursor.fetchall()
             return results if len(results) > 0 else None
-        except mysql.connector.Error as err:
+        except Error as err:
             raise RuntimeError("\nSomething went wrong: {}\n\n".format(err))
 
     def close(self):
