@@ -70,22 +70,10 @@ jobs:
     - name: Integration Test
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
-        cd tests
         function db_ready(){
           export DB_URL=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tests_database_1)
 
-          python << END
-          import sys
-          import os
-          import mysql.connector
-          print(os.environ.get("DB_URL"))
-          try:
-            db_conn = mysql.connector.connect(host=os.environ.get("DB_URL"), user="root",passwd="root", database="default")
-          except mysql.connector.Error as err:
-            print('Error:', err)
-            sys.exit(-1)
-          sys.exit(0)
-          END
+          python tests/check_db.py
         }
         until db_ready; do
           >&2 echo 'Waiting for database to become available...'
