@@ -7,3 +7,4 @@ mysql-connector
 flask
 setuptools
 wheel
+connexion
