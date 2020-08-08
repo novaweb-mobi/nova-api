@@ -52,7 +52,6 @@ jobs:
         check_files $(pwd)/nova_api
     - name: Start db for integration testing
       run: |
-        apt install docker docker-compose
         cd tests
         docker-compose up -d
         cd ..
