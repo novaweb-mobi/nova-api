@@ -100,7 +100,8 @@ class TestAPIUtils:
     def test_generate_valid_api_yml(self):
         nova_api.create_api_files(EntityForTest, EntityDAO, '1')
         gen_spec = Specification.load('entityfortest_api.yml')
-        base_spec = Specification.load('entityfortest_api_result.yml')
+        base_spec = Specification.load(
+            'tests/unittests/entityfortest_api_result.yml'
+        )
         assert gen_spec == base_spec
-        os.remove('entityfortest_api.py')
-        os.remove('entityfortest_api_result.yml')
+        os.remove('entityfortest_api.yml')

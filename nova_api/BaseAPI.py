@@ -54,7 +54,7 @@ def create(entity: dict, dao: GenericSQLDAO = None):
 def update(id_: str, entity: dict, dao: GenericSQLDAO = None):
     entity_to_update = dao.get(id_)
 
-    if not entity:
+    if not entity_to_update:
         return error_response(status_code=404,
                               message="{ENTITY} not found",
                               data={{"id_": id_}})

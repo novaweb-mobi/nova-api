@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, datetime
+from time import sleep
 
 from mock import call
 from pytest import fixture, mark, raises
@@ -31,6 +32,10 @@ class TestGenericSQLDAO:
                     "birthday": "birthday"},
             return_class=TestEntity)
         return generic_dao
+
+    @fixture
+    def entity(self):
+        return TestEntity(id_="12345678901234567890123456789012")
 
     def test_create_table(self, generic_dao, mysql_mock):
         generic_dao.create_table_if_not_exists()
@@ -215,7 +220,7 @@ class TestGenericSQLDAO:
         with raises(ValueError):
             generic_dao.get_all(filters={"test": 1})
 
-    def test_remove(self, generic_dao, mysql_mock):
+    def test_remove(self, generic_dao, mysql_mock, entity):
         def isDeleteQuery(*args):
             if "DELETE" in args[0]:
                 return 1, 0
@@ -228,13 +233,13 @@ class TestGenericSQLDAO:
                                         "Anom",
                                         None]]
         db.query.side_effect = isDeleteQuery
-        generic_dao.remove(TestEntity(id_="12345678901234567890123456789012"))
+        generic_dao.remove(entity)
         assert mysql_mock.mock_calls[5] == call().query(
             'DELETE FROM test_table WHERE id = %s;',
             ['12345678901234567890123456789012']
         )
 
-    def test_remove_fail(self, generic_dao, mysql_mock):
+    def test_remove_fail(self, generic_dao, mysql_mock, entity):
         def is_delete_query(*args):
             if "DELETE" in args[0]:
                 return 0, 0
@@ -248,28 +253,23 @@ class TestGenericSQLDAO:
                                         None]]
         db.query.side_effect = is_delete_query
         with raises(NoRowsAffectedException):
-            generic_dao.remove(
-                TestEntity(id_="12345678901234567890123456789012")
-            )
+            generic_dao.remove(entity)
 
-    def test_remove_not_exist(self, generic_dao, mysql_mock):
+    def test_remove_not_exist(self, generic_dao, mysql_mock, entity):
         db = mysql_mock.return_value
         db.get_results.return_value = None
         with raises(AssertionError):
-            generic_dao.remove(TestEntity(
-                id_="12345678901234567890123456789012"))
+            generic_dao.remove(entity)
 
     def test_remove_not_entity(self, generic_dao, mysql_mock):
         with raises(TypeError):
             generic_dao.remove("12345678901234567890123456789012")
 
-    def test_create(self, generic_dao, mysql_mock):
+    def test_create(self, generic_dao, mysql_mock, entity):
         def is_insert_query(*args):
             if "INSERT" in args[0]:
                 return 1, 0
             return None
-
-        entity = TestEntity(id_="12345678901234567890123456789012")
 
         db = mysql_mock.return_value
         db.get_results.return_value = None
@@ -284,8 +284,7 @@ class TestGenericSQLDAO:
             'VALUES (%s, %s, %s, %s, %s);', list(dict(entity).values()))
         assert id_ == entity.id_
 
-    def test_create_exist(self, generic_dao, mysql_mock):
-        entity = TestEntity(id_="12345678901234567890123456789012")
+    def test_create_exist(self, generic_dao, mysql_mock, entity):
         db = mysql_mock.return_value
         db.get_results.return_value = [list(entity.__dict__.values())]
         with raises(AssertionError):
@@ -294,3 +293,57 @@ class TestGenericSQLDAO:
     def test_create_not_entity(self, generic_dao, mysql_mock):
         with raises(TypeError):
             generic_dao.create("12345678901234567890123456789012")
+
+    def test_create_no_rows_affected(self, generic_dao, mysql_mock, entity):
+        db = mysql_mock.return_value
+        db.query.return_value = 0, 0
+        with raises(NoRowsAffectedException):
+            generic_dao.create(entity)
+
+    def test_update_not_entity(self, generic_dao, mysql_mock):
+        with raises(TypeError):
+            generic_dao.update("12345678901234567890123456789012")
+
+    def test_update_entity_not_exists(self, generic_dao, mysql_mock, entity):
+        db = mysql_mock.return_value
+        db.get_results.return_value = None
+        with raises(AssertionError):
+            generic_dao.update(entity)
+
+    def test_update(self, generic_dao, mysql_mock, entity):
+        db = mysql_mock.return_value
+        db.get_results.return_value = [list(entity.__dict__.values())]
+        db.query.return_value = 1, 0
+        entity.birthday = date(1998, 12, 21)
+        entity.name = "MyTestName"
+        sleep(1)
+        generic_dao.update(entity)
+        assert mysql_mock.mock_calls[5] == call().query(
+            'UPDATE test_table SET id=%s, creation_datetime=%s, '
+            'last_modified_datetime=%s, name=%s, birthday=%s '
+            'WHERE id = %s;', list(dict(entity).values()) + [entity.id_]
+        )
+        assert entity.creation_datetime < entity.last_modified_datetime
+
+    def test_update_no_rows_affected(self, generic_dao, mysql_mock, entity):
+        db = mysql_mock.return_value
+        db.get_results.return_value = [list(entity.__dict__.values())]
+        db.query.return_value = 0, 0
+        with raises(NoRowsAffectedException):
+            generic_dao.update(entity)
+
+    def test_close(self, generic_dao, mysql_mock):
+        db = mysql_mock.return_value
+        generic_dao.close()
+        assert db.mock_calls == [call.close()]
+
+    @mark.parametrize("cls, type_", [
+        (bool, "TINYINT(1)"),
+        (datetime, "DATETIME"),
+        (str, "VARCHAR(100)"),
+        (int, "INT"),
+        (float, "DECIMAL"),
+        (date, "DATE")
+    ])
+    def test_predict_db_type(self, cls, type_):
+        assert GenericSQLDAO.predict_db_type(cls) == type_

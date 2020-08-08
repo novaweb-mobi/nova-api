@@ -8,4 +8,4 @@ class UserDAO(GenericSQLDAO):
 
     def __init__(self, db=None):
         super(UserDAO, self).__init__(db=db, table=UserDAO.TABLE,
-                                      return_class=User, prefix='')
+                                      return_class=User)
