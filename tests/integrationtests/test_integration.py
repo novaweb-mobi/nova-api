@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from time import sleep
 
-from pytest import fixture, mark
+from pytest import fixture, mark, raises
 
 from nova_api.Entity import Entity
 from nova_api.GenericSQLDAO import GenericSQLDAO
@@ -54,6 +54,11 @@ class TestIntegration:
         assert user_dao.get(user.id_) == user
 
     @mark.order3
+    def test_create_existent(self, user_dao, user):
+        with raises(AssertionError):
+            user_dao.create(user)
+
+    @mark.order4
     def test_update(self, user_dao, user):
         last_modified_old = user.last_modified_datetime
         sleep(1)
@@ -64,7 +69,50 @@ class TestIntegration:
         assert updated_user.birthday == date(1998, 12, 21)
         assert updated_user.last_modified_datetime > last_modified_old
 
-    @mark.order4
+    @mark.order5
     def test_delete(self, user_dao, user):
         user_dao.remove(user)
         assert user_dao.get(user.id_) is None
+
+    def test_get_not_existent(self, user_dao):
+        assert user_dao.get("12345678901234567890123456789023") is None
+
+    def test_update_not_existent(self, user_dao):
+        user = User(id_="12345678901234567890123456789023")
+        with raises(AssertionError):
+            user_dao.update(user)
+
+    def test_delete_not_existent(self, user_dao):
+        user = User(id_="12345678901234567890123456789023")
+        with raises(AssertionError):
+            user_dao.remove(user)
+
+    @mark.order6
+    def test_filter_date(self, user_dao):
+        u1 = User(birthday=date(1998, 12, 21))
+        u2 = User(birthday=date(2005, 11, 21), first_name="Jose")
+        user_dao.create(u1)
+        user_dao.create(u2)
+        results = user_dao.get_all(
+            filters={"birthday": ['>', "2005-1-1"]})[1]
+        user_dao.remove(u1)
+        user_dao.remove(u2)
+        assert len(results) == 1
+
+    @mark.order7
+    def test_filter_name(self, user_dao):
+        u1 = User(birthday=date(1998, 12, 21))
+        u2 = User(birthday=date(2005, 11, 21), first_name="Jose")
+        user_dao.create(u1)
+        user_dao.create(u2)
+        results = user_dao.get_all(
+            filters={"first_name": ["LIKE", "J%"]})[1]
+        user_dao.remove(u1)
+        user_dao.remove(u2)
+        assert len(results) == 1
+
+    @mark.last
+    def test_drop_table(self, user_dao):
+        user_dao.db.query("DROP TABLE usuarios;")
+        with raises(Exception):
+            user_dao.get("12345678901234567890123456789012")
