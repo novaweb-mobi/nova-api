@@ -20,38 +20,19 @@ function check_files() {
     done
 }
 
-cd tests/
-docker-compose up -d &
-cd ..
-
 check_files $(pwd)/nova_api
 
 export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
 pylint nova_api -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
-pytest --junitxml=xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:coverage-reports/coverage-python.xml  tests/unittests
+cd tests
+docker-compose up -d &
+pytest --junitxml=../xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:../coverage-reports/coverage-python.xml  unittests
 sleep 15
 
 function db_ready(){
 export DB_URL=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tests_database_1)
 
-python << END
-import sys
-import os
-import mysql.connector
-
-
-print(os.environ.get("DB_URL"))
-
-try:
-     db_conn = mysql.connector.connect(host=os.environ.get("DB_URL"),
-                                       user="root",
-                                       passwd="root",
-                                       database="default")
-except mysql.connector.Error as err:
-    print('Error:', err)
-    sys.exit(-1)
-sys.exit(0)
-END
+python check_db.py
 }
 
 until db_ready; do
@@ -61,6 +42,7 @@ until db_ready; do
 done
 clear
 >&2 echo 'Database is available'
+cd ..
 pytest --junitxml=xunit-reports/xunit-result-nova_api-integration.xml tests/integrationtests
 cd tests/
 docker-compose down

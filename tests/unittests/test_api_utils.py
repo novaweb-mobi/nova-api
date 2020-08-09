@@ -1,4 +1,5 @@
 import os
+import sys
 from dataclasses import dataclass
 from json import dumps
 
@@ -9,19 +10,21 @@ from pytest import mark
 import nova_api
 from nova_api.Entity import Entity
 from nova_api.GenericSQLDAO import GenericSQLDAO
+from EntityDAO import EntityDAO
+from EntityForTest import EntityForTest
 
 
-@dataclass
-class EntityForTest(Entity):
-    test_field: int = 0
-
-
-class EntityDAO(GenericSQLDAO):
-    TABLE = 'entities'
-
-    def __init__(self, db=None):
-        super(EntityDAO, self).__init__(db=db, table=EntityDAO.TABLE,
-                                        return_class=EntityForTest)
+# @dataclass
+# class EntityForTest(Entity):
+#     test_field: int = 0
+#
+#
+# class EntityDAO(GenericSQLDAO):
+#     TABLE = 'entities'
+#
+#     def __init__(self, db=None):
+#         super(EntityDAO, self).__init__(db=db, table=EntityDAO.TABLE,
+#                                         return_class=EntityForTest)
 
 
 class TestAPIUtils:
@@ -101,7 +104,7 @@ class TestAPIUtils:
         nova_api.create_api_files(EntityForTest, EntityDAO, '1')
         gen_spec = Specification.load('entityfortest_api.yml')
         base_spec = Specification.load(
-            'tests/unittests/entityfortest_api_result.yml'
+            'unittests/entityfortest_api_result.yml'
         )
         assert gen_spec == base_spec
         os.remove('entityfortest_api.yml')
@@ -112,9 +115,19 @@ class TestAPIUtils:
         gen_spec = ''
         with open('entityfortest_api.py', 'r') as f:
             gen_spec = f.read()
-        with open('tests/unittests/entityfortest_api_result.py') as f:
+        with open('unittests/entityfortest_api_result.py') as f:
             base_spec = f.read()
             assert gen_spec == base_spec
         os.remove('entityfortest_api.yml')
         os.remove('entityfortest_api.py')
 
+    def test_generate_api_cli(self, mocker):
+        nova_api.sys.argv = ["python",
+                             "-e", "EntityForTest",
+                             "-d", "EntityDAO",
+                             "-v", "2"]
+        create_api_files_mock = mocker.patch.object(nova_api,
+                                                    "create_api_files")
+        nova_api.generate_api()
+        assert create_api_files_mock.mock_calls == [
+            call(EntityForTest, EntityDAO, '2')]

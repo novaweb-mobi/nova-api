@@ -137,7 +137,7 @@ class GenericSQLDAO(object):
         query = 'DELETE FROM {table} WHERE {column} = %s;'.format(
             table=self.TABLE,
             column=self.FIELDS['id_'])
-        print(query)
+
         row_count, last_row = self.db.query(query, [entity.id_])
 
         if row_count == 0:
