@@ -74,13 +74,15 @@ def generate_api():
     except getopt.GetoptError as er:
         print(er.msg)
         print(usage % (sys.argv[0]))
+        sys.exit(1)
     if entity == '':
         print(usage % (sys.argv[0]))
-        sys.exit(1)
+        sys.exit(2)
     try:
         sys.path.insert(0, '')
         mod = __import__(entity, fromlist=[entity])
         ent = getattr(mod, entity)
+        print("<", dao_class, ">", " is '': ", dao_class == '')
         if dao_class == '':
             dao_class = entity + 'DAO'
         mod = __import__(dao_class, fromlist=[dao_class])
@@ -90,7 +92,7 @@ def generate_api():
               " it's DAO class. You must inform the entity name with -e and "
               "the DAO name with -d. You may inform the version with -v.")
         print(e)
-        sys.exit(1)
+        sys.exit(3)
 
     create_api_files(ent, dao, version)
 

@@ -5,26 +5,12 @@ from json import dumps
 
 from connexion.spec import Specification
 from mock import Mock, call
-from pytest import mark
+from pytest import mark, raises
 
 import nova_api
-from nova_api.Entity import Entity
-from nova_api.GenericSQLDAO import GenericSQLDAO
 from EntityDAO import EntityDAO
 from EntityForTest import EntityForTest
-
-
-# @dataclass
-# class EntityForTest(Entity):
-#     test_field: int = 0
-#
-#
-# class EntityDAO(GenericSQLDAO):
-#     TABLE = 'entities'
-#
-#     def __init__(self, db=None):
-#         super(EntityDAO, self).__init__(db=db, table=EntityDAO.TABLE,
-#                                         return_class=EntityForTest)
+from EntityForTestDAO import EntityForTestDAO
 
 
 class TestAPIUtils:
@@ -121,13 +107,74 @@ class TestAPIUtils:
         os.remove('entityfortest_api.yml')
         os.remove('entityfortest_api.py')
 
-    def test_generate_api_cli(self, mocker):
-        nova_api.sys.argv = ["python",
-                             "-e", "EntityForTest",
-                             "-d", "EntityDAO",
-                             "-v", "2"]
+    @mark.parametrize("call_, argv", [
+        (
+                call(EntityForTest, EntityDAO, '2'),
+                ["python",
+                 "-e", "EntityForTest",
+                 "-d", "EntityDAO",
+                 "-v", "2"]
+        ),
+        (
+                call(EntityForTest, EntityDAO, ''),
+                ["python",
+                 "-e", "EntityForTest",
+                 "-d", "EntityDAO"]
+        ),
+        (
+                call(EntityForTest, EntityForTestDAO, ''),
+                ["python",
+                 "-e", "EntityForTest"]
+        )
+    ])
+    def test_generate_api_cli(self, mocker, call_, argv):
+        nova_api.sys.argv = argv
         create_api_files_mock = mocker.patch.object(nova_api,
                                                     "create_api_files")
         nova_api.generate_api()
-        assert create_api_files_mock.mock_calls == [
-            call(EntityForTest, EntityDAO, '2')]
+        assert create_api_files_mock.mock_calls == [call_]
+
+    def test_generate_api_cli_get_opt_error(self, mocker):
+        def raise_exception(*args, **kwargs):
+            raise nova_api.getopt.GetoptError("Teste")
+
+        mocker.patch.object(nova_api.getopt,
+                            "getopt",
+                            side_effect=raise_exception)
+
+        with raises(SystemExit) as pytest_wrapped_e:
+            nova_api.generate_api()
+
+        assert pytest_wrapped_e.type == SystemExit
+        assert pytest_wrapped_e.value.code == 1
+
+    @mark.parametrize("argv, status_code", [
+        (
+                ["python", "-e", "EntityFail"],
+                3
+        ),
+        (
+                ["python", "-e", "EntityForTest", "-d", "MyDAO"],
+                3
+        ),
+        (
+                ["python"],
+                2
+        ),
+        (
+                ["python", "-v", "2"],
+                2
+        )
+    ])
+    def test_generate_api_cli_not_exists(self, mocker, argv, status_code):
+        # We don't expect it to be called, but if no excpetions are thrown
+        # and it is called it will generate api files if not mocked
+        mocker.patch.object(nova_api,
+                            "create_api_files")
+
+        nova_api.sys.argv = argv
+        with raises(SystemExit) as pytest_wrapped_e:
+            nova_api.generate_api()
+
+        assert pytest_wrapped_e.type == SystemExit
+        assert pytest_wrapped_e.value.code == status_code
