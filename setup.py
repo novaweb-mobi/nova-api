@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="NovaAPI",
-    version="1.0.0b1",
+    version="{{VERSION}}",
     license='MIT',
     author="Mateus Berardo & Fábio Trevizolo",
     author_email="mateust@novaweb.mobi, fabiots@novaweb.mobi",
