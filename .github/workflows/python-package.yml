@@ -28,7 +28,9 @@ jobs:
     - name: Lint with pylint
       run: |
         mkdir reports
+        echo "Created folder"
         pylint nova_api --rcfile=standard.rc -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
+        echo $?
 
     - name: Check files ending with newline
       run: |
