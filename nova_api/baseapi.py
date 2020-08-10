@@ -101,7 +101,7 @@ consumes:
 produces:
   - "application/json"
 
-basePath: "/v{VERSION}"
+basePath: "/v{VERSION}/{ENTITY_LOWER}"
 
 paths:
   /health:
@@ -127,7 +127,7 @@ paths:
         500:
           description: "API not ready"
 
-  /{ENTITY_LOWER}:
+  /:
     get:
       operationId: {ENTITY_LOWER}_api.read
       tags:
@@ -225,7 +225,7 @@ paths:
                   error:
                     type: string
 
-  /{ENTITY_LOWER}/{{id_}}:
+  /{{id_}}:
     get:
       operationId: {ENTITY_LOWER}_api.read_one
       tags:

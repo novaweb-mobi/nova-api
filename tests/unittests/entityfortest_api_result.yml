@@ -9,7 +9,7 @@ consumes:
 produces:
   - "application/json"
 
-basePath: "/v1"
+basePath: "/v1/entityfortest"
 
 paths:
   /health:
@@ -35,7 +35,7 @@ paths:
         500:
           description: "API not ready"
 
-  /entityfortest:
+  /:
     get:
       operationId: entityfortest_api.read
       tags:
@@ -148,7 +148,7 @@ paths:
                   error:
                     type: string
 
-  /entityfortest/{id_}:
+  /{id_}:
     get:
       operationId: entityfortest_api.read_one
       tags:

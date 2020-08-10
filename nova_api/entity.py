@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from datetime import date, datetime
 from uuid import uuid4
 
@@ -20,6 +20,7 @@ class Entity:
                                "default": "NOT NULL"})
     creation_datetime: datetime = field(init=True,
                                         default_factory=get_time,
+                                        compare=False,
                                         metadata={"type": "DATETIME"})
     last_modified_datetime: datetime = field(init=True,
                                              default_factory=get_time,
@@ -27,6 +28,14 @@ class Entity:
                                              metadata={"type": "DATETIME"})
 
     def __post_init__(self):
+        for field in fields(self.__class__):
+            if issubclass(field.type, Entity) \
+                    and \
+                    not type(self.__getattribute__(field.name)) == field.type:
+                # TODO call dao.get
+                self.__setattr__(field.name, field.type(
+                    self.__getattribute__(field.name)
+                ))
         if self.__class__ == Entity:
             raise NotImplementedError("Abstract class can't be instantiated")
 
