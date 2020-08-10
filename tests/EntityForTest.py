@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from nova_api.Entity import Entity
+from nova_api.entity import Entity
 
 
 @dataclass

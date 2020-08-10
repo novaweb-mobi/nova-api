@@ -5,8 +5,8 @@ from time import sleep
 from mock import call
 from pytest import fixture, mark, raises
 
-from Entity import Entity
-from GenericSQLDAO import GenericSQLDAO
+from entity import Entity
+from generic_dao import GenericSQLDAO
 from nova_api.exceptions import NoRowsAffectedException
 
 
@@ -19,7 +19,7 @@ class TestEntity(Entity):
 class TestGenericSQLDAO:
     @fixture
     def mysql_mock(self, mocker):
-        return mocker.patch('GenericSQLDAO.MySQLHelper')
+        return mocker.patch('generic_dao.MySQLHelper')
 
     @fixture
     def generic_dao(self, mysql_mock):
@@ -41,7 +41,7 @@ class TestGenericSQLDAO:
         generic_dao.create_table_if_not_exists()
         print(mysql_mock.mock_calls)
         assert mysql_mock.mock_calls[1] == call().query(
-            'CREATE TABLE IF NOT EXISTS test_table ('
+            'CREATE table IF NOT EXISTS test_table ('
             '`id` CHAR(32) NOT NULL, '
             '`creation_datetime` DATETIME NULL, '
             '`last_modified_datetime` DATETIME NULL, '
@@ -60,20 +60,20 @@ class TestGenericSQLDAO:
                     "name": "name",
                     "birthday": "birthday"},
             return_class=TestEntity)
-        assert generic_dao.db == mysql_mock.return_value
-        assert generic_dao.TABLE == "test_entitys"
-        assert generic_dao.FIELDS == {"id_": "id",
+        assert generic_dao.database == mysql_mock.return_value
+        assert generic_dao.table == "test_entitys"
+        assert generic_dao.fields == {"id_": "id",
                                       "creation_datetime": "creation_datetime",
                                       "last_modified_datetime":
                                           "last_modified_datetime",
                                       "name": "name",
                                       "birthday": "birthday"}
-        assert generic_dao.RETURN_CLASS == TestEntity
+        assert generic_dao.return_class == TestEntity
 
     def test_init_parameter_gen(self, mysql_mock):
         generic_dao = GenericSQLDAO(table='test_table', prefix='test_',
                                     return_class=TestEntity)
-        assert generic_dao.FIELDS == {"id_": "test_id_",
+        assert generic_dao.fields == {"id_": "test_id_",
                                       "creation_datetime":
                                           "test_creation_datetime",
                                       "last_modified_datetime":
@@ -84,7 +84,7 @@ class TestGenericSQLDAO:
     def test_init_parameter_gen_no_prefix(self, mysql_mock):
         generic_dao = GenericSQLDAO(table='test_table',
                                     return_class=TestEntity)
-        assert generic_dao.FIELDS == {"id_": "test_entity_id_",
+        assert generic_dao.fields == {"id_": "test_entity_id_",
                                       "creation_datetime":
                                           "test_entity_creation_datetime",
                                       "last_modified_datetime":

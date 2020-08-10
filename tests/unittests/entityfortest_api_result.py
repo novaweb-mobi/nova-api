@@ -1,4 +1,4 @@
-from nova_api.GenericSQLDAO import GenericSQLDAO
+from nova_api.generic_dao import GenericSQLDAO
 from nova_api import error_response, success_response, use_dao
 
 from EntityDAO import EntityDAO
@@ -33,7 +33,7 @@ def read_one(id_: str, dao: GenericSQLDAO = None):
 
     if not result:
         return success_response(status_code=404,
-                                message="EntityForTest not found in db",
+                                message="EntityForTest not found in database",
                                 data={"id_": id_})
 
     return success_response(message="EntityForTest retrieved",
@@ -59,13 +59,13 @@ def update(id_: str, entity: dict, dao: GenericSQLDAO = None):
                               message="EntityForTest not found",
                               data={"id_": id_})
 
-    entity_fields = dao.FIELDS.keys()
+    entity_fields = dao.fields.keys()
 
     for key, value in entity.items():
         if key not in entity_fields:
             raise KeyError("{key} not in {entity}"
                            .format(key=key,
-                                   entity=dao.RETURN_CLASS))
+                                   entity=dao.return_class))
 
         entity_to_update.__dict__[key] = value
 

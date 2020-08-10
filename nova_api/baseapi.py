@@ -1,4 +1,4 @@
-base_api = """from nova_api.GenericSQLDAO import GenericSQLDAO
+BASE_API = """from nova_api.generic_dao import GenericSQLDAO
 from nova_api import error_response, success_response, use_dao
 
 from {DAO_CLASS} import {DAO_CLASS}
@@ -33,7 +33,7 @@ def read_one(id_: str, dao: GenericSQLDAO = None):
 
     if not result:
         return success_response(status_code=404,
-                                message="{ENTITY} not found in db",
+                                message="{ENTITY} not found in database",
                                 data={{"id_": id_}})
 
     return success_response(message="{ENTITY} retrieved",
@@ -59,13 +59,13 @@ def update(id_: str, entity: dict, dao: GenericSQLDAO = None):
                               message="{ENTITY} not found",
                               data={{"id_": id_}})
 
-    entity_fields = dao.FIELDS.keys()
+    entity_fields = dao.fields.keys()
 
     for key, value in entity.items():
         if key not in entity_fields:
             raise KeyError("{{key}} not in {{entity}}"
                            .format(key=key,
-                                   entity=dao.RETURN_CLASS))
+                                   entity=dao.return_class))
 
         entity_to_update.__dict__[key] = value
 
@@ -90,7 +90,7 @@ def delete(id_: str, dao: GenericSQLDAO):
                             data={{"{ENTITY}": dict(entity)}})
 """
 
-api_swagger = """
+API_SWAGGER = """
 swagger: "2.0"
 info:
   description: {ENTITY} API
@@ -360,7 +360,7 @@ paths:
                     type: string
 """
 
-parameter = \
+PARAMETER = \
     """        - name: {parameter_name}
           in: {parameter_location}
           type: {parameter_type}

@@ -50,7 +50,7 @@ jobs:
           done
         }
         check_files $(pwd)/nova_api
-    - name: Start db for integration testing
+    - name: Start database for integration testing
       run: |
         cd tests
         docker-compose up -d

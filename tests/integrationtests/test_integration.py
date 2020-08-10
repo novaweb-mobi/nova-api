@@ -4,8 +4,8 @@ from time import sleep
 
 from pytest import fixture, mark, raises
 
-from nova_api.Entity import Entity
-from nova_api.GenericSQLDAO import GenericSQLDAO
+from nova_api.entity import Entity
+from nova_api.generic_dao import GenericSQLDAO
 
 
 @dataclass
@@ -18,10 +18,10 @@ class User(Entity):
 
 
 class UserDAO(GenericSQLDAO):
-    TABLE = 'usuarios'
+    table = 'usuarios'
 
-    def __init__(self, db=None):
-        super(UserDAO, self).__init__(db=db, table=UserDAO.TABLE,
+    def __init__(self, database=None):
+        super(UserDAO, self).__init__(database=database, table=UserDAO.TABLE,
                                       return_class=User, prefix='')
 
 
@@ -41,11 +41,11 @@ class TestIntegration:
 
     @mark.order1
     def test_create_table_not_exists(self, user_dao):
-        user_dao.db.query("show tables;")
-        assert user_dao.db.get_results() is None
+        user_dao.database.query("show tables;")
+        assert user_dao.database.get_results() is None
         user_dao.create_table_if_not_exists()
-        user_dao.db.query("show tables;")
-        results = user_dao.db.get_results()[0]
+        user_dao.database.query("show tables;")
+        results = user_dao.database.get_results()[0]
         assert user_dao.TABLE in results
 
     @mark.order2
@@ -113,6 +113,6 @@ class TestIntegration:
 
     @mark.last
     def test_drop_table(self, user_dao):
-        user_dao.db.query("DROP TABLE usuarios;")
+        user_dao.database.query("DROP table usuarios;")
         with raises(Exception):
             user_dao.get("12345678901234567890123456789012")

@@ -1,11 +1,11 @@
-from nova_api.GenericSQLDAO import GenericSQLDAO
+from nova_api.generic_dao import GenericSQLDAO
 from EntityForTest import EntityForTest
 
 
 class EntityForTestDAO(GenericSQLDAO):
-    TABLE = 'entities'
+    table = 'entities'
 
-    def __init__(self, db=None):
-        super(EntityForTestDAO, self).__init__(db=db,
+    def __init__(self, database=None):
+        super(EntityForTestDAO, self).__init__(database=database,
                                                table=EntityForTestDAO.TABLE,
                                                return_class=EntityForTest)

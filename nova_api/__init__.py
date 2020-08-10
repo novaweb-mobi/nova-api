@@ -6,7 +6,7 @@ from functools import wraps
 
 from flask import helpers, jsonify, make_response
 
-import nova_api.BaseAPI as BaseAPI
+from nova_api import baseapi
 
 
 def default_response(success: bool, status_code: int,
@@ -44,9 +44,9 @@ def use_dao(dao_class: type, error_message: str = "Erro"):
             try:
                 dao = dao_class()
                 return function(dao=dao, *args, **kwargs)
-            except Exception as e:
+            except Exception as exception:
                 return error_response(message=error_message,
-                                      data={"error": str(e)})
+                                      data={"error": str(exception)})
             finally:
                 if dao:
                     dao.close()
@@ -63,7 +63,7 @@ def generate_api():
     usage = 'Usage: %s generate_api -e entity ' \
             '[-d entity_dao -v api_version]'
     try:
-        options, args = getopt.getopt(sys.argv[1:], "e:d:v:")
+        options, _ = getopt.getopt(sys.argv[1:], "e:d:v:")
         for option, value in options:
             if option == '-e':
                 entity = value
@@ -71,8 +71,8 @@ def generate_api():
                 dao_class = value
             elif option == '-v':
                 version = value
-    except getopt.GetoptError as er:
-        print(er.msg)
+    except getopt.GetoptError as getopt_error:
+        print(getopt_error.msg)
         print(usage % (sys.argv[0]))
         sys.exit(1)
     if entity == '':
@@ -87,11 +87,11 @@ def generate_api():
             dao_class = entity + 'DAO'
         mod = __import__(dao_class, fromlist=[dao_class])
         dao = getattr(mod, dao_class)
-    except ModuleNotFoundError as e:
+    except ModuleNotFoundError as exception:
         print("You should run the script in the same folder as your entity and"
               " it's DAO class. You must inform the entity name with -e and "
               "the DAO name with -d. You may inform the version with -v.")
-        print(e)
+        print(exception)
         sys.exit(3)
 
     create_api_files(ent, dao, version)
@@ -103,18 +103,21 @@ def create_api_files(entity, dao_class, version):
     if os.path.isfile(
             "{entity_lower}_api.py".format(entity_lower=entity_lower)):
         print("API already exists. Skipping generation...")
-    with open("{entity_lower}_api.py".format(entity_lower=entity_lower),
-              'w+') as f:
-        f.write(BaseAPI.base_api.format(DAO_CLASS=dao_class.__name__,
-                                        ENTITY=entity.__name__,
-                                        ENTITY_LOWER=entity_lower))
+    else:
+        print("WILL CREATE FILE")
+        with open("{entity_lower}_api.py".format(entity_lower=entity_lower),
+                  'w+') as api_implementation:
+            api_implementation.write(baseapi.BASE_API.format(
+                DAO_CLASS=dao_class.__name__,
+                ENTITY=entity.__name__,
+                ENTITY_LOWER=entity_lower))
 
     if version == '':
         version = '1'
     parameters = list()
-    for f in fields(entity):
+    for field in fields(entity):
         parameters.append(
-            BaseAPI.parameter.format(parameter_name=f.name,
+            baseapi.PARAMETER.format(parameter_name=field.name,
                                      parameter_location='query',
                                      parameter_type='string'))
 
@@ -123,9 +126,12 @@ def create_api_files(entity, dao_class, version):
     if os.path.isfile(
             "{entity_lower}_api.yml".format(entity_lower=entity_lower)):
         print("API documentation already exists. Skipping generation...")
-    with open("{entity_lower}_api.yml".format(entity_lower=entity_lower),
-              'w+') as f:
-        f.write(BaseAPI.api_swagger.format(ENTITY=entity.__name__,
-                                           ENTITY_LOWER=entity_lower,
-                                           VERSION=version,
-                                           PARAMETERS=parameters))
+    else:
+        print("WILL CREATE FILE")
+        with open("{entity_lower}_api.yml".format(entity_lower=entity_lower),
+                  'w+') as api_documentation:
+            api_documentation.write(baseapi.API_SWAGGER.format(
+                ENTITY=entity.__name__,
+                ENTITY_LOWER=entity_lower,
+                VERSION=version,
+                PARAMETERS=parameters))

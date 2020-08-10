@@ -1,4 +1,5 @@
 import os
+from os.path import isfile as is_file
 import sys
 from dataclasses import dataclass
 from json import dumps
@@ -52,7 +53,7 @@ class TestAPIUtils:
         assert ret_val == 1
 
     @mark.parametrize("data", [None, {"test": "mydata"}])
-    def test_success_response(self, mocker, data):
+    def test_error_response(self, mocker, data):
         default_response_mock = mocker.patch("nova_api.default_response",
                                              return_value="OK")
         nova_api.error_response(data=data)
@@ -107,6 +108,14 @@ class TestAPIUtils:
         os.remove('entityfortest_api.yml')
         os.remove('entityfortest_api.py')
 
+    def test_not_overwrite_file(self, mocker):
+        mock = mocker.patch.object(nova_api.os.path,
+                            "isfile",
+                            return_value=True)
+        nova_api.create_api_files(EntityForTest, EntityDAO, '')
+        assert not is_file('entityfortest_api.yml')
+        assert not is_file('entityfortest_api.py')
+
     @mark.parametrize("call_, argv", [
         (
                 call(EntityForTest, EntityDAO, '2'),
@@ -135,6 +144,9 @@ class TestAPIUtils:
         assert create_api_files_mock.mock_calls == [call_]
 
     def test_generate_api_cli_get_opt_error(self, mocker):
+        mocker.patch.object(nova_api,
+                            "create_api_files")
+
         def raise_exception(*args, **kwargs):
             raise nova_api.getopt.GetoptError("Teste")
 

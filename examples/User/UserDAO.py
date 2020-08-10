@@ -1,11 +1,11 @@
 from User import User
 
-from nova_api.GenericSQLDAO import GenericSQLDAO
+from nova_api.generic_dao import GenericSQLDAO
 
 
 class UserDAO(GenericSQLDAO):
-    TABLE = 'usuarios'
+    table = 'usuarios'
 
-    def __init__(self, db=None):
-        super(UserDAO, self).__init__(db=db, table=UserDAO.TABLE,
+    def __init__(self, database=None):
+        super(UserDAO, self).__init__(database=database, table=UserDAO.TABLE,
                                       return_class=User)

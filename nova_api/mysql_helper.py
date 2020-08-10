@@ -2,10 +2,10 @@ import os
 from typing import Any, List
 
 import mysql.connector
-from mysql.connector import InterfaceError, ProgrammingError, Error
+from mysql.connector import InterfaceError, Error
 
 
-class MySQLHelper(object):
+class MySQLHelper:
 
     def __init__(self, host=os.environ.get('DB_URL'),
                  user=os.environ.get('DB_USER'),

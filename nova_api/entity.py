@@ -8,12 +8,12 @@ def generate_id():
 
 
 def get_time():
-    dt = datetime.now().replace(microsecond=0)
-    return dt
+    datetime_no_microseconds = datetime.now().replace(microsecond=0)
+    return datetime_no_microseconds
 
 
 @dataclass
-class Entity(object):
+class Entity:
     id_: str = field(default_factory=generate_id,
                      metadata={"type": "CHAR(32)",
                                "primary_key": True,
@@ -32,11 +32,11 @@ class Entity(object):
 
     def __iter__(self):
         for key in self.__dict__:
-            if issubclass(type(self.__dict__[key]), Entity):
+            if issubclass(self.__dict__[key].__class__, Entity):
                 yield key + '_id_', self.__dict__[key].id_
-            elif type(self.__dict__[key]) == datetime:
+            elif isinstance(self.__dict__[key], datetime):
                 yield key, self.__dict__[key].strftime("%Y-%m-%d %H:%M:%S")
-            elif type(self.__dict__[key]) == date:
+            elif isinstance(self.__dict__[key], date):
                 yield key, self.__dict__[key].strftime("%Y-%m-%d")
             else:
                 yield key, self.__dict__[key]

@@ -3,13 +3,13 @@ from mock import call
 from mysql.connector import InterfaceError, DatabaseError, Error
 from pytest import fixture, mark, raises
 
-from nova_api.MySQLHelper import MySQLHelper
+from nova_api.mysql_helper import MySQLHelper
 
 
 class TestMySQLHelper:
     @fixture
     def mysql_mock(self, mocker):
-        return mocker.patch('nova_api.MySQLHelper.mysql.connector')
+        return mocker.patch('nova_api.mysql_helper.mysql.connector')
 
     @fixture
     def raise_exception(self):
