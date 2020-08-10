@@ -4,6 +4,7 @@ NovaAPI is a python package to accelerate REST API development.
 
 ## Status
 
+![Version](https://img.shields.io/github/v/tag/novaweb-mobi/nova-api?label=Version)
 ![Python Package](https://github.com/novaweb-mobi/nova-api/workflows/Python%20Package/badge.svg?branch=master)
 ![Quality Gate](https://sonar.dev.novaweb.cloud/api/project_badges/measure?project=nova_api&metric=alert_status)
 ![Security Rating](https://sonar.dev.novaweb.cloud/api/project_badges/measure?metric=security_rating&project=nova_api)
