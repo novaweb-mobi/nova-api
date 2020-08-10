@@ -31,6 +31,7 @@ class GenericSQLDAO:
     FILTERS = "WHERE {filters}"
     FILTER = "{column} {comparator} %s"
 
+    # pylint: disable=R0913
     def __init__(self, database=None, table: str = None, fields: dict = None,
                  return_class: dataclasses.dataclass = Entity,
                  prefix: str = None) -> None:

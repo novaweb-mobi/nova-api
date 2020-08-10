@@ -44,6 +44,7 @@ def use_dao(dao_class: type, error_message: str = "Erro"):
             try:
                 dao = dao_class()
                 return function(dao=dao, *args, **kwargs)
+            # pylint: disable=W0703
             except Exception as exception:
                 return error_response(message=error_message,
                                       data={"error": str(exception)})
