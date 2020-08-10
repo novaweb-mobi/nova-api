@@ -1,6 +1,5 @@
 import dataclasses
 from datetime import datetime
-from inspect import getfullargspec
 from re import sub
 from typing import List, Optional
 
@@ -95,9 +94,9 @@ class GenericSQLDAO:
                         and value[0] not in self.ALLOWED_COMPARATORS:
                     raise ValueError(
                         "Comparator {comparator} not allowed for {entity}"
-                            .format(comparator=value[0],
-                                    entity=self.return_class.__name__
-                                    )
+                        .format(comparator=value[0],
+                                entity=self.return_class.__name__
+                                )
                     )
 
             filters_for_query = [

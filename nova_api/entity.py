@@ -28,13 +28,15 @@ class Entity:
                                              metadata={"type": "DATETIME"})
 
     def __post_init__(self):
-        for field in fields(self.__class__):
-            if issubclass(field.type, Entity) \
+        for field_ in fields(self.__class__):
+            if issubclass(field_.type, Entity) \
                     and \
-                    not type(self.__getattribute__(field.name)) == field.type:
+                    not isinstance(self.__getattribute__(field_.name),
+                                   field_.type):
+                # pylint: disable=W0511
                 # TODO call dao.get
-                self.__setattr__(field.name, field.type(
-                    self.__getattribute__(field.name)
+                self.__setattr__(field_.name, field_.type(
+                    self.__getattribute__(field_.name)
                 ))
         if self.__class__ == Entity:
             raise NotImplementedError("Abstract class can't be instantiated")
