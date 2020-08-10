@@ -46,7 +46,7 @@ class TestIntegration:
         user_dao.create_table_if_not_exists()
         user_dao.database.query("show tables;")
         results = user_dao.database.get_results()[0]
-        assert user_dao.TABLE in results
+        assert user_dao.table in results
 
     @mark.order2
     def test_create_row(self, user_dao, user):
