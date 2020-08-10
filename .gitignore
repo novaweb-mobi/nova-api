@@ -10,4 +10,4 @@ reports/
 sonar-project.properties
 tests/__pycache__/
 xunit-reports/
-
+__pycache__/

@@ -1,14 +1,15 @@
 import mysql.connector
 from mock import call
-from pytest import fixture, mark
+from mysql.connector import InterfaceError, DatabaseError, Error
+from pytest import fixture, mark, raises
 
-from MySQLHelper import MySQLHelper
+from nova_api.mysql_helper import MySQLHelper
 
 
 class TestMySQLHelper:
     @fixture
     def mysql_mock(self, mocker):
-        return mocker.patch('nova_api.MySQLHelper.mysql.connector')
+        return mocker.patch('nova_api.mysql_helper.mysql.connector')
 
     @fixture
     def raise_exception(self):
@@ -83,3 +84,40 @@ class TestMySQLHelper:
             call.connect().close()
         ]
         assert mysql_mock.mock_calls == calls
+
+    @mark.parametrize("exception_type", [ValueError,
+                                         InterfaceError])
+    def test_fail_init(self, mysql_mock, exception_type):
+        def raise_exception(*args, **kwargs):
+            raise exception_type()
+
+        mysql_mock.connect.side_effect = raise_exception
+
+        with raises(ConnectionError):
+            db_ = MySQLHelper()
+
+    @mark.parametrize("exception_type", [InterfaceError,
+                                         DatabaseError,
+                                         Error])
+    def test_fail_query(self, mysql_mock, db_, exception_type):
+        def raise_exception(*args, **kwargs):
+            raise exception_type()
+
+        cursor_mock = mysql_mock.connect.return_value.cursor.return_value
+        cursor_mock.execute.side_effect = raise_exception
+
+        with raises(RuntimeError):
+            db_.query("SELECT * FROM table")
+
+    @mark.parametrize("exception_type", [InterfaceError,
+                                         DatabaseError,
+                                         Error])
+    def test_fail_get_results(self, mysql_mock, db_, exception_type):
+        def raise_exception(*args, **kwargs):
+            raise exception_type()
+
+        cursor_mock = mysql_mock.connect.return_value.cursor.return_value
+        cursor_mock.fetchall.side_effect = raise_exception
+
+        with raises(RuntimeError):
+            db_.get_results()

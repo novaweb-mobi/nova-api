@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="NovaAPI",
-    version="1.0a1",
+    version="1.0.0b1",
     license='MIT',
     author="Mateus Berardo & Fábio Trevizolo",
     author_email="mateust@novaweb.mobi, fabiots@novaweb.mobi",
@@ -19,11 +19,15 @@ setuptools.setup(
     install_requires=[
         'mysql-connector',
         'flask',
+        'flask-cors',
+        'connexion[swagger-ui]'
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.7',
+    entry_points={
+        'console_scripts': ['generate_nova_api=nova_api:generate_api']
+    }
 )
-

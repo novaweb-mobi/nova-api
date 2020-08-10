@@ -1,7 +1,7 @@
 # This workflow will install Python dependencies, run tests and lint with a variety of Python versions
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
-name: Python package
+name: Python Package
 
 on:
   push:
@@ -10,24 +10,21 @@ on:
     branches: [ master, dev ]
 
 jobs:
-  build:
-
+  lint:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.7.x, 3.8.x, 3.9.0-beta.5]
 
     steps:
-    - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+        python-version: 3.8
+
+    - name: Lint with pylint
       run: |
-        python -m pip install --upgrade pip
-        pip install pylint pytest
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install pylint
+        mkdir reports
+        pylint nova_api --rcfile=standard.rc -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
+
     - name: Check files ending with newline
       run: |
         function file_ends_with_newline() {
@@ -44,48 +41,55 @@ jobs:
               check_files $folder
             elif [ -f $folder ] && [ ${folder: -3} == ".py" ]; then
               if ! file_ends_with_newline $folder; then
-                echo "" >> "$folder"
+                echo $folder
+                exit 1
               fi
             fi
           done
         }
         check_files $(pwd)/nova_api
-    - name: Start db for integration testing
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7.x, 3.8.x, 3.9.0-beta.5]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pylint pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Start database for integration testing
       run: |
         cd tests
         docker-compose up -d
         cd ..
-    - name: Lint with pylint
-      run: |
-        export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
-        mkdir reports
-        pylint nova_api --exit-zero -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
+
     - name: (Unit)Test with pytest
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
         mkdir xunit-reports
         mkdir coverage-reports
-        pytest --junitxml=xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:coverage-reports/coverage-python.xml  tests/unittests
+        cd tests
+        pytest --junitxml=../xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:../coverage-reports/coverage-python.xml  unittests
         
     - name: Integration Test
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
-        cd tests
         function db_ready(){
           export DB_URL=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tests_database_1)
 
-          python << END
-          import sys
-          import os
-          import mysql.connector
-          print(os.environ.get("DB_URL"))
-          try:
-            db_conn = mysql.connector.connect(host=os.environ.get("DB_URL"), user="root",passwd="root", database="default")
-          except mysql.connector.Error as err:
-            print('Error:', err)
-            sys.exit(-1)
-          sys.exit(0)
-          END
+          python tests/check_db.py
         }
         until db_ready; do
           >&2 echo 'Waiting for database to become available...'
