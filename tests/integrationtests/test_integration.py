@@ -25,10 +25,30 @@ class UserDAO(GenericSQLDAO):
                                       return_class=User, prefix='')
 
 
+@dataclass
+class Payment(Entity):
+    value: int = 0
+    payer: User = None
+    receiver: User = None
+
+
+class PaymentDAO(GenericSQLDAO):
+    table = 'payments'
+
+    def __init__(self, database=None):
+        super(PaymentDAO, self).__init__(database=database,
+                                         table=PaymentDAO.table,
+                                         return_class=Payment, prefix='')
+
+
 class TestIntegration:
     @fixture
     def user_dao(self):
         return UserDAO()
+
+    @fixture
+    def payment_dao(self):
+        return PaymentDAO()
 
     @fixture
     def user(self):
@@ -39,56 +59,130 @@ class TestIntegration:
             email="john.doe@email.com"
         )
 
-    @mark.order1
-    def test_create_table_not_exists(self, user_dao):
-        user_dao.database.query("show tables;")
-        assert user_dao.database.get_results() is None
-        user_dao.create_table_if_not_exists()
-        user_dao.database.query("show tables;")
-        results = user_dao.database.get_results()[0]
-        assert user_dao.table in results
+    @fixture
+    def payment(self):
+        return Payment(
+            id_="00000000000000000000000000000000",
+            value=10,
+            payer=User(id_="12345678901234567890123456789012"),
+            receiver=User(id_="12345678901234567890123456789013")
+        )
 
-    @mark.order2
-    def test_create_row(self, user_dao, user):
-        user_dao.create(user)
-        assert user_dao.get(user.id_) == user
+    @mark.parametrize("dao", [
+        UserDAO(),
+        PaymentDAO()
+    ])
+    def test_create_table_not_exists(self, dao):
+        try:
+            dao.database.query("DROP TABLE {tbl}".format(tbl=dao.table))
+        except Exception:
+            pass
+        dao.create_table_if_not_exists()
+        dao.database.query("show tables;")
+        results = [result[0] for result in dao.database.get_results()]
+        assert dao.table in results
 
-    @mark.order3
-    def test_create_existent(self, user_dao, user):
+    @mark.parametrize("dao, ent", [
+        (UserDAO(), User(
+            id_="12345678901234567890123456789012",
+            first_name="John",
+            last_name="Doe",
+            email="john.doe@email.com"
+        )),
+        (PaymentDAO(), Payment(
+            id_="00000000000000000000000000000000",
+            value=10,
+            payer=User(id_="12345678901234567890123456789012"),
+            receiver=User(id_="12345678901234567890123456789013")
+        )),
+    ])
+    def test_create_row(self, dao, ent):
+        dao.create_table_if_not_exists()
+        dao.create(ent)
+        created_ent = dao.get(ent.id_)
+        dao.database.query("DELETE FROM {table}".format(table=dao.table))
+        assert created_ent == ent
+
+    @mark.parametrize("dao, ent", [
+        (UserDAO(), User(
+            id_="12345678901234567890123456789012",
+            first_name="John",
+            last_name="Doe",
+            email="john.doe@email.com"
+        )),
+        (PaymentDAO(), Payment(
+            id_="00000000000000000000000000000000",
+            value=10,
+            payer=User(id_="12345678901234567890123456789012"),
+            receiver=User(id_="12345678901234567890123456789013")
+        )),
+    ])
+    def test_create_existent(self, dao, ent):
+        dao.create_table_if_not_exists()
+        dao.create(ent)
+        assert dao.get(ent.id_) == ent
         with raises(AssertionError):
-            user_dao.create(user)
+            dao.create(ent)
 
-    @mark.order4
-    def test_update(self, user_dao, user):
+    def test_update_user(self, user_dao, user):
+        user_dao.create_table_if_not_exists()
+        try:
+            user_dao.create(user)
+        except Exception:
+            assert user_dao.get(user.id_) is not None
         last_modified_old = user.last_modified_datetime
         sleep(1)
         user.birthday = date(1998, 12, 21)
-        assert user_dao.get(user.id_).birthday != date(1998, 12, 21)
         user_dao.update(user)
         updated_user = user_dao.get(user.id_)
         assert updated_user.birthday == date(1998, 12, 21)
         assert updated_user.last_modified_datetime > last_modified_old
 
-    @mark.order5
-    def test_delete(self, user_dao, user):
-        user_dao.remove(user)
-        assert user_dao.get(user.id_) is None
+    def test_update_payment(self, payment_dao, payment):
+        payment_dao.create_table_if_not_exists()
+        try:
+            payment_dao.create(payment)
+        except Exception:
+            assert payment_dao.get(payment.id_) is not None
+        last_modified_old = payment.last_modified_datetime
+        sleep(1)
+        payment.value = 5
+        payment_dao.update(payment)
+        updated_payment = payment_dao.get(payment.id_)
+        assert updated_payment.value == 5
+        assert updated_payment.last_modified_datetime > last_modified_old
+
+    @mark.parametrize("dao, ent", [
+        (UserDAO(), User(id_="12345678901234567890123456789012")),
+        (PaymentDAO(), Payment(id_="00000000000000000000000000000000")),
+    ])
+    def test_delete(self, dao, ent):
+        dao.create_table_if_not_exists()
+        try:
+            dao.create(ent)
+        except Exception:
+            assert dao.get(ent.id_) is not None
+        dao.remove(ent)
+        assert dao.get(ent.id_) is None
 
     def test_get_not_existent(self, user_dao):
+        user_dao.create_table_if_not_exists()
         assert user_dao.get("12345678901234567890123456789023") is None
 
     def test_update_not_existent(self, user_dao):
+        user_dao.create_table_if_not_exists()
         user = User(id_="12345678901234567890123456789023")
         with raises(AssertionError):
             user_dao.update(user)
 
     def test_delete_not_existent(self, user_dao):
+        user_dao.create_table_if_not_exists()
         user = User(id_="12345678901234567890123456789023")
         with raises(AssertionError):
             user_dao.remove(user)
 
-    @mark.order6
     def test_filter_date(self, user_dao):
+        user_dao.create_table_if_not_exists()
         u1 = User(birthday=date(1998, 12, 21))
         u2 = User(birthday=date(2005, 11, 21), first_name="Jose")
         user_dao.create(u1)
@@ -99,8 +193,8 @@ class TestIntegration:
         user_dao.remove(u2)
         assert len(results) == 1
 
-    @mark.order7
     def test_filter_name(self, user_dao):
+        user_dao.create_table_if_not_exists()
         u1 = User(birthday=date(1998, 12, 21))
         u2 = User(birthday=date(2005, 11, 21), first_name="Jose")
         user_dao.create(u1)
@@ -110,9 +204,3 @@ class TestIntegration:
         user_dao.remove(u1)
         user_dao.remove(u2)
         assert len(results) == 1
-
-    @mark.last
-    def test_drop_table(self, user_dao):
-        user_dao.database.query("DROP table usuarios;")
-        with raises(Exception):
-            user_dao.get("12345678901234567890123456789012")
