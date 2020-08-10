@@ -21,7 +21,7 @@ class UserDAO(GenericSQLDAO):
     table = 'usuarios'
 
     def __init__(self, database=None):
-        super(UserDAO, self).__init__(database=database, table=UserDAO.TABLE,
+        super(UserDAO, self).__init__(database=database, table=UserDAO.table,
                                       return_class=User, prefix='')
 
 
