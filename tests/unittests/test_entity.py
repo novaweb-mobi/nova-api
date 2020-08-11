@@ -4,7 +4,7 @@ from datetime import datetime, date
 from pytest import fixture, raises
 
 from nova_api.entity import Entity
-
+# pylint: disable=R0201
 @dataclass
 class SampleEntity(Entity):
     pass
@@ -25,15 +25,14 @@ class TestEntity:
                              datetime(2020, 1, 1, 0, 0, 0),
                              datetime(2020, 1, 1, 0, 0, 0),
                              0, child=SampleEntity(
-                "12345678901234567890123456789012"
-            ))
+                                 "12345678901234567890123456789012"))
 
     def test_auto_generate_id(self, entity):
         assert len(entity.id_) == 32
 
     def test_datetime_generation(self, entity):
-        assert type(entity.creation_datetime) == datetime\
-                and type(entity.last_modified_datetime) == datetime
+        assert isinstance(entity.creation_datetime, datetime) \
+                and isinstance(entity.last_modified_datetime, datetime)
 
     def test_to_dict(self, entity):
         entity_dict = dict(entity)
