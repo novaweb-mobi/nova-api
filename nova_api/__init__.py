@@ -105,7 +105,6 @@ def create_api_files(entity, dao_class, version):
             "{entity_lower}_api.py".format(entity_lower=entity_lower)):
         print("API already exists. Skipping generation...")
     else:
-        print("WILL CREATE FILE")
         with open("{entity_lower}_api.py".format(entity_lower=entity_lower),
                   'w+') as api_implementation:
             api_implementation.write(baseapi.BASE_API.format(
@@ -128,7 +127,6 @@ def create_api_files(entity, dao_class, version):
             "{entity_lower}_api.yml".format(entity_lower=entity_lower)):
         print("API documentation already exists. Skipping generation...")
     else:
-        print("WILL CREATE FILE")
         with open("{entity_lower}_api.yml".format(entity_lower=entity_lower),
                   'w+') as api_documentation:
             api_documentation.write(baseapi.API_SWAGGER.format(

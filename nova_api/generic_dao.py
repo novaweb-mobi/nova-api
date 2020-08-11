@@ -1,6 +1,5 @@
 import dataclasses
 from datetime import datetime
-from inspect import getfullargspec
 from re import sub
 from typing import List, Optional
 
@@ -45,11 +44,21 @@ class GenericSQLDAO:
 
         self.prefix = prefix or camel_to_snake(return_class.__name__) + "_"
 
+        if prefix == '':
+            self.prefix = ''
+
         self.fields = fields
         if not self.fields:
-            class_args = getfullargspec(return_class.__init__).args
-            class_args.pop(class_args.index('self'))
-            self.fields = {arg: self.prefix + arg for arg in class_args}
+            class_args = dataclasses.fields(return_class)
+            self.fields = {arg.name:
+                               self.prefix
+                               + arg.name
+                               + (''
+                                  if not issubclass(arg.type,
+                                                    Entity)
+                                  else "_id_")
+                           for arg in class_args
+                           if not arg.metadata.get("database") is False}
 
     def get(self, id_: str) -> Optional[Entity]:
         if not isinstance(id_, str):
@@ -210,14 +219,20 @@ class GenericSQLDAO:
         fields_ = list()
         primary_keys = list()
 
-        for fields in dataclasses.fields(self.return_class):
-            type_ = fields.metadata.get('type') \
-                    or GenericSQLDAO.predict_db_type(fields.type)
-            default = fields.metadata.get('default') or "NULL"
-            field_name = self.fields[fields.name]
+        for field in dataclasses.fields(self.return_class):
+            if field.metadata.get("database") is False:
+                continue
 
-            if fields.metadata.get("primary_key") is True:
+            type_ = field.metadata.get('type') \
+                    or GenericSQLDAO.predict_db_type(field.type)
+            default = field.metadata.get('default') or "NULL"
+
+            field_name = self.fields.get(field.name)
+
+            if field.metadata.get("primary_key"):
                 primary_keys.append('`{key}`'.format(key=field_name))
+                if default == "NULL":
+                    default = "NOT NULL"
 
             fields_.append(GenericSQLDAO.COLUMN.format(field=field_name,
                                                        type=type_,
@@ -231,6 +246,8 @@ class GenericSQLDAO:
 
     @classmethod
     def predict_db_type(cls, cls_to_predict):
+        if issubclass(cls_to_predict, Entity):
+            return "CHAR(32)"
         return GenericSQLDAO.TYPE_MAPPING.get(cls_to_predict.__name__) \
                or "CHAR(100)"
 

@@ -1,12 +1,12 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from time import sleep
 
 from mock import call
 from pytest import fixture, mark, raises
 
-from entity import Entity
-from generic_dao import GenericSQLDAO
+from nova_api.entity import Entity
+from nova_api.generic_dao import GenericSQLDAO
 from nova_api.exceptions import NoRowsAffectedException
 
 
@@ -15,11 +15,25 @@ class TestEntity(Entity):
     name: str = "Anom"
     birthday: date = None
 
+@dataclass
+class TestEntity2(Entity):
+    name: str = field(default=None, metadata={"default": "NULL",
+                                              "primary_key": True})
+    birthday: date = None
+
+
+@dataclass
+class TestEntityWithChild(Entity):
+    name: str = "Anom"
+    birthday: date = None
+    child: TestEntity = None
+    not_to_database: str = field(default='', metadata={"database": False})
+
 
 class TestGenericSQLDAO:
     @fixture
     def mysql_mock(self, mocker):
-        return mocker.patch('generic_dao.MySQLHelper')
+        return mocker.patch('nova_api.generic_dao.MySQLHelper')
 
     @fixture
     def generic_dao(self, mysql_mock):
@@ -34,12 +48,23 @@ class TestGenericSQLDAO:
         return generic_dao
 
     @fixture
+    def generic_dao2(self, mysql_mock):
+        generic_dao = GenericSQLDAO(
+            table="test_table",
+            fields={"id_": "id",
+                    "creation_datetime": "creation_datetime",
+                    "last_modified_datetime": "last_modified_datetime",
+                    "name": "name",
+                    "birthday": "birthday"},
+            return_class=TestEntity2)
+        return generic_dao
+
+    @fixture
     def entity(self):
         return TestEntity(id_="12345678901234567890123456789012")
 
     def test_create_table(self, generic_dao, mysql_mock):
         generic_dao.create_table_if_not_exists()
-        print(mysql_mock.mock_calls)
         assert mysql_mock.mock_calls[1] == call().query(
             'CREATE table IF NOT EXISTS test_table ('
             '`id` CHAR(32) NOT NULL, '
@@ -48,6 +73,39 @@ class TestGenericSQLDAO:
             '`name` VARCHAR(100) NULL, '
             '`birthday` DATE NULL, '
             'PRIMARY KEY(`id`)'
+            ') '
+            'ENGINE = InnoDB;'
+        )
+
+    def test_create_table_with_primary_key_null(self, generic_dao2,
+                                                mysql_mock):
+        generic_dao2.create_table_if_not_exists()
+        assert mysql_mock.mock_calls[1] == call().query(
+            'CREATE table IF NOT EXISTS test_table ('
+            '`id` CHAR(32) NOT NULL, '
+            '`creation_datetime` DATETIME NULL, '
+            '`last_modified_datetime` DATETIME NULL, '
+            '`name` VARCHAR(100) NOT NULL, '
+            '`birthday` DATE NULL, '
+            'PRIMARY KEY(`id`, `name`)'
+            ') '
+            'ENGINE = InnoDB;'
+        )
+
+    def test_create_table_with_child(self, mysql_mock):
+        generic_dao = GenericSQLDAO(return_class=TestEntityWithChild,
+                                    prefix='')
+        generic_dao.create_table_if_not_exists()
+        print(mysql_mock.mock_calls)
+        assert mysql_mock.mock_calls[1] == call().query(
+            'CREATE table IF NOT EXISTS test_entity_with_childs ('
+            '`id_` CHAR(32) NOT NULL, '
+            '`creation_datetime` DATETIME NULL, '
+            '`last_modified_datetime` DATETIME NULL, '
+            '`name` VARCHAR(100) NULL, '
+            '`birthday` DATE NULL, '
+            '`child_id_` CHAR(32) NULL, '
+            'PRIMARY KEY(`id_`)'
             ') '
             'ENGINE = InnoDB;'
         )
@@ -113,6 +171,34 @@ class TestGenericSQLDAO:
         assert entity == TestEntity(id_,
                                     datetime(2020, 7, 26, 12, 00, 00),
                                     datetime(2020, 7, 26, 12, 00, 00))
+
+    def test_get_child(self, mysql_mock):
+        generic_dao = GenericSQLDAO(return_class=TestEntityWithChild,
+                                    prefix='')
+        id_ = "12345678901234567890123456789012"
+
+        db = mysql_mock.return_value
+        db.get_results.return_value = [[id_,
+                                        datetime(2020, 7, 26, 12, 00, 00),
+                                        datetime(2020, 7, 26, 12, 00, 00),
+                                        "Anom",
+                                        None,
+                                        id_]]
+
+        entity = generic_dao.get(id_=id_)
+
+        assert mysql_mock.mock_calls[1] == call().query(
+            "SELECT id_, creation_datetime, last_modified_datetime,"
+            " name, birthday, child_id_ "
+            "FROM test_entity_with_childs WHERE id_ = %s "
+            "LIMIT %s OFFSET %s;",
+            ['12345678901234567890123456789012', 1, 0]
+        )
+        assert entity == TestEntityWithChild(
+            id_,
+            datetime(2020, 7, 26, 12, 00, 00),
+            datetime(2020, 7, 26, 12, 00, 00),
+            child=TestEntity(id_))
 
     def test_get_no_results(self, generic_dao, mysql_mock):
         id_ = "12345678901234567890123456789012"
