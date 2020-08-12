@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass, field, fields
 from datetime import date, datetime
 from uuid import uuid4
@@ -28,6 +29,7 @@ class Entity:
                                              metadata={"type": "DATETIME"})
 
     def __post_init__(self):
+        logger = logging.getLogger(__name__)
         for field_ in fields(self.__class__):
             if issubclass(field_.type, Entity) \
                     and \
@@ -35,10 +37,14 @@ class Entity:
                                    field_.type):
                 # pylint: disable=W0511
                 # TODO call dao.get
+                logger.debug("Received %s field as %s. Converting.",
+                             type(self.__getattribute__(field_.name)),
+                             field_.type)
                 self.__setattr__(field_.name, field_.type(
                     self.__getattribute__(field_.name)
                 ))
         if self.__class__ == Entity:
+            logger.error("Trying to instantiate Entity!")
             raise NotImplementedError("Abstract class can't be instantiated")
 
     def __iter__(self):

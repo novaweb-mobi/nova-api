@@ -15,13 +15,15 @@ possible_level = {"DEBUG": logging.DEBUG,
                   "ERROR": logging.ERROR,
                   "CRITICAL": logging.CRITICAL}
 
-FORMAT = '%(asctime)-15s %(levelname)s %(message)s'
+FORMAT = os.environ.get("LOG_FORMAT") \
+         or '%(asctime)-15s -> (%(filename)s ' \
+            '%(funcName)s) [%(levelname)s]: %(message)s'
 
 LOG_FILE = os.environ.get("LOG_FILE") \
     if os.environ.get("LOG_FILE") is not None \
     else "novaapi.log"
 
-LEVEL = os.environ.get("LOG_LEVEL") or "INFO"
+LEVEL = os.environ.get("LOG_LEVEL") or "DEBUG"
 
 logging.basicConfig(filename=LOG_FILE,
                     format=FORMAT,
