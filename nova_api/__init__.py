@@ -170,6 +170,8 @@ def create_api_files(entity, dao_class, version, overwrite=False):
     logger.info("Version for api is %s", version)
     parameters = list()
     for field in fields(entity):
+        if not field.metadata.get("database", True):
+            continue
         parameters.append(
             baseapi.PARAMETER.format(parameter_name=field.name,
                                      parameter_location='query',

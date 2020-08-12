@@ -31,18 +31,24 @@ class Entity:
     def __post_init__(self):
         logger = logging.getLogger(__name__)
         for field_ in fields(self.__class__):
-            if issubclass(field_.type, Entity) \
-                    and \
-                    not isinstance(self.__getattribute__(field_.name),
-                                   field_.type):
-                # pylint: disable=W0511
-                # TODO call dao.get
-                logger.debug("Received %s field as %s. Converting.",
-                             type(self.__getattribute__(field_.name)),
-                             field_.type)
-                self.__setattr__(field_.name, field_.type(
-                    self.__getattribute__(field_.name)
-                ))
+            try:
+                if issubclass(field_.type, Entity) \
+                        and \
+                        not isinstance(self.__getattribute__(field_.name),
+                                       field_.type):
+                    # pylint: disable=W0511
+                    # TODO call dao.get
+                    logger.debug("Received %s field as %s. Converting.",
+                                 type(self.__getattribute__(field_.name)),
+                                 field_.type)
+                    self.__setattr__(field_.name, field_.type(
+                        self.__getattribute__(field_.name)
+                    ))
+            except Exception:
+                logger.warning("Unable to check field %s type",
+                               field_.name, exc_info=True)
+            finally:
+                logger.debug("Processed field %s", field_.name)
         if self.__class__ == Entity:
             logger.error("Trying to instantiate Entity!")
             raise NotImplementedError("Abstract class can't be instantiated")
@@ -50,10 +56,21 @@ class Entity:
     def __iter__(self):
         for key in self.__dict__:
             if issubclass(self.__dict__[key].__class__, Entity):
-                yield key + '_id_', self.__dict__[key].id_
-            elif isinstance(self.__dict__[key], datetime):
-                yield key, self.__dict__[key].strftime("%Y-%m-%d %H:%M:%S")
-            elif isinstance(self.__dict__[key], date):
-                yield key, self.__dict__[key].strftime("%Y-%m-%d")
+                yield key + '_id_', Entity._serialize_field(self.__dict__[key])
             else:
-                yield key, self.__dict__[key]
+                yield key, Entity._serialize_field(self.__dict__[key])
+
+    @staticmethod
+    def _serialize_field(field_):
+        if issubclass(field_.__class__, Entity):
+            return field_.id_
+        elif isinstance(field_, datetime):
+            return field_.strftime("%Y-%m-%d %H:%M:%S")
+        elif isinstance(field_, date):
+            return field_.strftime("%Y-%m-%d")
+        return field_
+
+    def get_db_values(self):
+        return [Entity._serialize_field(self.__getattribute__(field_.name))
+                for field_ in fields(self)
+                if field_.metadata.get("database", True)]
