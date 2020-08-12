@@ -12,3 +12,4 @@ tests/__pycache__/
 xunit-reports/
 __pycache__/
 NovaAPI.egg-info/
+*.log
