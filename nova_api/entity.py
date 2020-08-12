@@ -44,7 +44,7 @@ class Entity:
                     self.__setattr__(field_.name, field_.type(
                         self.__getattribute__(field_.name)
                     ))
-            except Exception:
+            except TypeError:
                 logger.warning("Unable to check field %s type",
                                field_.name, exc_info=True)
             finally:
@@ -64,9 +64,9 @@ class Entity:
     def _serialize_field(field_):
         if issubclass(field_.__class__, Entity):
             return field_.id_
-        elif isinstance(field_, datetime):
+        if isinstance(field_, datetime):
             return field_.strftime("%Y-%m-%d %H:%M:%S")
-        elif isinstance(field_, date):
+        if isinstance(field_, date):
             return field_.strftime("%Y-%m-%d")
         return field_
 
