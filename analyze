@@ -26,6 +26,7 @@ export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
 pylint nova_api -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
 cd tests
 docker-compose up -d &
+export DB_URL=localhost
 pytest --junitxml=../xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:../coverage-reports/coverage-python.xml  unittests
 sleep 15
 
