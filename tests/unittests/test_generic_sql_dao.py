@@ -8,7 +8,7 @@ from pytest import fixture, mark, raises
 from nova_api.entity import Entity
 from nova_api.generic_dao import GenericSQLDAO
 from nova_api.exceptions import NoRowsAffectedException
-
+# pylint: disable=R0201
 
 @dataclass
 class TestEntity(Entity):
@@ -307,7 +307,7 @@ class TestGenericSQLDAO:
             generic_dao.get_all(filters={"test": 1})
 
     def test_remove(self, generic_dao, mysql_mock, entity):
-        def isDeleteQuery(*args):
+        def is_delete_query(*args):
             if "DELETE" in args[0]:
                 return 1, 0
             return None
@@ -318,7 +318,7 @@ class TestGenericSQLDAO:
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         "Anom",
                                         None]]
-        db.query.side_effect = isDeleteQuery
+        db.query.side_effect = is_delete_query
         generic_dao.remove(entity)
         assert mysql_mock.mock_calls[5] == call().query(
             'DELETE FROM test_table WHERE id = %s;',

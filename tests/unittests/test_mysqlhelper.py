@@ -4,7 +4,7 @@ from mysql.connector import InterfaceError, DatabaseError, Error
 from pytest import fixture, mark, raises
 
 from nova_api.mysql_helper import MySQLHelper
-
+# pylint: disable=R0201
 
 class TestMySQLHelper:
     @fixture

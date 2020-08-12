@@ -7,7 +7,7 @@ from EntityForTest import EntityForTest
 
 @use_dao(EntityDAO, "API Unavailable")
 def probe(dao: GenericSQLDAO = None):
-    total, results = dao.get_all(length=1, offset=0, filters=None)
+    total, _ = dao.get_all(length=1, offset=0, filters=None)
     return success_response(message="API Ready",
                             data={"available": total})
 

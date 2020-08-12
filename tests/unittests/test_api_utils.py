@@ -1,7 +1,5 @@
 import os
 from os.path import isfile as is_file
-import sys
-from dataclasses import dataclass
 from json import dumps
 
 from connexion.spec import Specification
@@ -14,6 +12,7 @@ from EntityForTest import EntityForTest
 from EntityForTestDAO import EntityForTestDAO
 
 
+# pylint: disable=R0201
 class TestAPIUtils:
     @mark.parametrize("status_code", [404, 400, 500, 200, 201])
     @mark.parametrize("success", [True, False])
@@ -110,30 +109,30 @@ class TestAPIUtils:
 
     def test_not_overwrite_file(self, mocker):
         mock = mocker.patch.object(nova_api.os.path,
-                            "isfile",
-                            return_value=True)
+                                   "isfile",
+                                   return_value=True)
         nova_api.create_api_files(EntityForTest, EntityDAO, '')
         assert not is_file('entityfortest_api.yml')
         assert not is_file('entityfortest_api.py')
 
     @mark.parametrize("call_, argv", [
         (
-                call(EntityForTest, EntityDAO, '2'),
-                ["python",
-                 "-e", "EntityForTest",
-                 "-d", "EntityDAO",
-                 "-v", "2"]
+            call(EntityForTest, EntityDAO, '2'),
+            ["python",
+             "-e", "EntityForTest",
+             "-d", "EntityDAO",
+             "-v", "2"]
         ),
         (
-                call(EntityForTest, EntityDAO, ''),
-                ["python",
-                 "-e", "EntityForTest",
-                 "-d", "EntityDAO"]
+            call(EntityForTest, EntityDAO, ''),
+            ["python",
+             "-e", "EntityForTest",
+             "-d", "EntityDAO"]
         ),
         (
-                call(EntityForTest, EntityForTestDAO, ''),
-                ["python",
-                 "-e", "EntityForTest"]
+            call(EntityForTest, EntityForTestDAO, ''),
+            ["python",
+             "-e", "EntityForTest"]
         )
     ])
     def test_generate_api_cli(self, mocker, call_, argv):
@@ -162,20 +161,20 @@ class TestAPIUtils:
 
     @mark.parametrize("argv, status_code", [
         (
-                ["python", "-e", "EntityFail"],
-                3
+            ["python", "-e", "EntityFail"],
+            3
         ),
         (
-                ["python", "-e", "EntityForTest", "-d", "MyDAO"],
-                3
+            ["python", "-e", "EntityForTest", "-d", "MyDAO"],
+            3
         ),
         (
-                ["python"],
-                2
+            ["python"],
+            2
         ),
         (
-                ["python", "-v", "2"],
-                2
+            ["python", "-v", "2"],
+            2
         )
     ])
     def test_generate_api_cli_not_exists(self, mocker, argv, status_code):
