@@ -28,7 +28,7 @@ If you are interested in developing the package itself, scroll down to [Installi
 ### First example
 
 As our first example, we'll create a contact API which could be used to create an address book.
-We need to create two files: [Contact.py](#Contact.py) and [ContactDAO.py](#ContactDAO.py), shown below.
+We need to create two files: [Contact.py](examples/Contact/Contact.py) and [ContactDAO.py](examples/Contact/ContactDAO.py), shown below.
 
 ##### Contact.py
 
@@ -67,7 +67,7 @@ class ContactDAO(GenericSQLDAO):
 
 #### Starting a server for this example locally
 
-If we want to run this example through a local flask server, we can use the following server.py file. It will generate the api files and start the server at port 8080. You also need a database running at localhost with a root user with password root.
+If we want to run this example through a local flask server, we can use the following [server.py](examples/Contact/server.py) file. It will generate the api files and start the server at port 8080. You also need a database running at localhost with a root user with password root.
 
 ##### server.py
 ```python
