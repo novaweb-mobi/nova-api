@@ -1,0 +1,558 @@
+swagger: "2.0"
+info:
+  description: Contact API
+  version: "1.0.0"
+  title: Contact API
+consumes:
+  - "application/json"
+produces:
+  - "application/json"
+
+basePath: "/v1/contact"
+
+paths:
+  /health:
+    get:
+      operationId: contact_api.probe
+      tags:
+        - "Contact"
+      summary: "Status check"
+      description: "Verifies if the API is ready."
+      responses:
+        200:
+          description: "API ready"
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  available:
+                    type: integer
+        500:
+          description: "API not ready"
+
+  /:
+    get:
+      operationId: contact_api.read
+      tags:
+        - "Contact"
+      parameters:
+        - name: length
+          in: query
+          type: integer
+          required: false
+          description: "Amount of contact to select"
+        - name: offset
+          in: query
+          type: integer
+          required: false
+          description: "Amount of contact to skip"
+        - name: id_
+          in: query
+          type: string
+          required: false
+        - name: creation_datetime
+          in: query
+          type: string
+          required: false
+        - name: last_modified_datetime
+          in: query
+          type: string
+          required: false
+        - name: first_name
+          in: query
+          type: string
+          required: false
+        - name: last_name
+          in: query
+          type: string
+          required: false
+      summary: "Lists all Contact available"
+      description: |
+        "Lists all Contact in the database. May be filtered by all fields."
+      responses:
+        200:
+          description: "Available Contact"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  results:
+                    type: array
+                    properties:
+                      entities:
+                        type: object
+        500:
+          description: "An error ocurred"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string
+    post:
+      operationId: contact_api.create
+      tags:
+        - "Contact"
+      parameters:
+        - name: entity
+          in: body
+          schema:
+            type: object
+          required: true
+          description: "Contact to add"
+      summary: "Create a new Contact."
+      description: |
+        "Creates a new Contact in the database"
+      responses:
+        201:
+          description: "Contact created"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  entity:
+                    type: object
+        500:
+          description: "An error ocurred"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /{id_}:
+    get:
+      operationId: contact_api.read_one
+      tags:
+        - "Contact"
+      parameters:
+        - name: id_
+          in: path
+          type: string
+          required: true
+          description: "Id of contact to select"
+      summary: "Recover contact"
+      description: |
+        "Select contact by Id"
+      responses:
+        201:
+          description: "Contact"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  entity:
+                    type: object
+        500:
+          description: "An error ocurred"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string
+    put:
+      operationId: contact_api.update
+      tags:
+        - "Contact"
+      parameters:
+        - name: id_
+          in: path
+          type: string
+          required: true
+          description: "Id of contact to select"
+        - name: entity
+          in: body
+          schema:
+            type: object
+          required: true
+          description: "Contact to add"
+      summary: "Update Contact"
+      description: |
+        "Update Contact in database."
+      responses:
+        200:
+          description: "Contact"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  entity:
+                    type: object
+        500:
+          description: "An error ocurred"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string
+    delete:
+      operationId: contact_api.delete
+      tags:
+        - "Contact"
+      parameters:
+        - name: id_
+          in: path
+          type: string
+          required: true
+          description: "Id of contact to select"
+      summary: "Delete Contact"
+      description: |
+        "Delete Contact in database."
+      responses:
+        200:
+          description: "Contact"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  entity:
+                    type: object
+        500:
+          description: "An error ocurred"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /{id_}/phone:
+    get:
+      operationId: phone_api.read
+      tags:
+        - "Phone"
+      parameters:
+        - name: id_
+          in: path
+          type: string
+          required: true
+        - name: length
+          in: query
+          type: integer
+          required: false
+          description: "Amount of phone to select"
+        - name: offset
+          in: query
+          type: integer
+          required: false
+          description: "Amount of phone to skip"
+        - name: id_
+          in: query
+          type: string
+          required: false
+        - name: creation_datetime
+          in: query
+          type: string
+          required: false
+        - name: last_modified_datetime
+          in: query
+          type: string
+          required: false
+        - name: name
+          in: query
+          type: string
+          required: false
+        - name: number
+          in: query
+          type: string
+          required: false
+      summary: "Lists all Phone available"
+      description: |
+        "Lists all Phone in the database. May be filtered by all fields."
+      responses:
+        200:
+          description: "Available Phone"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  results:
+                    type: array
+                    properties:
+                      entities:
+                        type: object
+        500:
+          description: "An error ocurred"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string
+    post:
+      operationId: phone_api.create
+      tags:
+        - "Phone"
+      parameters:
+        - name: id_
+          in: path
+          type: string
+          required: true
+        - name: entity
+          in: body
+          schema:
+            type: object
+          required: true
+          description: "Phone to add"
+      summary: "Create a new Phone."
+      description: |
+        "Creates a new Phone in the database"
+      responses:
+        201:
+          description: "Phone created"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  entity:
+                    type: object
+        500:
+          description: "An error ocurred"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /{id_}/phone/{phone_id}:
+    get:
+      operationId: phone_api.read_one
+      tags:
+        - "Phone"
+      parameters:
+        - name: id_
+          in: path
+          type: string
+          required: true
+          description: "Id of contact to select phone from"
+        - name: phone_id
+          in: path
+          type: string
+          required: true
+          description: "Id of phone to select"
+      summary: "Recover phone"
+      description: |
+        "Select phone by Id"
+      responses:
+        201:
+          description: "Phone"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  entity:
+                    type: object
+        500:
+          description: "An error ocurred"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string
+    put:
+      operationId: phone_api.update
+      tags:
+        - "Phone"
+      parameters:
+        - name: id_
+          in: path
+          type: string
+          required: true
+          description: "Id of phone to select"
+        - name: phone_id
+          in: path
+          type: string
+          required: true
+        - name: entity
+          in: body
+          schema:
+            type: object
+          required: true
+          description: "Phone to add"
+      summary: "Update Phone"
+      description: |
+        "Update Phone in database."
+      responses:
+        200:
+          description: "Phone"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  entity:
+                    type: object
+        500:
+          description: "An error ocurred"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string
+    delete:
+      operationId: phone_api.delete
+      tags:
+        - "Phone"
+      parameters:
+        - name: phone_id
+          in: path
+          type: string
+          required: true
+        - name: id_
+          in: path
+          type: string
+          required: true
+          description: "Id of phone to select"
+      summary: "Delete Phone"
+      description: |
+        "Delete Phone in database."
+      responses:
+        200:
+          description: "Phone"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  entity:
+                    type: object
+        500:
+          description: "An error ocurred"
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  error:
+                    type: string

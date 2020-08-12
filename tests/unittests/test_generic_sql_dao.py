@@ -60,6 +60,14 @@ class TestGenericSQLDAO:
         return generic_dao
 
     @fixture
+    def generic_dao_with_child(self, mysql_mock):
+        generic_dao = GenericSQLDAO(
+            table="test_table",
+            prefix='',
+            return_class=TestEntityWithChild)
+        return generic_dao
+
+    @fixture
     def entity(self):
         return TestEntity(id_="12345678901234567890123456789012")
 
@@ -370,6 +378,28 @@ class TestGenericSQLDAO:
             'VALUES (%s, %s, %s, %s, %s);', list(dict(entity).values()))
         assert id_ == entity.id_
 
+    def test_create_with_child(self, generic_dao_with_child,
+                               mysql_mock):
+        def is_insert_query(*args):
+            if "INSERT" in args[0]:
+                return 1, 0
+            return None
+
+        entity = TestEntityWithChild()
+
+        db = mysql_mock.return_value
+        db.get_results.return_value = None
+
+        db.query.side_effect = is_insert_query
+
+        id_ = generic_dao_with_child.create(entity)
+
+        assert mysql_mock.mock_calls[3] == call().query(
+            'INSERT INTO test_table (id_, creation_datetime,'
+            ' last_modified_datetime, name, birthday, child_id_) '
+            'VALUES (%s, %s, %s, %s, %s, %s);', entity.get_db_values())
+        assert id_ == entity.id_
+
     def test_create_exist(self, generic_dao, mysql_mock, entity):
         db = mysql_mock.return_value
         db.get_results.return_value = [list(entity.__dict__.values())]
@@ -408,6 +438,23 @@ class TestGenericSQLDAO:
             'UPDATE test_table SET id=%s, creation_datetime=%s, '
             'last_modified_datetime=%s, name=%s, birthday=%s '
             'WHERE id = %s;', list(dict(entity).values()) + [entity.id_]
+        )
+        assert entity.creation_datetime < entity.last_modified_datetime
+
+    def test_update_with_child(self, generic_dao_with_child,
+                               mysql_mock):
+        entity = TestEntityWithChild()
+        db = mysql_mock.return_value
+        db.get_results.return_value = [list(entity.__dict__.values())]
+        db.query.return_value = 1, 0
+        entity.birthday = date(1998, 12, 21)
+        entity.name = "MyTestName"
+        sleep(1)
+        generic_dao_with_child.update(entity)
+        assert mysql_mock.mock_calls[5] == call().query(
+            'UPDATE test_table SET id_=%s, creation_datetime=%s, '
+            'last_modified_datetime=%s, name=%s, birthday=%s, child_id_=%s '
+            'WHERE id_ = %s;', entity.get_db_values() + [entity.id_]
         )
         assert entity.creation_datetime < entity.last_modified_datetime
 

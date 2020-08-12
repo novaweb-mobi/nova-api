@@ -68,7 +68,7 @@ class GenericSQLDAO:
                                                     Entity)
                                   else "_id_")
                            for arg in class_args
-                           if not arg.metadata.get("database") is False}
+                           if arg.metadata.get("database", True)}
             self.logger.debug("Processed fields for %s are %s.",
                               self,
                               self.fields)
@@ -227,18 +227,17 @@ class GenericSQLDAO:
                 )
             )
 
+        ent_values = entity.get_db_values()
+
         query = 'INSERT INTO {table} ({fields}) VALUES ({values});'.format(
             table=self.table,
             fields=', '.join(self.fields.values()),
-            values=', '.join(['%s'] * len(
-                self.fields.values())))
+            values=', '.join(['%s'] * len(ent_values)))
 
-        ent_values = dict(entity).copy()
         self.logger.debug("Running query in database: %s and params %s",
                           query,
-                          list(ent_values.values()))
-        row_count, _ = self.database.query(query,
-                                           list(ent_values.values()))
+                          ent_values)
+        row_count, _ = self.database.query(query, ent_values)
 
         if row_count == 0:
             self.logger.error("No rows were affected in database during "
@@ -266,6 +265,8 @@ class GenericSQLDAO:
 
         entity.last_modified_datetime = datetime.now()
 
+        ent_values = entity.get_db_values()
+
         query = "UPDATE {table} SET {fields} WHERE {column} = %s;".format(
             table=self.table,
             fields=', '.join(
@@ -276,10 +277,9 @@ class GenericSQLDAO:
 
         self.logger.debug("Running query in database: %s and params %s",
                           query,
-                          list(dict(entity).values()) + [entity.id_])
+                          ent_values + [entity.id_])
         row_count, _ = self.database.query(query,
-                                           list(dict(entity).values())
-                                           + [entity.id_])
+                                           ent_values + [entity.id_])
 
         if row_count == 0:
             self.logger.error("No rows were affected in database during "
