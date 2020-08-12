@@ -128,9 +128,9 @@ class GenericSQLDAO:
                                       self.return_class.__name__)
                     raise ValueError(
                         "Comparator {comparator} not allowed for {entity}"
-                            .format(comparator=value[0],
-                                    entity=self.return_class.__name__
-                                    )
+                        .format(comparator=value[0],
+                                entity=self.return_class.__name__
+                                )
                     )
 
             filters_for_query = [
