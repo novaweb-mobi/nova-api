@@ -1,0 +1,2 @@
+NovaAPI=={{VERSION}}
+uwsgi
