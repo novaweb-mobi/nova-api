@@ -39,6 +39,15 @@ class TestMySQLHelper:
             call.connect().cursor()
         ]
 
+    def test_init_none(self, mysql_mock):
+        MySQLHelper(host=None, user='test',
+                    password='12345', database='test_db')
+        assert mysql_mock.mock_calls == [
+            call.connect(host='localhost', user='test',
+                         passwd='12345', database='test_db'),
+            call.connect().cursor()
+        ]
+
     @mark.parametrize("query, params, calls", [
         ("SELECT * FROM teste;", None,
          [call.connect().cursor().execute("SELECT * FROM teste;")]),

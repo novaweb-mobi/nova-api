@@ -29,7 +29,13 @@ jobs:
     - name: Lint with pylint
       run: |
         mkdir reports
-        pylint nova_api --rcfile=standard.rc -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
+        pylint nova_api --exit-zero --rcfile=standard.rc -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
+
+    - name: Save pylint report
+      uses: actions/upload-artifact@v2
+      with:
+        name: pylint-report
+        path: reports/lint_report
 
     - name: Check files ending with newline
       run: |
