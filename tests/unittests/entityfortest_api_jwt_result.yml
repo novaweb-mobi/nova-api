@@ -1,113 +1,21 @@
-BASE_API = """from nova_api.generic_dao import GenericSQLDAO
-from nova_api import error_response, success_response, use_dao
-
-from {DAO_CLASS} import {DAO_CLASS}
-from {ENTITY} import {ENTITY}
-
-
-@use_dao({DAO_CLASS}, "API Unavailable")
-def probe(dao: GenericSQLDAO = None):
-    total, _ = dao.get_all(length=1, offset=0, filters=None)
-    return success_response(message="API Ready",
-                            data={{"available": total}})
-
-
-@use_dao({DAO_CLASS}, "Unable to list {ENTITY_LOWER}")
-def read(length: int = 20, offset: int = 0,
-         dao: GenericSQLDAO = None, **kwargs):
-    for key, value in kwargs.items():
-        kwargs[key] = value.split(',') \\
-                        if len(value.split(',')) > 1 \\
-                        else value
-    total, results = dao.get_all(length=length, offset=offset,
-                                 filters=kwargs if len(kwargs) > 0 else None)
-    return success_response(message="List of {ENTITY_LOWER}",
-                            data={{"total": total, "results": [dict(result)
-                                                              for result
-                                                              in results]}})
-
-
-@use_dao({DAO_CLASS}, "Unable to retrieve {ENTITY_LOWER}")
-def read_one(id_: str, dao: GenericSQLDAO = None):
-    result = dao.get(id_=id_)
-
-    if not result:
-        return success_response(status_code=404,
-                                message="{ENTITY} not found in database",
-                                data={{"id_": id_}})
-
-    return success_response(message="{ENTITY} retrieved",
-                            data={{"{ENTITY}": dict(result)}})
-
-
-@use_dao({DAO_CLASS}, "Unable to create {ENTITY_LOWER}")
-def create(entity: dict, dao: GenericSQLDAO = None):
-    entity_to_create = {ENTITY}(**entity)
-
-    dao.create(entity=entity_to_create)
-
-    return success_response(message="{ENTITY} created",
-                            data={{"{ENTITY}": dict(entity_to_create)}})
-
-
-@use_dao({DAO_CLASS}, "Unable to update {ENTITY_LOWER}")
-def update(id_: str, entity: dict, dao: GenericSQLDAO = None):
-    entity_to_update = dao.get(id_)
-
-    if not entity_to_update:
-        return error_response(status_code=404,
-                              message="{ENTITY} not found",
-                              data={{"id_": id_}})
-
-    entity_fields = dao.fields.keys()
-
-    for key, value in entity.items():
-        if key not in entity_fields:
-            raise KeyError("{{key}} not in {{entity}}"
-                           .format(key=key,
-                                   entity=dao.return_class))
-
-        entity_to_update.__dict__[key] = value
-
-    dao.update(entity_to_update)
-
-    return success_response(message="{ENTITY} updated",
-                            data={{"{ENTITY}": dict(entity_to_update)}})
-
-
-@use_dao({DAO_CLASS}, "Unable to delete {ENTITY_LOWER}")
-def delete(id_: str, dao: GenericSQLDAO):
-    entity = dao.get(id_=id_)
-
-    if not entity:
-        return error_response(status_code=404,
-                              message="{ENTITY} not found",
-                              data={{"id_": id_}})
-
-    dao.remove(entity)
-
-    return success_response(message="{ENTITY} deleted",
-                            data={{"{ENTITY}": dict(entity)}})
-"""
-
-API_SWAGGER = """swagger: "2.0"
+swagger: "2.0"
 info:
-  description: {ENTITY} API
+  description: EntityForTest API
   version: "1.0.0"
-  title: {ENTITY} API
+  title: EntityForTest API
 consumes:
   - "application/json"
 produces:
   - "application/json"
 
-basePath: "/v{VERSION}/{ENTITY_LOWER}"
+basePath: "/v1/entityfortest"
 
 paths:
   /health:
     get:
-      operationId: {ENTITY_LOWER}_api.probe
+      operationId: entityfortest_api.probe
       tags:
-        - "{ENTITY}"
+        - "EntityForTest"
       summary: "Status check"
       description: "Verifies if the API is ready."
       responses:
@@ -128,27 +36,44 @@ paths:
 
   /:
     get:
-      operationId: {ENTITY_LOWER}_api.read{SECURITY}
+      operationId: entityfortest_api.read
+      security:
+        - jwt: ['secret']
       tags:
-        - "{ENTITY}"
+        - "EntityForTest"
       parameters:
         - name: length
           in: query
           type: integer
           required: false
-          description: "Amount of {ENTITY_LOWER} to select"
+          description: "Amount of entityfortest to select"
         - name: offset
           in: query
           type: integer
           required: false
-          description: "Amount of {ENTITY_LOWER} to skip"
-{PARAMETERS}
-      summary: "Lists all {ENTITY} available"
+          description: "Amount of entityfortest to skip"
+        - name: id_
+          in: query
+          type: string
+          required: false
+        - name: creation_datetime
+          in: query
+          type: string
+          required: false
+        - name: last_modified_datetime
+          in: query
+          type: string
+          required: false
+        - name: test_field
+          in: query
+          type: string
+          required: false
+      summary: "Lists all EntityForTest available"
       description: |
-        "Lists all {ENTITY} in the database. May be filtered by all fields."
+        "Lists all EntityForTest in the database. May be filtered by all fields."
       responses:
         200:
-          description: "Available {ENTITY}"
+          description: "Available EntityForTest"
           schema:
             type: object
             properties:
@@ -181,22 +106,24 @@ paths:
                   error:
                     type: string
     post:
-      operationId: {ENTITY_LOWER}_api.create{SECURITY}
+      operationId: entityfortest_api.create
+      security:
+        - jwt: ['secret']
       tags:
-        - "{ENTITY}"
+        - "EntityForTest"
       parameters:
         - name: entity
           in: body
           schema:
             type: object
           required: true
-          description: "{ENTITY} to add"
-      summary: "Create a new {ENTITY}."
+          description: "EntityForTest to add"
+      summary: "Create a new EntityForTest."
       description: |
-        "Creates a new {ENTITY} in the database"
+        "Creates a new EntityForTest in the database"
       responses:
         201:
-          description: "{ENTITY} created"
+          description: "EntityForTest created"
           schema:
             type: object
             properties:
@@ -224,23 +151,25 @@ paths:
                   error:
                     type: string
 
-  /{{id_}}:
+  /{id_}:
     get:
-      operationId: {ENTITY_LOWER}_api.read_one{SECURITY}
+      operationId: entityfortest_api.read_one
+      security:
+        - jwt: ['secret']
       tags:
-        - "{ENTITY}"
+        - "EntityForTest"
       parameters:
         - name: id_
           in: path
           type: string
           required: true
-          description: "Id of {ENTITY_LOWER} to select"
-      summary: "Recover {ENTITY_LOWER}"
+          description: "Id of entityfortest to select"
+      summary: "Recover entityfortest"
       description: |
-        "Select {ENTITY_LOWER} by Id"
+        "Select entityfortest by Id"
       responses:
         201:
-          description: "{ENTITY}"
+          description: "EntityForTest"
           schema:
             type: object
             properties:
@@ -268,27 +197,29 @@ paths:
                   error:
                     type: string
     put:
-      operationId: {ENTITY_LOWER}_api.update{SECURITY}
+      operationId: entityfortest_api.update
+      security:
+        - jwt: ['secret']
       tags:
-        - "{ENTITY}"
+        - "EntityForTest"
       parameters:
         - name: id_
           in: path
           type: string
           required: true
-          description: "Id of {ENTITY_LOWER} to select"
+          description: "Id of entityfortest to select"
         - name: entity
           in: body
           schema:
             type: object
           required: true
-          description: "{ENTITY} to add"
-      summary: "Update {ENTITY}"
+          description: "EntityForTest to add"
+      summary: "Update EntityForTest"
       description: |
-        "Update {ENTITY} in database."
+        "Update EntityForTest in database."
       responses:
         200:
-          description: "{ENTITY}"
+          description: "EntityForTest"
           schema:
             type: object
             properties:
@@ -316,21 +247,23 @@ paths:
                   error:
                     type: string
     delete:
-      operationId: {ENTITY_LOWER}_api.delete{SECURITY}
+      operationId: entityfortest_api.delete
+      security:
+        - jwt: ['secret']
       tags:
-        - "{ENTITY}"
+        - "EntityForTest"
       parameters:
         - name: id_
           in: path
           type: string
           required: true
-          description: "Id of {ENTITY_LOWER} to select"
-      summary: "Delete {ENTITY}"
+          description: "Id of entityfortest to select"
+      summary: "Delete EntityForTest"
       description: |
-        "Delete {ENTITY} in database."
+        "Delete EntityForTest in database."
       responses:
         200:
-          description: "{ENTITY}"
+          description: "EntityForTest"
           schema:
             type: object
             properties:
@@ -357,20 +290,7 @@ paths:
                 properties:
                   error:
                     type: string
-"""
 
-PARAMETER = \
-    """        - name: {parameter_name}
-          in: {parameter_location}
-          type: {parameter_type}
-          required: false"""
-
-SECURITY_PARAMETERS = ["""
-      security:
-        - jwt: ['secret']
-"""]
-
-SECURITY_DEFINITIONS = ["""
 securityDefinitions:
   jwt:
     type: apiKey
@@ -378,4 +298,3 @@ securityDefinitions:
     in: header
     x-authentication-scheme: Bearer
     x-bearerInfoFunc: nova_api.auth.decode_jwt_token
-"""]

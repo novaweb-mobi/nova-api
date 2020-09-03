@@ -8,3 +8,4 @@ flask
 setuptools
 wheel
 connexion
+python-jose
