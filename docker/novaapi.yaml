@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my_api
+  labels:
+    app: my_app
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: my_app
+      name: my_api
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: my_app
+        name: my_api
+    spec:
+      containers:
+        - name: my_api
+          image: docker.pkg.github.com/novaweb-mobi/connexion-api-docker/novaapi:0.1.1
+          env:
+            - name: DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: deploysecrets
+                  key: dburl
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: deploysecrets
+                  key: dbuser
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: deploysecrets
+                  key: dbpassword
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: deploysecrets
+                  key: dbname
+            - name: PORT
+              value: '8080'
+            - name: PROCESSES
+              value: '1'
+            - name: THREAD
+              value: 'true'
+            - name: DEBUG
+              value: '0'
+            - name: APIS
+              value: ''
+            - name: ENTITIES
+              value: 'Entity'
+            - name: VERSION
+              value: '1'
+          livenessProbe:
+            httpGet:
+              path: /v1/entity/health
+              port: 8080
+            initialDelaySeconds: 10
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+              name: api
+          imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my_api
+  labels:
+    app: my_app
+spec:
+  type: LoadBalancer
+  selector:
+    app: my_app
+    name: my_api
+  ports:
+    - name: api
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+

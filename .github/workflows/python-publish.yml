@@ -27,7 +27,9 @@ jobs:
       run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
 
     - name: Update version
-      run: sed -i 's@{{VERSION}}@'"${{ steps.get_version.outputs.VERSION }}"'@' setup.py
+      run: |
+        sed -i 's@{{VERSION}}@'"${{ steps.get_version.outputs.VERSION }}"'@' setup.py
+        sed -i 's@{{VERSION}}@'"${{ steps.get_version.outputs.VERSION }}"'@' docker/requirements-docker.txt
 
     - name: Build and publish
       env:
@@ -36,3 +38,15 @@ jobs:
       run: |
         python setup.py sdist bdist_wheel
         twine upload dist/*
+
+    - name: Build and publish docker image
+      env:
+        DOCKER_USERNAME: MatTerra
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_TOKEN }}
+        DOCKER_REPO: docker.pkg.github.com
+        DOCKER_IMAGE: novaweb-mobi/connexion-api-docker/novaapi
+        DOCKER_TAG: ${{ steps.get_version.outputs.VERSION }}
+      run: |
+        docker login $DOCKER_REPO -u $DOCKER_USERNAME -p$DOCKER_PASSWORD
+        docker build -t $DOCKER_REPO/$DOCKER_IMAGE:$DOCKER_TAG -f docker/Dockerfile docker/
+        docker push $DOCKER_REPO/$DOCKER_IMAGE:$DOCKER_TAG
