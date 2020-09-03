@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime, date
+from typing import List
 
 from pytest import fixture, raises
 
@@ -15,6 +16,10 @@ class EntityForTest(Entity):
     test_field: int = 0
     my_date: date = field(default=date(2020, 1, 1))
     child: SampleEntity = None
+
+@dataclass
+class EntityForTestWithTypeError(Entity):
+    childs: List[SampleEntity] = None
 
 
 class TestEntity:
@@ -46,3 +51,7 @@ class TestEntity:
     def test_not_implemented(self):
         with raises(NotImplementedError):
             Entity()
+
+    def test_field_type_error(self):
+        ent = EntityForTestWithTypeError()
+        assert isinstance(ent, EntityForTestWithTypeError)
