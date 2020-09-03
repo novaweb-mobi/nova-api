@@ -3,7 +3,7 @@ import os
 from typing import Any, List
 
 import mysql.connector
-from mysql.connector import Error, InterfaceError
+from mysql.connector import Error, InterfaceError, DatabaseError
 
 
 class MySQLHelper:
@@ -37,11 +37,12 @@ class MySQLHelper:
                                                    passwd=str(password),
                                                    database=str(database))
             self.cursor = self.db_conn.cursor()
-        except (InterfaceError, ValueError) as err:
+        except (InterfaceError, ValueError, DatabaseError) as err:
             self.logger.critical("Unable to connect to database!",
                                  exc_info=True)
             raise ConnectionError("\nSomething went wrong when connecting "
-                                  "to mysql: {err}\n\n".format(err=err))
+                                  "to mysql: {err}\n\n".format(err=err)) \
+                from err
 
     def query(self, query: str, params: List = None) -> (int, int):
         try:
@@ -66,7 +67,7 @@ class MySQLHelper:
                                  exc_info=True)
             raise RuntimeError(
                 "\nSomething went wrong with the query: {}\n\n".format(err)
-            )
+            ) from err
 
     def get_results(self) -> List[Any]:
         try:
@@ -76,7 +77,8 @@ class MySQLHelper:
         except Error as err:
             self.logger.critical("Unable to get query results!",
                                  exc_info=True)
-            raise RuntimeError("\nSomething went wrong: {}\n\n".format(err))
+            raise RuntimeError("\nSomething went wrong: {}\n\n".format(err)) \
+                from err
 
     def close(self):
         self.logger.info("Closing connection to database!")
