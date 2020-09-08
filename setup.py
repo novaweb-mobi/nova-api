@@ -21,7 +21,7 @@ setuptools.setup(
         'flask',
         'flask-cors',
         'connexion[swagger-ui]',
-        'python-jose'
+        'python-jose>3.2.0'
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
