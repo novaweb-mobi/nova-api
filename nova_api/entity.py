@@ -44,6 +44,19 @@ class Entity:
                     self.__setattr__(field_.name, field_.type(
                         self.__getattribute__(field_.name)
                     ))
+                if (issubclass(field_.type, datetime) \
+                    or issubclass(field_.type, date)) \
+                        and \
+                        not isinstance(self.__getattribute__(field_.name),
+                                       field_.type):
+                    logger.debug("Received %s field as %s. Converting.",
+                                 type(self.__getattribute__(field_.name)),
+                                 field_.type)
+                    self.__setattr__(field_.name, 
+                                     datetime.strptime(
+                        self.__getattribute__(field_.name),
+                        field.metadata.get("datetime_format", "%Y-%m-%d %H:%M%S")
+                    ))  
             except TypeError:
                 logger.warning("Unable to check field %s type",
                                field_.name, exc_info=True)
