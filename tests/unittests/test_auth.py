@@ -5,6 +5,7 @@ from pytest import raises
 import nova_api
 from nova_api import auth
 
+
 class TestAuth:
     def test_decode_token(self):
         token_info = {"name": "test", "id": 123}
