@@ -96,6 +96,26 @@ class TestAPIUtils:
         os.remove('entityfortest_api.yml')
         os.remove('entityfortest_api.py')
 
+    @mark.parametrize("schema_name, schema_text", [
+        (nova_api.JWT, nova_api.baseapi.SECURITY_DEFINITIONS[0]),
+        (None, None)
+    ])
+    def test_get_authorization_schema_yml(self, schema_name, schema_text):
+        assert nova_api.get_auth_schema_yml(schema_name) == schema_text
+
+    def test_generate_valid_api_yml_with_jwt(self):
+        nova_api.create_api_files(EntityForTest, EntityDAO,
+                                  '1', auth_schema=nova_api.JWT)
+        gen_spec = Specification.load('entityfortest_api.yml')
+        base_spec = Specification.load(
+            'unittests/entityfortest_api_jwt_result.yml'
+        )
+        with open('entityfortest_api.yml') as f:
+            print(f.read())
+        os.remove('entityfortest_api.yml')
+        os.remove('entityfortest_api.py')
+        assert gen_spec == base_spec
+
     def test_generate_api_py(self):
         nova_api.create_api_files(EntityForTest, EntityDAO, '1')
         gen_spec = ''
@@ -103,9 +123,9 @@ class TestAPIUtils:
             gen_spec = f.read()
         with open('unittests/entityfortest_api_result.py') as f:
             base_spec = f.read()
-            assert gen_spec == base_spec
         os.remove('entityfortest_api.yml')
         os.remove('entityfortest_api.py')
+        assert gen_spec == base_spec
 
     def test_not_overwrite_file(self, mocker):
         mock = mocker.patch.object(nova_api.os.path,

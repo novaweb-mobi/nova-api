@@ -9,15 +9,18 @@ from flask import helpers, jsonify, make_response
 
 from nova_api import baseapi
 
+# Authorization schemas
+JWT = 0
+
 possible_level = {"DEBUG": logging.DEBUG,
                   "INFO": logging.INFO,
                   "WARNING": logging.WARNING,
                   "ERROR": logging.ERROR,
                   "CRITICAL": logging.CRITICAL}
 
-FORMAT = os.environ.get("LOG_FORMAT") \
-         or '%(asctime)-15s -> (%(filename)s ' \
-            '%(funcName)s) [%(levelname)s]: %(message)s'
+FORMAT = os.environ.get("LOG_FORMAT", '%(asctime)-15s -> (%(filename)s '
+                                      '%(funcName)s) [%(levelname)s]: '
+                                      '%(message)s')
 
 LOG_FILE = os.environ.get("LOG_FILE") \
     if os.environ.get("LOG_FILE") is not None \
@@ -29,6 +32,8 @@ logging.basicConfig(filename=LOG_FILE,
                     format=FORMAT,
                     level=possible_level.get(LEVEL))
 logger = logging.getLogger(__name__)
+
+JWT_SECRET = os.environ.get('JWT_SECRET', "1234567890a")
 
 
 def default_response(success: bool, status_code: int,
@@ -147,7 +152,14 @@ def generate_api():
     create_api_files(ent, dao, version)
 
 
-def create_api_files(entity, dao_class, version, overwrite=False):
+def get_auth_schema_yml(schema: int = None):
+    if schema is None:
+        return None
+    return baseapi.SECURITY_DEFINITIONS[schema]
+
+
+def create_api_files(entity, dao_class, version,
+                     overwrite=False, auth_schema=None):
     entity_lower = entity.__name__.lower()
 
     if os.path.isfile(
@@ -193,6 +205,11 @@ def create_api_files(entity, dao_class, version, overwrite=False):
                 ENTITY=entity.__name__,
                 ENTITY_LOWER=entity_lower,
                 VERSION=version,
-                PARAMETERS=parameters))
+                PARAMETERS=parameters,
+                SECURITY=baseapi.SECURITY_PARAMETERS[auth_schema]
+                if auth_schema is not None
+                else ""))
+            if auth_schema is not None:
+                api_documentation.write(get_auth_schema_yml(auth_schema))
             logger.info("Done writing api documentation for entity %s.",
                         entity_lower)

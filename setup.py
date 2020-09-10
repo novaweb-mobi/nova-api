@@ -20,7 +20,8 @@ setuptools.setup(
         'mysql-connector',
         'flask',
         'flask-cors',
-        'connexion[swagger-ui]'
+        'connexion[swagger-ui]',
+        'python-jose>3.2.0'
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
