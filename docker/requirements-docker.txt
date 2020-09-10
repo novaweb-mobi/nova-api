@@ -1,2 +1,2 @@
-NovaAPI==0.2.0-a.1
+NovaAPI=={{VERSION}}
 uwsgi
