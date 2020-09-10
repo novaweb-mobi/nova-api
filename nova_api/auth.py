@@ -25,7 +25,8 @@ def unauthorize(*args, **kwargs):
     return abort(401, "Unauthorized")
 
 
-def validate_jwt_claims(token_info: dict = None, **kwargs):
+def validate_jwt_claims(token_info: dict = None, add_token_info=True,
+                        **kwargs):
     def make_call(function):
         for claim_name, claim_value in kwargs.items():
             if token_info.get(claim_name, None) != claim_value:
@@ -36,7 +37,9 @@ def validate_jwt_claims(token_info: dict = None, **kwargs):
             logger.info(
                 "Validating claims on call to %s with token %s and claims: %s",
                 function, token_info, kwargs)
-            return function(*args, **kwargs, token_info=token_info)
+            if add_token_info:
+                kwargs.update(("token_info", token_info))
+            return function(*args, **kwargs)
 
         return wrapper
 

@@ -61,6 +61,18 @@ class TestAuth:
         else:
             assert test_function(keyword=1234)
 
+    def test_validate_claims(self):
+        token_info = {"iss": "novaweb.teste",
+                      "sub": "tester2@novaweb",
+                      "custom_claim": "testing"}
+
+        @auth.validate_jwt_claims(token_info=token_info, add_token_info=False,
+                                  **token_info)
+        def test_function():
+            return True
+
+        assert test_function()
+
     def test_unauthorize(self):
         with raises(Unauthorized):
             auth.unauthorize()
