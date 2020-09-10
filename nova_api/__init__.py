@@ -89,6 +89,19 @@ def error_response(status_code: int = 500, message: str = "Error",
 
 def success_response(status_code: int = 200, message: str = "OK",
                      data: dict = None) -> Response:
+    """Wrapper of default_response for success responses.
+
+        Calls default_response with status_code=200, message=OK
+        and success=true passing data. Other status code and messages
+        may be passed.
+
+        :param status_code: integer that represents the http status code of \
+        the response.
+        :param message: summary string for the response.
+        :param data: dictionary (json valid) with data to be sent in the
+        response
+        :return: a default response with success=true
+        """
     if data is None:
         data = dict()
     return default_response(success=True, status_code=status_code,
@@ -96,6 +109,12 @@ def success_response(status_code: int = 200, message: str = "OK",
 
 
 def use_dao(dao_class: type, error_message: str = "Erro"):
+    """
+
+    :param dao_class:
+    :param error_message:
+    :return:
+    """
     def make_call(function):
 
         @wraps(function)
