@@ -44,7 +44,7 @@ class TestAuth:
 
         if not valid:
             with raises(Unauthorized):
-                test_function()
+                test_function(keyword=1234)
         else:
             assert test_function(keyword=1234)
 

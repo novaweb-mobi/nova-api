@@ -1,7 +1,5 @@
-import os
 import logging
 from functools import wraps
-from typing import Union
 
 from flask import abort
 from jose import jwt, JWTError
@@ -14,10 +12,11 @@ logger = logging.getLogger(__name__)
 def decode_jwt_token(token):
     try:
         return jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
-    except JWTError as e:
+    except JWTError:
         unauthorize()
 
 
+# pylint: disable=W0613
 def unauthorize(*args, **kwargs):
     return abort(401, "Unauthorized")
 
