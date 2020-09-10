@@ -1,12 +1,10 @@
-.. NovaAPI documentation master file, created by
-   sphinx-quickstart on Thu Sep 10 16:09:32 2020.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to NovaAPI's documentation!
 ===================================
 
 Contents:
+
+.. automodule:: nova_api
+    :members:
 
 .. toctree::
    :maxdepth: 2

@@ -1,3 +1,4 @@
+"""A package to accelerate REST API development"""
 import getopt
 import logging
 import os
@@ -5,7 +6,8 @@ import sys
 from dataclasses import fields
 from functools import wraps
 
-from flask import helpers, jsonify, make_response
+from flask import jsonify, make_response
+from flask.wrappers import Response
 
 from nova_api import baseapi
 
@@ -37,7 +39,20 @@ JWT_SECRET = os.environ.get('JWT_SECRET', "1234567890a")
 
 
 def default_response(success: bool, status_code: int,
-                     message: str, data: dict) -> helpers:
+                     message: str, data: dict) -> Response:
+    """ Send a flask response with json payload in a default format
+
+    Default json format:
+    {"sucess": success, "message": message, "data": data}
+
+    :param success: bool that represents if the request was successfully \
+    processed.
+    :param status_code: integer that represents the http status code of the \
+    response.
+    :param message: summary string for the response.
+    :param data: dictionary (json valid) with data to be sent in the response
+    :return: a flask response with headers and status codes set
+    """
     json_content = jsonify({"success": success,
                             "message": message,
                             "data": data})
@@ -53,7 +68,19 @@ def default_response(success: bool, status_code: int,
 
 
 def error_response(status_code: int = 500, message: str = "Error",
-                   data: dict = None) -> helpers:
+                   data: dict = None) -> Response:
+    """Wrapper of default_response for error responses.
+
+    Calls default_response with status_code=500, message=Error
+    and success=false passing data. Other status code and messages
+    may be passed.
+
+    :param status_code: integer that represents the http status code of the \
+    response.
+    :param message: summary string for the response.
+    :param data: dictionary (json valid) with data to be sent in the response
+    :return: a default response with success=false
+    """
     if data is None:
         data = dict()
     return default_response(success=False, status_code=status_code,
@@ -61,7 +88,7 @@ def error_response(status_code: int = 500, message: str = "Error",
 
 
 def success_response(status_code: int = 200, message: str = "OK",
-                     data: dict = None) -> helpers:
+                     data: dict = None) -> Response:
     if data is None:
         data = dict()
     return default_response(success=True, status_code=status_code,
@@ -70,7 +97,6 @@ def success_response(status_code: int = 200, message: str = "OK",
 
 def use_dao(dao_class: type, error_message: str = "Erro"):
     def make_call(function):
-
 
         @wraps(function)
         def wrapper(*args, **kwargs):
