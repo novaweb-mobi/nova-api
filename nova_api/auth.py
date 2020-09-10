@@ -13,11 +13,9 @@ def decode_jwt_token(token):
     try:
         return jwt.decode(
             token, JWT_SECRET, algorithms=['HS256'],
-            options={'verify_signature': True, 'verify_aud': False,
-                     'verify_iat': True, 'verify_exp': True,
-                     'verify_nbf': True, 'verify_iss': False,
+            options={'verify_aud': False, 'verify_iss': False,
                      'verify_sub': False, 'verify_jti': False,
-                     'verify_at_hash': False, })
+                     'verify_at_hash': False})
     except JWTError:
         unauthorize()
 
