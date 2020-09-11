@@ -1,14 +1,13 @@
 Welcome to NovaAPI's documentation!
 ===================================
 
-Contents:
-
-.. automodule:: nova_api
-    :members:
 
 .. toctree::
    :maxdepth: 2
-
+    
+   license
+   novaapi
+   auth
 
 
 Indices and tables
