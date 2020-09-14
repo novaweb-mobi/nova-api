@@ -4,6 +4,7 @@ pytest-mock
 mock
 pytest-ordering
 mysql-connector
+pyodbc
 flask
 setuptools
 wheel

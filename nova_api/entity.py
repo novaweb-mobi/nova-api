@@ -5,7 +5,7 @@ from datetime import date, datetime
 from uuid import uuid4
 
 
-def generate_id():
+def generate_id() -> str:
     """Generates an uuid v4.
 
     :return: Hexadecimal string representation of the uuid.
@@ -145,10 +145,17 @@ class Entity:
             return field_.strftime("%Y-%m-%d")
         return field_
 
-    def get_db_values(self):
-        """
+    def get_db_values(self) -> list:
+        """Returns all attributes to save in database with formatted values.
 
-        :return:
+        Goes through the fields in the entity and converts them to the
+        expected value to save in the database. For example: datetime
+        values are converted to string with the specific sql format.
+
+        Also verifies if a field contains in metadata `database=False` and
+        excludes it from the list if so. Default for `database` is True.
+
+        :return: Serialized values to save in database
         """
         return [Entity._serialize_field(self.__getattribute__(field_.name))
                 for field_ in fields(self)

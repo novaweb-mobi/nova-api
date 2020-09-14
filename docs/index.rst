@@ -19,7 +19,7 @@ Contact.py
 
 In this file, we describe our entity, that is, our contact. We include all information
 we want to add to the database. Beside our custom defined fields, as it inherits from
-Entity_ we also have an UUID, the creation datetime and the last
+Entity we also have an UUID, the creation datetime and the last
 modified datetime automatically generated.
 
 In this example, we use the "type" key in the metadata to gain control over how our data

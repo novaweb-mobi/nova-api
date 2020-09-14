@@ -30,6 +30,7 @@ def decode_jwt_token(token: str) -> dict:
                      'verify_sub': False, 'verify_jti': False,
                      'verify_at_hash': False})
     except JWTError:
+        logger.error("Unauthorized request!", exc_info=True)
         unauthorize()
 
 
@@ -44,8 +45,7 @@ def unauthorize(*args, **kwargs) -> HTTPException:
     return abort(401, "Unauthorized")
 
 
-def validate_jwt_claims(token_info: dict = None, add_token_info: bool = False,
-                        **kwargs):
+def validate_jwt_claims(add_token_info: bool = False, claims={}):
     """Decorator to authenticate and authorize access to API endpoint
 
     Checks if the received claims are present in token_info and if they match \
@@ -55,35 +55,42 @@ def validate_jwt_claims(token_info: dict = None, add_token_info: bool = False,
         In the following example, if the `token_info` doesn't have the iss \
         claim with value "novaweb", `my_endpoint` won't be called. ::
 
-            @validate_jwt_claims(iss="novaweb")
+            @validate_jwt_claims(claims = {iss="novaweb"})
             def my_endpoint():
                 ...
 
-    :param token_info: Dictionary with all claims of token
+    :param claims: Dictionary with the necessary claims to authorize the use\
+    of the endpoint
 
     :param add_token_info: If set to true, token_info will be passed to \
     decorated function as `token_info` keyword argument.
 
-    :param \*\*kwargs: Arbitrary claims. The keyword argument identifier will \
-    be used as the claim_name and the value as claim_value. All arguments \
-    will be validated.
-
     :return: Decorated function if token contains correct claims or \
     unauthorize.
     """
-
     def make_call(function):
-        for claim_name, claim_value in kwargs.items():
-            if token_info.get(claim_name, None) != claim_value:
-                return unauthorize
 
         @wraps(function)
         def wrapper(*args, **kwargs):
+            token_info = kwargs.get('token_info', None)
+            print(token_info)
+
+            if not token_info:
+                logger.error("Token info not received in validate_jwt_claims!")
+                return unauthorize()
+
+            for claim_name, claim_value in claims.items():
+                if token_info.get(claim_name, None) != claim_value:
+                    logger.error(f"Token claim {claim_name} wih value "
+                                 f"{claim_value} doesn't match expected "
+                                 f"value!")
+                    return unauthorize()
+
             logger.info(
                 "Validating claims on call to %s with token %s and claims: %s",
                 function, token_info, kwargs)
-            if add_token_info:
-                kwargs.update(("token_info", token_info))
+            if not add_token_info:
+                kwargs.pop("token_info")
             return function(*args, **kwargs)
 
         return wrapper
