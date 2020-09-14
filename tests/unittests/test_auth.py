@@ -51,8 +51,8 @@ class TestAuth:
                       "custom_claim": "testing"}
         kwargs = {claim_name: claim_value}
 
-        @auth.validate_jwt_claims(token_info=token_info, **kwargs)
-        def test_function(keyword=None, **kwargs):
+        @auth.validate_jwt_claims(claims=kwargs)
+        def test_function(keyword=None, token_info=token_info, **kwargs):
             return "token_info" in kwargs.keys()
 
         if not valid:
@@ -66,12 +66,39 @@ class TestAuth:
                       "sub": "tester2@novaweb",
                       "custom_claim": "testing"}
 
-        @auth.validate_jwt_claims(token_info=token_info, add_token_info=False,
-                                  **token_info)
+        @auth.validate_jwt_claims(add_token_info=False,
+                                  claims=token_info)
         def test_function():
             return True
 
-        assert test_function()
+        assert test_function(token_info=token_info)
+
+    def test_validate_claims_no_token(self):
+        token_info = {"iss": "novaweb.teste",
+                      "sub": "tester2@novaweb",
+                      "custom_claim": "testing"}
+
+        @auth.validate_jwt_claims(add_token_info=False,
+                                  claims=token_info)
+        def test_function():
+            return True
+
+        with raises(Unauthorized):
+            test_function()
+
+    def test_validate_claims_invalid(self):
+        token_info = {"iss": "novaweb.teste",
+                      "sub": "tester2@novaweb",
+                      "custom_claim": "testing"}
+
+        @auth.validate_jwt_claims(add_token_info=False,
+                                  claims=token_info.copy())
+        def test_function():
+            return True
+
+        token_info.update({"iss": "errado"})
+        with raises(Unauthorized):
+            test_function(token_info=token_info)
 
     def test_unauthorize(self):
         with raises(Unauthorized):

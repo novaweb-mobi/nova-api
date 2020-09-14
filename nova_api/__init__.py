@@ -9,7 +9,7 @@ from functools import wraps
 from flask import jsonify, make_response
 from flask.wrappers import Response
 
-from nova_api import baseapi
+from nova_api import baseapi, generic_dao
 
 # Authorization schemas
 JWT = 0
@@ -42,8 +42,16 @@ def default_response(success: bool, status_code: int,
                      message: str, data: dict) -> Response:
     """ Send a flask response with json payload in a default format
 
-    Default json format:
-    {"sucess": success, "message": message, "data": data}
+    Example:
+        JSON response ::
+
+            {
+                "sucess": True,
+                "message": "API call OK",
+                "data": {
+                    "num": "123"
+                }
+            }
 
     :param success: bool that represents if the request was successfully \
     processed.
@@ -75,11 +83,11 @@ def error_response(status_code: int = 500, message: str = "Error",
     and success=false passing data. Other status code and messages
     may be passed.
 
-    :param status_code: integer that represents the http status code of the \
+    :param status_code: Integer that represents the http status code of the \
     response.
-    :param message: summary string for the response.
-    :param data: dictionary (json valid) with data to be sent in the response
-    :return: a default response with success=false
+    :param message: Summary string for the response.
+    :param data: Dictionary (json valid) with data to be sent in the response
+    :return: Default response with success=false
     """
     if data is None:
         data = dict()
@@ -95,12 +103,12 @@ def success_response(status_code: int = 200, message: str = "OK",
         and success=true passing data. Other status code and messages
         may be passed.
 
-        :param status_code: integer that represents the http status code of \
+        :param status_code: Integer that represents the http status code of \
         the response.
-        :param message: summary string for the response.
-        :param data: dictionary (json valid) with data to be sent in the
+        :param message: Summary string for the response.
+        :param data: Dictionary (json valid) with data to be sent in the \
         response
-        :return: a default response with success=true
+        :return: Default response with success=true
         """
     if data is None:
         data = dict()
@@ -108,12 +116,20 @@ def success_response(status_code: int = 200, message: str = "OK",
                             message=message, data=data)
 
 
-def use_dao(dao_class: type, error_message: str = "Erro"):
-    """
+def use_dao(dao_class: generic_dao.GenericSQLDAO, error_message: str = "Erro"):
+    """Decorator to handle database access in an API call
 
-    :param dao_class:
-    :param error_message:
-    :return:
+    This decorator instantiates the DAO specified in `dao_class` within a try \
+    except block. If a exception is raised during the API call or database \
+    access, it generates an `error_response` with `message=error_message` and \
+    with the exception description in data. The DAO instance is passed to the \
+    decorated function as a keyword argument `dao`.
+
+    :param dao_class: DAO to instantiate and pass to the decorated function
+    :param error_message: Default error message to send in the error_response \
+    if an exception is thrown
+
+    :return: The decorated function
     """
     def make_call(function):
 
@@ -148,6 +164,20 @@ def use_dao(dao_class: type, error_message: str = "Erro"):
 
 
 def generate_api():
+    """CLI interface for generate_nova_api. Generates API files.
+
+    Must be called at least with -e <Entity>. Generates the api files \
+    with the arguments. Accepts the following arguments:
+     * *-e*: Name of the Entity, which must be the same of the file that \
+     contains it
+     * *-d*: Name of the Entity DAO class, which must be the same of the \
+     file that contains it. Only needs to be specified if it's not EntityDAO. \
+     (Where Entity is the name of the entity passed to -e)
+     * *-v*: API version string. Will be used in the base path before the \
+     entity name
+
+    :return: None.
+    """
     entity = ''
     version = ''
     dao_class = ''
