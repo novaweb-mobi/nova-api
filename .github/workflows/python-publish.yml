@@ -44,7 +44,7 @@ jobs:
         DOCKER_USERNAME: MatTerra
         DOCKER_PASSWORD: ${{ secrets.DOCKER_TOKEN }}
         DOCKER_REPO: docker.pkg.github.com
-        DOCKER_IMAGE: novaweb-mobi/nova-api/novaapi
+        DOCKER_IMAGE: novaweb-mobi/connexion-api-docker/novaapi
         DOCKER_TAG: ${{ steps.get_version.outputs.VERSION }}
       run: |
         docker login $DOCKER_REPO -u $DOCKER_USERNAME -p$DOCKER_PASSWORD
