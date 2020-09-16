@@ -20,19 +20,18 @@ possible_level = {"DEBUG": logging.DEBUG,
                   "ERROR": logging.ERROR,
                   "CRITICAL": logging.CRITICAL}
 
-FORMAT = os.environ.get("LOG_FORMAT", '%(asctime)-15s -> (%(filename)s '
-                                      '%(funcName)s) [%(levelname)s]: '
-                                      '%(message)s')
 
-LOG_FILE = os.environ.get("LOG_FILE") \
-    if os.environ.get("LOG_FILE") is not None \
-    else "novaapi.log"
+LOG_FILE = os.environ.get("LOG_FILE", None)
 
-LEVEL = os.environ.get("LOG_LEVEL") or "DEBUG"
+if LOG_FILE:
+    FORMAT = os.environ.get("LOG_FORMAT", '%(asctime)-15s -> (%(filename)s '
+                                          '%(funcName)s) [%(levelname)s]: '
+                                          '%(message)s')
+    LEVEL = os.environ.get("LOG_LEVEL") or "DEBUG"
+    logging.basicConfig(filename=LOG_FILE,
+                        format=FORMAT,
+                        level=possible_level.get(LEVEL))
 
-logging.basicConfig(filename=LOG_FILE,
-                    format=FORMAT,
-                    level=possible_level.get(LEVEL))
 logger = logging.getLogger(__name__)
 
 JWT_SECRET = os.environ.get('JWT_SECRET', "1234567890a")
