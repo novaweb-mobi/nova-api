@@ -20,18 +20,6 @@ possible_level = {"DEBUG": logging.DEBUG,
                   "ERROR": logging.ERROR,
                   "CRITICAL": logging.CRITICAL}
 
-
-LOG_FILE = os.environ.get("LOG_FILE", None)
-
-if LOG_FILE:
-    FORMAT = os.environ.get("LOG_FORMAT", '%(asctime)-15s -> (%(filename)s '
-                                          '%(funcName)s) [%(levelname)s]: '
-                                          '%(message)s')
-    LEVEL = os.environ.get("LOG_LEVEL") or "DEBUG"
-    logging.basicConfig(filename=LOG_FILE,
-                        format=FORMAT,
-                        level=possible_level.get(LEVEL))
-
 logger = logging.getLogger(__name__)
 
 JWT_SECRET = os.environ.get('JWT_SECRET', "1234567890a")
@@ -130,6 +118,7 @@ def use_dao(dao_class: generic_dao.GenericSQLDAO, error_message: str = "Erro"):
 
     :return: The decorated function
     """
+
     def make_call(function):
 
         @wraps(function)
@@ -266,7 +255,7 @@ def create_api_files(entity, dao_class, version,
     parameters = '\n'.join(parameters)
 
     if os.path.isfile(
-            "{entity_lower}_api.yml".format(entity_lower=entity_lower))\
+            "{entity_lower}_api.yml".format(entity_lower=entity_lower)) \
             and not overwrite:
         logger.debug(
             "API documentation already exists. Skipping generation...")
