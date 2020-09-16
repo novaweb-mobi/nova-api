@@ -83,9 +83,7 @@ def validate_jwt_claims(add_token_info: bool = False, claims={}):
 
         @wraps(function, new_sig=new_sig)
         def wrapper(*args, **kwargs):
-            print(kwargs)
             token_info = kwargs.get('token_info', None)
-            print(token_info)
 
             if not token_info:
                 logger.error("Token info not received in validate_jwt_claims!")
@@ -99,7 +97,7 @@ def validate_jwt_claims(add_token_info: bool = False, claims={}):
                     return unauthorize()
 
             logger.info(
-                "Validating claims on call to %s with token %s and claims: %s",
+                "Validated claims on call to %s with token %s and claims: %s",
                 function, token_info, kwargs)
             if not add_token_info:
                 kwargs.pop("token_info")
