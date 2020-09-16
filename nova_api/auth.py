@@ -51,7 +51,8 @@ def validate_jwt_claims(add_token_info: bool = False, claims={}):
     """Decorator to authenticate and authorize access to API endpoint
 
     Checks if the received claims are present in token_info and if they match \
-    the necessary values.
+    the necessary values. If the decorated function doesn't have a keyword \
+    argument `token_info`, it will be added by the decorator.
 
     Example:
         In the following example, if the `token_info` doesn't have the iss \
