@@ -1,3 +1,5 @@
+from inspect import signature
+
 from jose import jwt
 from werkzeug.exceptions import Unauthorized
 from pytest import mark, raises
@@ -103,3 +105,11 @@ class TestAuth:
     def test_unauthorize(self):
         with raises(Unauthorized):
             auth.unauthorize()
+
+    def test_add_token_info_param(self):
+        @auth.validate_jwt_claims(add_token_info=False,
+                                  claims={})
+        def test_function():
+            return True
+
+        assert signature(test_function).parameters.get('token_info')

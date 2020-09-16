@@ -1,6 +1,7 @@
 import logging
-from functools import wraps
+from inspect import signature, Parameter
 
+from makefun import wraps, add_signature_parameters
 from flask import abort
 from jose import jwt, JWTError
 from werkzeug.exceptions import HTTPException
@@ -24,6 +25,7 @@ def decode_jwt_token(token: str) -> dict:
     unauthorized if invalid
     """
     try:
+        logger.info(f"Decoding Token {token}")
         return jwt.decode(
             token, JWT_SECRET, algorithms=['HS256'],
             options={'verify_aud': False, 'verify_iss': False,
@@ -49,7 +51,8 @@ def validate_jwt_claims(add_token_info: bool = False, claims={}):
     """Decorator to authenticate and authorize access to API endpoint
 
     Checks if the received claims are present in token_info and if they match \
-    the necessary values.
+    the necessary values. If the decorated function doesn't have a keyword \
+    argument `token_info`, it will be added by the decorator.
 
     Example:
         In the following example, if the `token_info` doesn't have the iss \
@@ -68,12 +71,20 @@ def validate_jwt_claims(add_token_info: bool = False, claims={}):
     :return: Decorated function if token contains correct claims or \
     unauthorize.
     """
-    def make_call(function):
 
-        @wraps(function)
+    def make_call(function):
+        func_sig = signature(function)
+        new_sig = func_sig
+        if not func_sig.parameters.get('token_info', None):
+            token_info_param = Parameter('token_info',
+                                         kind=Parameter.KEYWORD_ONLY,
+                                         default=None)
+            new_sig = add_signature_parameters(func_sig,
+                                               last=[token_info_param])
+
+        @wraps(function, new_sig=new_sig)
         def wrapper(*args, **kwargs):
             token_info = kwargs.get('token_info', None)
-            print(token_info)
 
             if not token_info:
                 logger.error("Token info not received in validate_jwt_claims!")
@@ -87,7 +98,7 @@ def validate_jwt_claims(add_token_info: bool = False, claims={}):
                     return unauthorize()
 
             logger.info(
-                "Validating claims on call to %s with token %s and claims: %s",
+                "Validated claims on call to %s with token %s and claims: %s",
                 function, token_info, kwargs)
             if not add_token_info:
                 kwargs.pop("token_info")

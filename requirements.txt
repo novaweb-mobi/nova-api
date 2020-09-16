@@ -10,3 +10,4 @@ setuptools
 wheel
 connexion
 python-jose
+makefun
