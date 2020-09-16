@@ -134,7 +134,8 @@ def use_dao(dao_class: generic_dao.GenericSQLDAO, error_message: str = "Erro"):
                     kwargs
                 )
                 dao = dao_class()
-                return function(dao=dao, *args, **kwargs)
+                kwargs.update({"dao": dao_class})
+                return function(*args, **kwargs)
             # pylint: disable=W0703
             except Exception as exception:
                 logger.error(
