@@ -4,8 +4,6 @@
 name: Python Package
 
 on:
-  push:
-    branches: [ master ]
   pull_request:
     branches: [ master, dev ]
 
@@ -14,30 +12,52 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Check if python files have changed
+      uses: actions/github-script@0.9.0
+      id: files-changed
+      with:
+        result-encoding: string
+        script: |
+          const result = await github.pulls.listFiles({
+            owner: context.payload.repository.owner.login,
+            repo: context.payload.repository.name,
+            pull_number: context.payload.number,
+            per_page: 100
+          })
+          const pythonFilesChanged = result.data.filter(f => f.filename.endsWith(".py")).length > 0
+          console.log(pythonFilesChanged)
+          return pythonFilesChanged
+
     - uses: actions/checkout@v2
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
     - name: Set up Python ${{ matrix.python-version }}
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
       uses: actions/setup-python@v2
       with:
         python-version: 3.8
 
     - name: Install dependencies
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
       run: |
         python -m pip install --upgrade pip
         pip install pylint pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Lint with pylint
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
       run: |
         mkdir reports
         pylint nova_api --exit-zero --rcfile=standard.rc -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
 
     - name: Save pylint report
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
       uses: actions/upload-artifact@v2
       with:
         name: pylint-report
         path: reports/lint_report
 
     - name: Check files ending with newline
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
       run: |
         function file_ends_with_newline() {
           if [ ! -s "$1" ]; then
@@ -69,25 +89,46 @@ jobs:
         python-version: [3.7.x, 3.8.x, 3.9.0-rc.1]
 
     steps:
+    - name: Check if python files have changed
+      uses: actions/github-script@0.9.0
+      id: files-changed
+      with:
+        result-encoding: string
+        script: |
+          const result = await github.pulls.listFiles({
+            owner: context.payload.repository.owner.login,
+            repo: context.payload.repository.name,
+            pull_number: context.payload.number,
+            per_page: 100
+          })
+          const pythonFilesChanged = result.data.filter(f => f.filename.endsWith(".py")).length > 0
+          console.log(pythonFilesChanged)
+          return pythonFilesChanged
+
     - uses: actions/checkout@v2
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
     - name: Set up Python ${{ matrix.python-version }}
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Install dependencies
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
       run: |
         python -m pip install --upgrade pip
         pip install pylint pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Start database for integration testing
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
       run: |
         cd tests
         docker-compose up -d
         cd ..
 
     - name: (Unit)Test with pytest
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
         mkdir xunit-reports
@@ -96,6 +137,7 @@ jobs:
         pytest --junitxml=../xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:../coverage-reports/coverage-python.xml  unittests
         
     - name: Integration Test
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
         function db_ready(){
@@ -110,6 +152,3 @@ jobs:
         >&2 echo 'Database is available'
         pytest --junitxml=xunit-reports/xunit-result-nova_api-integration.xml tests/integrationtests
 
-        
-        
-        
