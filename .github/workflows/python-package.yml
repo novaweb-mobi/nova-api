@@ -6,8 +6,14 @@ name: Python Package
 on:
   push:
     branches: [ master ]
+    paths: 
+      - nova_api/*.py
+      - tests/*.py
   pull_request:
     branches: [ master, dev ]
+    paths: 
+      - nova_api/*.py
+      - tests/*.py
 
 jobs:
   lint:
