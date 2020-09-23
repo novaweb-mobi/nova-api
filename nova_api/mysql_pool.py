@@ -11,6 +11,8 @@ from mysql.connector import pooling
 @dataclass
 class MySQLPool:
     instances: ClassVar[Dict[MySQLPool]] = field(default={})
+    logger: ClassVar[logging.Logger] = field(
+        default=logging.getLogger(__name__))
 
     @classmethod
     def get_instance(cls, host: str = os.environ.get('DB_URL'),
@@ -37,9 +39,6 @@ class MySQLPool:
         pool_name = user + "_" + host + "-" + database
         instance = cls.instances.get(pool_name, None)
 
-        if not cls.logger:
-            cls.logger = logging.getLogger(__name__)
-            
         cls.logger.info("Requested connection from pool: %s", pool_name)
 
         if instance:
