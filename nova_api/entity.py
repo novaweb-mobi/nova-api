@@ -57,10 +57,10 @@ class Entity:
 
         Post init goes through the parameters passed to init and makes some
         validations. Fields that are subclasses of Entity will be instantiated
-        (but only with id\_ set). Datetime formats also will be cast if
+        (but only with id_ set). Datetime formats also will be cast if
         received as strings.
 
-        __post_init__ may be overriden to include validations required by
+        __post_init__ may be overridden to include validations required by
         any use case. In such case, it's important to include a super call
         to maintain the aforementioned functionalities.
 

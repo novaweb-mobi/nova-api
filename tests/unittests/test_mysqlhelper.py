@@ -21,7 +21,7 @@ class TestMySQLHelper:
 
     @fixture
     def db_(self, mysql_mock):
-        return MySQLHelper()
+        return MySQLHelper(pooled=False)
 
     @fixture
     def cursor_mock(self, mysql_mock):
@@ -32,16 +32,27 @@ class TestMySQLHelper:
 
     def test_init(self, mysql_mock):
         MySQLHelper(host='127.0.0.1', user='test',
-                    password='12345', database='test_db')
+                    password='12345', database='test_db', pooled=False)
         assert mysql_mock.mock_calls == [
             call.connect(host='127.0.0.1', user='test',
                          passwd='12345', database='test_db'),
             call.connect().cursor()
         ]
 
+    def test_init_pooled(self, mocker):
+        pool_mock = mocker.patch("nova_api.mysql_helper.MySQLPool")
+        MySQLHelper(host='127.0.0.1', user='test',
+                    password='12345', database='test_db', pooled=True)
+        assert pool_mock.mock_calls == [
+            call.get_instance(host='127.0.0.1', user='test',
+                         password='12345', database='test_db'),
+            call.get_instance().get_connection(),
+            call.get_instance().get_connection().cursor()
+        ]
+
     def test_init_none(self, mysql_mock):
         MySQLHelper(host=None, user='test',
-                    password='12345', database='test_db')
+                    password='12345', database='test_db', pooled=False)
         assert mysql_mock.mock_calls == [
             call.connect(host='localhost', user='test',
                          passwd='12345', database='test_db'),
@@ -103,7 +114,7 @@ class TestMySQLHelper:
         mysql_mock.connect.side_effect = raise_exception
 
         with raises(ConnectionError):
-            db_ = MySQLHelper()
+            db_ = MySQLHelper(pooled=False)
 
     @mark.parametrize("exception_type", [InterfaceError,
                                          DatabaseError,
