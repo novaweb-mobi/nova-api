@@ -14,7 +14,7 @@ class TestMySQLPoll:
         MySQLPool.get_instance(host="test_host", user="test_user",
                                password="test_passwd", database="test_db")
         assert pooling_mock.mock_calls == [call.MySQLConnectionPool(
-            pool_name='test_user@test_host:test_db',
+            pool_name='test_user_test_host-test_db',
             pool_size=5,
             pool_reset_session=True,
             host='test_host',

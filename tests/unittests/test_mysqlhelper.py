@@ -46,7 +46,8 @@ class TestMySQLHelper:
         assert pool_mock.mock_calls == [
             call.get_instance(host='127.0.0.1', user='test',
                          password='12345', database='test_db'),
-            call.get_instance().get_connection()
+            call.get_instance().get_connection(),
+            call.get_instance().get_connection().cursor()
         ]
 
     def test_init_none(self, mysql_mock):

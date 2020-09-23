@@ -33,19 +33,20 @@ class MySQLPool:
         Defaults to 5.
         :return: The connection pool instance
         """
-        instance = cls.instances.get(user + "@" + host + ":" + database, None)
+        pool_name = user + "_" + host + "-" + database
+        instance = cls.instances.get(pool_name, None)
 
         if instance:
             return instance
 
         instance = pooling.MySQLConnectionPool(
-            pool_name=user + "@" + host + ":" + database,
+            pool_name=pool_name,
             pool_size=size,
             pool_reset_session=True,
             host=host,
             database=database,
             user=user,
             password=password)
-        cls.instances[user + "@" + host + ":" + database] = instance
+        cls.instances[pool_name] = instance
 
         return instance

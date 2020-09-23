@@ -14,7 +14,7 @@ class MySQLHelper:
                  user=os.environ.get('DB_USER'),
                  password=os.environ.get('DB_PASSWORD'),
                  database=os.environ.get('DB_NAME'),
-                 pooled=True):
+                 pooled: bool=True):
 
         self.logger = logging.getLogger(__name__)
 
