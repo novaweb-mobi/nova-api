@@ -5,13 +5,16 @@ from typing import Any, List
 import mysql.connector
 from mysql.connector import Error, InterfaceError, DatabaseError
 
+from nova_api.mysql_pool import MySQLPool
+
 
 class MySQLHelper:
 
     def __init__(self, host=os.environ.get('DB_URL'),
                  user=os.environ.get('DB_USER'),
                  password=os.environ.get('DB_PASSWORD'),
-                 database=os.environ.get('DB_NAME')):
+                 database=os.environ.get('DB_NAME'),
+                 pooled=True):
 
         self.logger = logging.getLogger(__name__)
 
@@ -32,10 +35,16 @@ class MySQLHelper:
         try:
             self.logger.info("Connecting to database %s at %s "
                              "with username %s", database, host, user)
-            self.db_conn = mysql.connector.connect(host=str(host),
-                                                   user=str(user),
-                                                   passwd=str(password),
-                                                   database=str(database))
+            if pooled:
+                self.db_conn = MySQLPool.get_instance(
+                    host=host, user=user,
+                    password=password,
+                    database=database).get_connection()
+            else:
+                self.db_conn = mysql.connector.connect(host=str(host),
+                                                       user=str(user),
+                                                       passwd=str(password),
+                                                       database=str(database))
             self.cursor = self.db_conn.cursor()
         except (InterfaceError, ValueError, DatabaseError) as err:
             self.logger.critical("Unable to connect to database!",
