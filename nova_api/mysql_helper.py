@@ -3,7 +3,7 @@ import os
 from typing import Any, List
 
 import mysql.connector
-from mysql.connector import Error, InterfaceError, DatabaseError
+from mysql.connector import Error, InterfaceError, DatabaseError, PoolError
 
 from nova_api.mysql_pool import MySQLPool
 
@@ -46,7 +46,7 @@ class MySQLHelper:
                                                        passwd=str(password),
                                                        database=str(database))
             self.cursor = self.db_conn.cursor()
-        except (InterfaceError, ValueError, DatabaseError) as err:
+        except (InterfaceError, ValueError, DatabaseError, PoolError) as err:
             self.logger.critical("Unable to connect to database!",
                                  exc_info=True)
             raise ConnectionError("\nSomething went wrong when connecting "

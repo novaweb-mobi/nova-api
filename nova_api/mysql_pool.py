@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field
 from typing import ClassVar, Dict
@@ -36,9 +37,16 @@ class MySQLPool:
         pool_name = user + "_" + host + "-" + database
         instance = cls.instances.get(pool_name, None)
 
+        if not cls.logger:
+            cls.logger = logging.getLogger(__name__)
+            
+        cls.logger.info("Requested connection from pool: %s", pool_name)
+
         if instance:
+            cls.logger.info("Pool already connected: %s", pool_name)
             return instance
 
+        cls.logger.info("Pool not connected, instantiating: %s", pool_name)
         instance = pooling.MySQLConnectionPool(
             pool_name=pool_name,
             pool_size=size,
@@ -49,4 +57,5 @@ class MySQLPool:
             password=password)
         cls.instances[pool_name] = instance
 
+        cls.logger.info("Pool instantiated: %s", pool_name)
         return instance
