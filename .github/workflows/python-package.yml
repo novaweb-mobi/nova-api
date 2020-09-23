@@ -84,7 +84,6 @@ jobs:
         check_files $(pwd)/nova_api
 
   test:
-    if: ${{ lint.steps.files-changed.outputs.result == 'true' }}
     needs: lint
     runs-on: ubuntu-latest
     strategy:
@@ -109,24 +108,29 @@ jobs:
           return pythonFilesChanged
 
     - uses: actions/checkout@v2
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
     - name: Set up Python ${{ matrix.python-version }}
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Install dependencies
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
       run: |
         python -m pip install --upgrade pip
         pip install pylint pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Start database for integration testing
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
       run: |
         cd tests
         docker-compose up -d
         cd ..
 
     - name: (Unit)Test with pytest
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
         mkdir xunit-reports
@@ -135,6 +139,7 @@ jobs:
         pytest --junitxml=../xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:../coverage-reports/coverage-python.xml  unittests
         
     - name: Integration Test
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
         function db_ready(){
@@ -149,6 +154,3 @@ jobs:
         >&2 echo 'Database is available'
         pytest --junitxml=xunit-reports/xunit-result-nova_api-integration.xml tests/integrationtests
 
-        
-        
-        
