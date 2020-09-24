@@ -34,7 +34,8 @@ class GenericSQLDAO:
     # pylint: disable=R0913
     def __init__(self, database=None, table: str = None, fields: dict = None,
                  return_class: dataclasses.dataclass = Entity,
-                 prefix: str = None, pooled: bool = True) -> None:
+                 prefix: str = None, pooled: bool = True,
+                 database_args: dict = None) -> None:
 
         self.logger = logging.getLogger(__name__)
 
@@ -43,9 +44,17 @@ class GenericSQLDAO:
                           self.__class__.__name__, database, table, fields,
                           return_class, prefix)
 
+        if database_args is None:
+            database_args = dict()
+
+
         self.database = database
         if database is None:
-            self.database = MySQLHelper(pooled=pooled)
+            self.logger.info("Database connection starting. Pooled: %s. "
+                             "Extras: %s.", pooled, database_args)
+            self.database = MySQLHelper(pooled=pooled,
+                                        database_args=database_args)
+            self.logger.info("Connected to database.")
 
         self.return_class = return_class
 
