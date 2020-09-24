@@ -3,18 +3,20 @@ import os
 from typing import Any, List
 
 import mysql.connector
-from mysql.connector import Error, InterfaceError, DatabaseError, PoolError
+from mysql.connector import Error, InterfaceError, DatabaseError, PoolError, \
+    ProgrammingError
 
 from nova_api.mysql_pool import MySQLPool
 
 
 class MySQLHelper:
 
-    def __init__(self, host=os.environ.get('DB_URL'),
-                 user=os.environ.get('DB_USER'),
-                 password=os.environ.get('DB_PASSWORD'),
-                 database=os.environ.get('DB_NAME'),
-                 pooled: bool=True):
+    def __init__(self, host: str = os.environ.get('DB_URL'),
+                 user: str = os.environ.get('DB_USER'),
+                 password: str = os.environ.get('DB_PASSWORD'),
+                 database: str = os.environ.get('DB_NAME'),
+                 pooled: bool = True,
+                 database_args: dict = None):
 
         self.logger = logging.getLogger(__name__)
 
@@ -32,21 +34,28 @@ class MySQLHelper:
         if database is None:
             database = "default"
 
+        if database_args is None:
+            database_args = dict()
+
         try:
             self.logger.info("Connecting to database %s at %s "
-                             "with username %s", database, host, user)
+                             "with username %s. Pooled: %s. Extra args: %s",
+                             database, host, user, pooled, database_args)
             if pooled:
                 self.db_conn = MySQLPool.get_instance(
-                    host=host, user=user,
-                    password=password,
-                    database=database).get_connection()
+                    host=str(host), user=str(user),
+                    password=str(password),
+                    database=str(database),
+                    database_args=database_args).get_connection()
             else:
                 self.db_conn = mysql.connector.connect(host=str(host),
                                                        user=str(user),
                                                        passwd=str(password),
-                                                       database=str(database))
+                                                       database=str(database),
+                                                       **database_args)
             self.cursor = self.db_conn.cursor()
-        except (InterfaceError, ValueError, DatabaseError, PoolError) as err:
+        except (InterfaceError, ValueError, DatabaseError,
+                PoolError, ProgrammingError) as err:
             self.logger.critical("Unable to connect to database!",
                                  exc_info=True)
             raise ConnectionError("\nSomething went wrong when connecting "

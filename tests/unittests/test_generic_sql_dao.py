@@ -125,9 +125,28 @@ class TestGenericSQLDAO:
                     "last_modified_datetime": "last_modified_datetime",
                     "name": "name",
                     "birthday": "birthday"},
+            return_class=TestEntity)
+        assert mysql_mock.mock_calls == [call()]
+        assert generic_dao.database == mysql_mock.return_value
+        assert generic_dao.table == "test_entitys"
+        assert generic_dao.fields == {"id_": "id",
+                                      "creation_datetime": "creation_datetime",
+                                      "last_modified_datetime":
+                                          "last_modified_datetime",
+                                      "name": "name",
+                                      "birthday": "birthday"}
+        assert generic_dao.return_class == TestEntity
+
+    def test_init_extra_params(self, mysql_mock):
+        generic_dao = GenericSQLDAO(
+            fields={"id_": "id",
+                    "creation_datetime": "creation_datetime",
+                    "last_modified_datetime": "last_modified_datetime",
+                    "name": "name",
+                    "birthday": "birthday"},
             return_class=TestEntity,
-            pooled=False)
-        assert mysql_mock.mock_calls == [call(pooled=False)]
+            pooled=False, host="changed")
+        assert mysql_mock.mock_calls == [call(host="changed", pooled=False)]
         assert generic_dao.database == mysql_mock.return_value
         assert generic_dao.table == "test_entitys"
         assert generic_dao.fields == {"id_": "id",
@@ -147,6 +166,26 @@ class TestGenericSQLDAO:
                     "birthday": "birthday"},
             return_class=TestEntity, pooled=True)
         assert mysql_mock.mock_calls == [call(pooled=True)]
+        assert generic_dao.database == mysql_mock.return_value
+        assert generic_dao.table == "test_entitys"
+        assert generic_dao.fields == {"id_": "id",
+                                      "creation_datetime": "creation_datetime",
+                                      "last_modified_datetime":
+                                          "last_modified_datetime",
+                                      "name": "name",
+                                      "birthday": "birthday"}
+        assert generic_dao.return_class == TestEntity
+
+    def test_init_pooled_database_args(self, mysql_mock):
+        generic_dao = GenericSQLDAO(
+            fields={"id_": "id",
+                    "creation_datetime": "creation_datetime",
+                    "last_modified_datetime": "last_modified_datetime",
+                    "name": "name",
+                    "birthday": "birthday"},
+            return_class=TestEntity, pooled=True,
+            database_args={"ssl_ca": "file"})
+        assert mysql_mock.mock_calls == [call(pooled=True, database_args={"ssl_ca": "file"})]
         assert generic_dao.database == mysql_mock.return_value
         assert generic_dao.table == "test_entitys"
         assert generic_dao.fields == {"id_": "id",

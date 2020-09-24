@@ -22,6 +22,26 @@ class TestMySQLPoll:
             user='test_user',
             password='test_passwd')]
 
+    def test_get_instance_exist_extra_args(self, pooling_mock):
+        MySQLPool.get_instance(host="test_host", user="test_user",
+                               password="test_passwd", database="test_db",
+                               database_args={"ssl_ca": "file"})
+        assert pooling_mock.mock_calls == []
+
+    def test_get_instance_not_exist_extra_args(self, pooling_mock):
+        MySQLPool.get_instance(host="test_host2", user="test_user",
+                               password="test_passwd", database="test_db",
+                               database_args={"ssl_ca": "file"})
+        assert pooling_mock.mock_calls == [call.MySQLConnectionPool(
+            pool_name='test_user_test_host2-test_db',
+            pool_size=5,
+            pool_reset_session=True,
+            host='test_host2',
+            database='test_db',
+            user='test_user',
+            password='test_passwd',
+            ssl_ca='file')]
+
     def test_get_instance_exist(self, pooling_mock):
         inst_1 = MySQLPool.get_instance(host="test_host", user="test_user",
                                         password="test_passwd",
@@ -41,3 +61,5 @@ class TestMySQLPoll:
                                         database="test_db2")
         assert inst_1 is not None and inst_2 is not None
         assert inst_1 != inst_2
+
+
