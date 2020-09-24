@@ -104,7 +104,7 @@ def success_response(status_code: int = 200, message: str = "OK",
 
 
 def use_dao(dao_class: generic_dao.GenericSQLDAO, error_message: str = "Erro",
-            database_args=None, pooled: bool = False):
+            dao_parameters: dict=None):
     """Decorator to handle database access in an API call
 
     This decorator instantiates the DAO specified in `dao_class` within a try \
@@ -116,14 +116,15 @@ def use_dao(dao_class: generic_dao.GenericSQLDAO, error_message: str = "Erro",
     :param dao_class: DAO to instantiate and pass to the decorated function
     :param error_message: Default error message to send in the error_response \
     if an exception is thrown
-    :param pooled: Enables MySQL connection pooling on DAO class
-    :param database_args: Extra database args to pass to DAO class
+    :param dao_parameters: Parameters to add to the call to the DAO \
+    constructor. They'll be added to the call with the expansion \
+    `**dao_parameters`.
 
     :return: The decorated function
     """
 
-    if database_args is None:
-        database_args = dict()
+    if dao_parameters is None:
+        dao_parameters = dict()
 
     def make_call(function):
 
@@ -139,7 +140,7 @@ def use_dao(dao_class: generic_dao.GenericSQLDAO, error_message: str = "Erro",
                     args,
                     kwargs
                 )
-                dao = dao_class(pooled=pooled, database_args=database_args)
+                dao = dao_class(**dao_parameters)
                 return function(dao=dao, *args, **kwargs)
             # pylint: disable=W0703
             except Exception as exception:

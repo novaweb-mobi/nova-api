@@ -70,14 +70,14 @@ class TestAPIUtils:
             return kwargs.get('dao') == my_mock.return_value
 
         ret = test()
-        assert my_mock.mock_calls == [call(database_args={},
-                                           pooled=False),
-                                      call().close()] and ret
+        assert my_mock.mock_calls == [call(), call().close()] and ret
 
     def test_use_dao_db_args(self, mocker):
         my_mock = Mock()
 
-        @nova_api.use_dao(dao_class=my_mock, database_args={"ssl_ca": "file"})
+        @nova_api.use_dao(dao_class=my_mock,
+                          dao_parameters={"pooled": False,
+                                          "database_args": {"ssl_ca": "file"}})
         def test(**kwargs):
             return kwargs.get('dao') == my_mock.return_value
 
@@ -86,16 +86,31 @@ class TestAPIUtils:
                                            pooled=False),
                                       call().close()] and ret
 
-    def test_use_dao_pooled(self, mocker):
+    def test_use_dao_other_params(self, mocker):
         my_mock = Mock()
 
-        @nova_api.use_dao(dao_class=my_mock, pooled=True)
+        @nova_api.use_dao(dao_class=my_mock,
+                          dao_parameters={"pooled": False,
+                                          "database_args": {"ssl_ca": "file"},
+                                          "host": "localhost"})
         def test(**kwargs):
             return kwargs.get('dao') == my_mock.return_value
 
         ret = test()
-        assert my_mock.mock_calls == [call(database_args={},
-                                           pooled=True),
+        assert my_mock.mock_calls == [call(database_args={"ssl_ca": "file"},
+                                           pooled=False,
+                                           host="localhost"),
+                                      call().close()] and ret
+
+    def test_use_dao_pooled(self, mocker):
+        my_mock = Mock()
+
+        @nova_api.use_dao(dao_class=my_mock, dao_parameters={"pooled": True})
+        def test(**kwargs):
+            return kwargs.get('dao') == my_mock.return_value
+
+        ret = test()
+        assert my_mock.mock_calls == [call(pooled=True),
                                       call().close()] and ret
 
     def test_use_dao_exception(self, mocker):
@@ -109,8 +124,7 @@ class TestAPIUtils:
                 raise Exception()
 
         ret = test()
-        assert my_mock.mock_calls == [call(database_args={},
-                                           pooled=False), call().close()]
+        assert my_mock.mock_calls == [call(), call().close()]
         assert ret == "NOT OK"
 
     def test_generate_valid_api_yml(self):
