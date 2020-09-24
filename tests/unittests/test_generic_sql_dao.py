@@ -125,9 +125,8 @@ class TestGenericSQLDAO:
                     "last_modified_datetime": "last_modified_datetime",
                     "name": "name",
                     "birthday": "birthday"},
-            return_class=TestEntity,
-            pooled=False)
-        assert mysql_mock.mock_calls == [call(pooled=False, database_args={})]
+            return_class=TestEntity)
+        assert mysql_mock.mock_calls == [call()]
         assert generic_dao.database == mysql_mock.return_value
         assert generic_dao.table == "test_entitys"
         assert generic_dao.fields == {"id_": "id",
@@ -147,8 +146,7 @@ class TestGenericSQLDAO:
                     "birthday": "birthday"},
             return_class=TestEntity,
             pooled=False, host="changed")
-        assert mysql_mock.mock_calls == [call(host="changed", pooled=False,
-                                              database_args={})]
+        assert mysql_mock.mock_calls == [call(host="changed", pooled=False)]
         assert generic_dao.database == mysql_mock.return_value
         assert generic_dao.table == "test_entitys"
         assert generic_dao.fields == {"id_": "id",
@@ -167,7 +165,7 @@ class TestGenericSQLDAO:
                     "name": "name",
                     "birthday": "birthday"},
             return_class=TestEntity, pooled=True)
-        assert mysql_mock.mock_calls == [call(pooled=True, database_args={})]
+        assert mysql_mock.mock_calls == [call(pooled=True)]
         assert generic_dao.database == mysql_mock.return_value
         assert generic_dao.table == "test_entitys"
         assert generic_dao.fields == {"id_": "id",
