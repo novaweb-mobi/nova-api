@@ -35,6 +35,22 @@ class TestMySQLPoll:
             user='test_user@test_host',
             password='test_passwd')]
 
+    def test_get_instance_too_loong(self, pooling_mock):
+        MySQLPool.get_instance(host="test_hosthosthosthosthosthosthosthosthos"
+                                    "thosthosthosthosthosthosthost",
+                               user="test_user@test_host",
+                               password="test_passwd", database="test_db")
+        assert pooling_mock.mock_calls == [call.MySQLConnectionPool(
+            pool_name='test_user_test_host_test_hosthosthosthosthosthosthost'
+                      'hosthosthos',
+            pool_size=5,
+            pool_reset_session=True,
+            host="test_hosthosthosthosthosthosthosthosthos"
+                 "thosthosthosthosthosthosthost",
+            database='test_db',
+            user='test_user@test_host',
+            password='test_passwd')]
+
     def test_get_instance_exist_extra_args(self, pooling_mock):
         MySQLPool.get_instance(host="test_host", user="test_user",
                                password="test_passwd", database="test_db",
@@ -74,5 +90,3 @@ class TestMySQLPoll:
                                         database="test_db2")
         assert inst_1 is not None and inst_2 is not None
         assert inst_1 != inst_2
-
-
