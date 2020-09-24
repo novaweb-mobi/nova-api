@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from dataclasses import dataclass, field
 from typing import ClassVar, Dict
 
@@ -45,6 +46,8 @@ class MySQLPool:
             database_args = dict()
 
         pool_name = user + "_" + host + "-" + database
+        # This guarantees
+        pool_name = re.sub("[^a-zA-Z0-9._*$#-]", "_", pool_name)
         instance = cls.instances.get(pool_name, None)
 
         cls.logger.info("Requested connection from pool: %s", pool_name)
