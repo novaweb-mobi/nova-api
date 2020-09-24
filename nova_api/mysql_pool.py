@@ -48,6 +48,8 @@ class MySQLPool:
         pool_name = user + "_" + host + "-" + database
         # This guarantees
         pool_name = re.sub("[^a-zA-Z0-9._*$#-]", "_", pool_name)
+        if len(pool_name) > 64:
+            pool_name = pool_name[:64]
         instance = cls.instances.get(pool_name, None)
 
         cls.logger.info("Requested connection from pool: %s", pool_name)
