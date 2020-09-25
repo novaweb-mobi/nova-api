@@ -72,6 +72,47 @@ class TestAPIUtils:
         ret = test()
         assert my_mock.mock_calls == [call(), call().close()] and ret
 
+    def test_use_dao_db_args(self, mocker):
+        my_mock = Mock()
+
+        @nova_api.use_dao(dao_class=my_mock,
+                          dao_parameters={"pooled": False,
+                                          "database_args": {"ssl_ca": "file"}})
+        def test(**kwargs):
+            return kwargs.get('dao') == my_mock.return_value
+
+        ret = test()
+        assert my_mock.mock_calls == [call(database_args={"ssl_ca": "file"},
+                                           pooled=False),
+                                      call().close()] and ret
+
+    def test_use_dao_other_params(self, mocker):
+        my_mock = Mock()
+
+        @nova_api.use_dao(dao_class=my_mock,
+                          dao_parameters={"pooled": False,
+                                          "database_args": {"ssl_ca": "file"},
+                                          "host": "localhost"})
+        def test(**kwargs):
+            return kwargs.get('dao') == my_mock.return_value
+
+        ret = test()
+        assert my_mock.mock_calls == [call(database_args={"ssl_ca": "file"},
+                                           pooled=False,
+                                           host="localhost"),
+                                      call().close()] and ret
+
+    def test_use_dao_pooled(self, mocker):
+        my_mock = Mock()
+
+        @nova_api.use_dao(dao_class=my_mock, dao_parameters={"pooled": True})
+        def test(**kwargs):
+            return kwargs.get('dao') == my_mock.return_value
+
+        ret = test()
+        assert my_mock.mock_calls == [call(pooled=True),
+                                      call().close()] and ret
+
     def test_use_dao_exception(self, mocker):
         my_mock = Mock()
         mocker.patch("nova_api.error_response",

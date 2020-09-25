@@ -4,6 +4,8 @@ from mysql.connector import InterfaceError, DatabaseError, Error
 from pytest import fixture, mark, raises
 
 from nova_api.mysql_helper import MySQLHelper
+
+
 # pylint: disable=R0201
 
 class TestMySQLHelper:
@@ -39,13 +41,37 @@ class TestMySQLHelper:
             call.connect().cursor()
         ]
 
+    def test_init_extra_args_no_pool(self, mysql_mock):
+        MySQLHelper(host='127.0.0.1', user='test',
+                    password='12345', database='test_db', pooled=False,
+                    database_args={"ssl_ca": "file"})
+        assert mysql_mock.mock_calls == [
+            call.connect(host='127.0.0.1', user='test',
+                         passwd='12345', database='test_db', ssl_ca="file"),
+            call.connect().cursor()
+        ]
+
     def test_init_pooled(self, mocker):
         pool_mock = mocker.patch("nova_api.mysql_helper.MySQLPool")
         MySQLHelper(host='127.0.0.1', user='test',
                     password='12345', database='test_db', pooled=True)
         assert pool_mock.mock_calls == [
             call.get_instance(host='127.0.0.1', user='test',
-                         password='12345', database='test_db'),
+                              password='12345', database='test_db',
+                              database_args={}),
+            call.get_instance().get_connection(),
+            call.get_instance().get_connection().cursor()
+        ]
+
+    def test_init_pooled_extra_args(self, mocker):
+        pool_mock = mocker.patch("nova_api.mysql_helper.MySQLPool")
+        MySQLHelper(host='127.0.0.1', user='test',
+                    password='12345', database='test_db', pooled=True,
+                    database_args={"ssl_ca": "file"})
+        assert pool_mock.mock_calls == [
+            call.get_instance(host='127.0.0.1', user='test',
+                              password='12345', database='test_db',
+                              database_args={"ssl_ca": "file"}),
             call.get_instance().get_connection(),
             call.get_instance().get_connection().cursor()
         ]
