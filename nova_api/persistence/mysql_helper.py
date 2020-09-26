@@ -7,9 +7,30 @@ from mysql.connector import Error, InterfaceError, DatabaseError, PoolError, \
     ProgrammingError
 
 from nova_api.persistence.mysql_pool import MySQLPool
+from nova_api.persistence import PersistenceHelper
 
 
-class MySQLHelper:
+class MySQLHelper(PersistenceHelper):
+    ALLOWED_COMPARATORS = ['=', '<=>', '<>', '!=', '>', '>=', '<=', 'LIKE']
+    TYPE_MAPPING = {
+        "bool": "TINYINT(1)",
+        "datetime": "TIMESTAMP",
+        "str": "VARCHAR(100)",
+        "int": "INT",
+        "float": "DECIMAL",
+        "date": "DATE"
+    }
+    CREATE_QUERY = "CREATE table IF NOT EXISTS `{table}` ({fields}, " \
+                   "PRIMARY KEY({primary_keys}));"
+    COLUMN = "`{field}` {type} {default}"
+    SELECT_QUERY = "SELECT {fields} FROM `{table}` {filters} " \
+                   "LIMIT %s OFFSET %s;"
+    FILTERS = "WHERE {filters}"
+    FILTER = "`{column}` {comparator} %s"
+    DELETE_QUERY = "DELETE FROM `{table}` {filters};"
+    INSERT_QUERY = "INSERT INTO `{table}` ({fields}) VALUES ({values});"
+    UPDATE_QUERY = "UPDATE `{table}` SET {fields} WHERE {column} = %s;"
+    QUERY_TOTAL_COLUMN = "SELECT count(`{column}`) FROM {table};"
 
     def __init__(self, host: str = os.environ.get('DB_URL'),
                  user: str = os.environ.get('DB_USER'),

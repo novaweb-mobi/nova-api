@@ -12,14 +12,6 @@ def camel_to_snake(name):
 
 
 class GenericDAO(ABC):
-    ALLOWED_COMPARATORS: list = None
-    TYPE_MAPPING: dict = None
-    CREATE_QUERY: str = None
-    COLUMN: str = None
-    SELECT_QUERY: str = None
-    FILTERS: str = None
-    FILTER: str = None
-
     @abstractmethod
     def __init__(self, database=None, table: str = None, fields: dict = None,
                  return_class: dataclasses.dataclass = Entity,

@@ -8,9 +8,30 @@ from psycopg2._psycopg import DatabaseError, Error, InterfaceError, \
 from psycopg2.pool import PoolError
 
 from nova_api.persistence.postgresql_pool import PostgreSQLPool
+from nova_api.persistence import PersistenceHelper
 
 
-class PostgreSQLHelper:
+class PostgreSQLHelper(PersistenceHelper):
+    ALLOWED_COMPARATORS = ['=', '<=>', '<>', '!=', '>', '>=', '<=', 'LIKE']
+    TYPE_MAPPING = {
+        "bool": "BOOLEAN",
+        "datetime": "TIMESTAMP",
+        "str": "VARCHAR(100)",
+        "int": "INT",
+        "float": "DECIMAL",
+        "date": "DATE"
+    }
+    CREATE_QUERY = "CREATE table IF NOT EXISTS {table} ({fields}, " \
+                   "PRIMARY KEY({primary_keys}));"
+    COLUMN = "{field} {type} {default}"
+    SELECT_QUERY = "SELECT {fields} FROM {table} {filters} " \
+                   "LIMIT %s OFFSET %s;"
+    FILTERS = "WHERE {filters}"
+    FILTER = "{column} {comparator} %s"
+    DELETE_QUERY = "DELETE FROM {table} {filters};"
+    INSERT_QUERY = "INSERT INTO {table} ({fields}) VALUES ({values});"
+    UPDATE_QUERY = "UPDATE {table} SET {fields} WHERE {column} = %s;"
+    QUERY_TOTAL_COLUMN = "SELECT count({column}) FROM {table};"
 
     def __init__(self, host: str = os.environ.get('DB_URL'),
                  user: str = os.environ.get('DB_USER'),
@@ -91,7 +112,7 @@ class PostgreSQLHelper:
             raise RuntimeError("\nSomething went wrong: {}\n\n".format(err)) \
                 from err
 
-    def close(self):
+    def close(self) -> None:
         self.logger.info("Closing connection to database!")
         self.cursor.close()
         if self.pooled:
