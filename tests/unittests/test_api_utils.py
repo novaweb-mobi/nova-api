@@ -1,4 +1,5 @@
 import os
+import time
 from os.path import isfile as is_file
 from json import dumps
 
@@ -65,7 +66,7 @@ class TestAPIUtils:
     def test_use_dao(self, mocker):
         my_mock = Mock()
 
-        @nova_api.use_dao(dao_class=my_mock)
+        @nova_api.use_dao(dao_class=my_mock, retries=1)
         def test(**kwargs):
             return kwargs.get('dao') == my_mock.return_value
 
@@ -77,7 +78,8 @@ class TestAPIUtils:
 
         @nova_api.use_dao(dao_class=my_mock,
                           dao_parameters={"pooled": False,
-                                          "database_args": {"ssl_ca": "file"}})
+                                          "database_args": {"ssl_ca": "file"}},
+                          retries=1)
         def test(**kwargs):
             return kwargs.get('dao') == my_mock.return_value
 
@@ -92,7 +94,8 @@ class TestAPIUtils:
         @nova_api.use_dao(dao_class=my_mock,
                           dao_parameters={"pooled": False,
                                           "database_args": {"ssl_ca": "file"},
-                                          "host": "localhost"})
+                                          "host": "localhost"},
+                          retries=1)
         def test(**kwargs):
             return kwargs.get('dao') == my_mock.return_value
 
@@ -105,7 +108,8 @@ class TestAPIUtils:
     def test_use_dao_pooled(self, mocker):
         my_mock = Mock()
 
-        @nova_api.use_dao(dao_class=my_mock, dao_parameters={"pooled": True})
+        @nova_api.use_dao(dao_class=my_mock, dao_parameters={"pooled": True},
+                          retries=1)
         def test(**kwargs):
             return kwargs.get('dao') == my_mock.return_value
 
@@ -113,12 +117,33 @@ class TestAPIUtils:
         assert my_mock.mock_calls == [call(pooled=True),
                                       call().close()] and ret
 
+    def test_use_dao_retry(self, mocker):
+        my_mock = Mock()
+        mocker.patch("nova_api.error_response",
+                     return_value="NOT OK")
+
+        def raise_exception():
+            raise ConnectionError("Teste")
+
+        my_mock.side_effect = raise_exception
+
+        @nova_api.use_dao(dao_class=my_mock, retries=3, retry_delay=1)
+        def test(**kwargs):
+            return kwargs.get('dao') == my_mock.return_value
+
+        start = time.time()
+        ret = test()
+        end = time.time()
+
+        assert my_mock.mock_calls == [call(), call(), call()]
+        assert end-start > 3
+
     def test_use_dao_exception(self, mocker):
         my_mock = Mock()
         mocker.patch("nova_api.error_response",
                      return_value="NOT OK")
 
-        @nova_api.use_dao(dao_class=my_mock)
+        @nova_api.use_dao(dao_class=my_mock, retries=1)
         def test(**kwargs):
             if kwargs.get('dao') == my_mock.return_value:
                 raise Exception()
@@ -178,22 +203,22 @@ class TestAPIUtils:
 
     @mark.parametrize("call_, argv", [
         (
-            call(EntityForTest, EntityDAO, '2'),
-            ["python",
-             "-e", "EntityForTest",
-             "-d", "EntityDAO",
-             "-v", "2"]
+                call(EntityForTest, EntityDAO, '2'),
+                ["python",
+                 "-e", "EntityForTest",
+                 "-d", "EntityDAO",
+                 "-v", "2"]
         ),
         (
-            call(EntityForTest, EntityDAO, ''),
-            ["python",
-             "-e", "EntityForTest",
-             "-d", "EntityDAO"]
+                call(EntityForTest, EntityDAO, ''),
+                ["python",
+                 "-e", "EntityForTest",
+                 "-d", "EntityDAO"]
         ),
         (
-            call(EntityForTest, EntityForTestDAO, ''),
-            ["python",
-             "-e", "EntityForTest"]
+                call(EntityForTest, EntityForTestDAO, ''),
+                ["python",
+                 "-e", "EntityForTest"]
         )
     ])
     def test_generate_api_cli(self, mocker, call_, argv):
@@ -222,20 +247,20 @@ class TestAPIUtils:
 
     @mark.parametrize("argv, status_code", [
         (
-            ["python", "-e", "EntityFail"],
-            3
+                ["python", "-e", "EntityFail"],
+                3
         ),
         (
-            ["python", "-e", "EntityForTest", "-d", "MyDAO"],
-            3
+                ["python", "-e", "EntityForTest", "-d", "MyDAO"],
+                3
         ),
         (
-            ["python"],
-            2
+                ["python"],
+                2
         ),
         (
-            ["python", "-v", "2"],
-            2
+                ["python", "-v", "2"],
+                2
         )
     ])
     def test_generate_api_cli_not_exists(self, mocker, argv, status_code):
