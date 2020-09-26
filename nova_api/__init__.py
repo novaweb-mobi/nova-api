@@ -3,6 +3,7 @@ import getopt
 import logging
 import os
 import sys
+import time
 from dataclasses import fields
 from functools import wraps
 
@@ -103,9 +104,12 @@ def success_response(status_code: int = 200, message: str = "OK",
     return default_response(success=True, status_code=status_code,
                             message=message, data=data)
 
-
-def use_dao(dao_class: GenericSQLDAO, error_message: str = "Erro",
-            dao_parameters: dict=None):
+def use_dao(dao_class: generic_dao.GenericSQLDAO,
+            error_message: str = "Erro",
+            dao_parameters: dict = None,
+            retry_delay: float = float(os.environ.get("NOVAAPI_RETRY_DELAY",
+                                                  "1.0")),
+            retries: int = int(os.environ.get("NOVAAPI_RETRIES", "3")),):
     """Decorator to handle database access in an API call
 
     This decorator instantiates the DAO specified in `dao_class` within a try \
@@ -120,6 +124,11 @@ def use_dao(dao_class: GenericSQLDAO, error_message: str = "Erro",
     :param dao_parameters: Parameters to add to the call to the DAO \
     constructor. They'll be added to the call with the expansion \
     `**dao_parameters`.
+    :param retries: Number of times to retry connection with database. \
+    Defaults to 3. May be set through the env variable NOVAAPI_RETRIES
+    :param retry_delay: Seconds to wait before retrying to connect to \
+    database. Defaults to 1.0. May be set through the env variable \
+    NOVAAPI_RETRY_DELAY.
 
     :return: The decorated function
     """
@@ -141,7 +150,21 @@ def use_dao(dao_class: GenericSQLDAO, error_message: str = "Erro",
                     args,
                     kwargs
                 )
-                dao = dao_class(**dao_parameters)
+
+                attempted_retries = retries
+                while attempted_retries:
+                    try:
+                        dao = dao_class(**dao_parameters)
+                        break
+                    except ConnectionError as con_error:
+                        print("Connection failed, will retry "
+                                       "%s times"% attempted_retries)
+                        time.sleep(retry_delay)
+                        if attempted_retries == 1:
+                            raise con_error
+                    finally:
+                        attempted_retries -= 1
+
                 return function(dao=dao, *args, **kwargs)
             # pylint: disable=W0703
             except Exception as exception:
