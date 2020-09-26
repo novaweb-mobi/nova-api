@@ -32,7 +32,6 @@ sleep 15
 
 function db_ready(){
 export DB_URL=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tests_database_1)
-
 python check_db.py
 }
 
@@ -44,7 +43,25 @@ done
 clear
 >&2 echo 'Database is available'
 cd ..
-pytest --junitxml=xunit-reports/xunit-result-nova_api-integration.xml tests/integrationtests
+pytest --junitxml=xunit-reports/xunit-result-nova_api-integration-mysql.xml tests/integrationtests/test_integration_mysql.py
+
+cd tests/
+function postgres_ready(){
+export DB_URL=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tests_postgres_1)
+echo $DB_URL
+python check_postgres.py
+}
+
+until postgres_ready; do
+  >&2 echo 'Waiting for postgres database to become available...'
+  sleep 2
+done
+clear
+>&2 echo 'Postgres is available'
+cd ..
+pytest --junitxml=xunit-reports/xunit-result-nova_api-integration-postgres.xml tests/integrationtests/test_integration_postgres.py
+
+
 cd tests/
 docker-compose down
 docker-compose rm -f

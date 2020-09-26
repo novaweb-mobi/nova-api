@@ -1,6 +1,6 @@
 from User import User
 
-from nova_api.generic_dao import GenericSQLDAO
+from nova_api.dao.generic_sql_dao import GenericSQLDAO
 
 
 class UserDAO(GenericSQLDAO):

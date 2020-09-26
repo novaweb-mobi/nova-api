@@ -46,11 +46,11 @@ class Entity:
     creation_datetime: datetime = field(init=True,
                                         default_factory=get_time,
                                         compare=False,
-                                        metadata={"type": "DATETIME"})
+                                        metadata={"type": "TIMESTAMP"})
     last_modified_datetime: datetime = field(init=True,
                                              default_factory=get_time,
                                              compare=False,
-                                             metadata={"type": "DATETIME"})
+                                             metadata={"type": "TIMESTAMP"})
 
     def __post_init__(self):
         """Post processing of fields
@@ -110,6 +110,12 @@ class Entity:
                             field_.metadata.get("date_format",
                                                 "%Y-%m-%d")
                         ).date())
+                if issubclass(field_.type, str) \
+                        and self.__getattribute__(field_.name) is not None:
+                    logger.debug("Stripping string field")
+                    self.__setattr__(
+                        field_.name,
+                        str(self.__getattribute__(field_.name)).strip())
             except TypeError:
                 logger.warning("Unable to check field %s type",
                                field_.name, exc_info=True)

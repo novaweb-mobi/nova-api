@@ -1,40 +1,40 @@
 import dataclasses
 import logging
 from datetime import datetime
-from re import sub
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from nova_api.entity import Entity
 from nova_api.exceptions import NoRowsAffectedException
-from nova_api.mysql_helper import MySQLHelper
+from nova_api.persistence.mysql_helper import MySQLHelper
+from nova_api.dao import GenericDAO, camel_to_snake
 
 
-def camel_to_snake(name):
-    name = sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    return sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
-
-
-class GenericSQLDAO:
+class GenericSQLDAO(GenericDAO):
     ALLOWED_COMPARATORS = ['=', '<=>', '<>', '!=', '>', '>=', '<=', 'LIKE']
     TYPE_MAPPING = {
-        "bool": "TINYINT(1)",
-        "datetime": "DATETIME",
+        "bool": "BOOLEAN",
+        "datetime": "TIMESTAMP",
         "str": "VARCHAR(100)",
         "int": "INT",
         "float": "DECIMAL",
         "date": "DATE"
     }
     CREATE_QUERY = "CREATE table IF NOT EXISTS {table} ({fields}, " \
-                   "PRIMARY KEY({primary_keys})) ENGINE = InnoDB;"
-    COLUMN = "`{field}` {type} {default}"
+                   "PRIMARY KEY({primary_keys}));"
+    COLUMN = "{field} {type} {default}"
     SELECT_QUERY = "SELECT {fields} FROM {table} {filters} LIMIT %s OFFSET %s;"
     FILTERS = "WHERE {filters}"
     FILTER = "{column} {comparator} %s"
+    DELETE_QUERY = "DELETE FROM {table} {filters};"
+    INSERT_QUERY = "INSERT INTO {table} ({fields}) VALUES ({values});"
+    UPDATE_QUERY = "UPDATE {table} SET {fields} WHERE {column} = %s;"
 
     # pylint: disable=R0913
     def __init__(self, database=None, table: str = None, fields: dict = None,
                  return_class: dataclasses.dataclass = Entity,
                  prefix: str = None, **kwargs) -> None:
+        super().__init__(database, table, fields, return_class, prefix,
+                         **kwargs)
 
         self.logger = logging.getLogger(__name__)
 
@@ -102,50 +102,12 @@ class GenericSQLDAO:
 
     def get_all(self, length: int = 20, offset: int = 0,
                 filters: dict = None) -> (int, List[Entity]):
-        query_params = list()
         self.logger.debug("Getting all with filters %s limit %s and offset %s",
                           filters, length, offset)
-        filters_ = ''
-        if filters:
-            query_params = [item[1] if isinstance(item, list) else item
-                            for item in filters.values()]
 
-            field_keys = self.fields.keys()
-            for property_, value in filters.items():
-                if property_ not in field_keys:
-                    self.logger.error("Property %s not available in %s for "
-                                      "get_all.",
-                                      property_,
-                                      self.return_class.__name__)
-                    raise ValueError(
-                        "Property {prop} not available in {entity}.".format(
-                            prop=property_,
-                            entity=self.return_class.__name__
-                        )
-                    )
-                if isinstance(value, list) \
-                        and value[0] not in self.ALLOWED_COMPARATORS:
-                    self.logger.error("Comparator %s not available in %s for "
-                                      "get_all.",
-                                      value[0],
-                                      self.return_class.__name__)
-                    raise ValueError(
-                        "Comparator {comparator} not allowed for {entity}"
-                        .format(comparator=value[0],
-                                entity=self.return_class.__name__
-                                )
-                    )
-
-            filters_for_query = [
-                GenericSQLDAO.FILTER.format(
-                    column=self.fields[filter_],
-                    comparator=(filters[filter_][0]
-                                if isinstance(filters[filter_], list)
-                                else '='))
-                for filter_ in filters.keys()
-            ]
-            filters_ = GenericSQLDAO.FILTERS.format(
-                filters=' AND '.join(filters_for_query))
+        filters_, query_params = ('', list()) \
+            if not filters \
+            else self.generate_filters(filters)
 
         query = GenericSQLDAO.SELECT_QUERY.format(
             fields=', '.join(self.fields.values()),
@@ -179,11 +141,11 @@ class GenericSQLDAO:
 
         return total, return_list
 
-    def remove(self, entity: Entity) -> None:
+    def _remove_instance(self, entity: Entity):
         if not isinstance(entity, self.return_class):
-            self.logger.error("Entity was not passed as an instance to remove."
+            self.logger.error("Entity was not passed as an instance to remove!"
                               " Value received: %s", entity)
-            raise TypeError("Entity must be a {type} object!".format(
+            raise RuntimeError("Entity must be a {type} object!".format(
                 type=self.return_class.__name__))
 
         if self.get(entity.id_) is None:
@@ -195,14 +157,17 @@ class GenericSQLDAO:
                 )
             )
 
-        query = 'DELETE FROM {table} WHERE {column} = %s;'.format(
+        filters_, query_params = self.generate_filters({"id_": entity.id_})
+
+        query = GenericSQLDAO.DELETE_QUERY.format(
             table=self.table,
-            column=self.fields['id_'])
+            column=self.fields['id_'],
+            filters=filters_)
 
         self.logger.debug("Running remove query in database: %s and params %s",
                           query,
-                          entity.id_)
-        row_count, _ = self.database.query(query, [entity.id_])
+                          query_params)
+        row_count, _ = self.database.query(query, query_params)
 
         if row_count == 0:
             self.logger.error("No rows were affected in database during "
@@ -210,6 +175,60 @@ class GenericSQLDAO:
             raise NoRowsAffectedException()
 
         self.logger.info("Entity %s removed from database.", entity)
+        return entity
+
+    def _remove_with_filters(self, filters: dict):
+        if not isinstance(filters, dict):
+            self.logger.error("Filters were not passed as an dict to remove!"
+                              " Value received: %s", filters)
+            raise RuntimeError("Filters must be a dict!")
+
+        filters_, query_params = self.generate_filters(filters)
+
+        query = GenericSQLDAO.DELETE_QUERY.format(
+            table=self.table,
+            column=self.fields['id_'],
+            filters=filters_)
+
+        self.logger.debug("Running remove query in database: %s and params %s",
+                          query,
+                          query_params)
+        row_count, _ = self.database.query(query, query_params)
+
+        if row_count == 0:
+            self.logger.error("No rows were affected in database during "
+                              "remove!")
+            raise NoRowsAffectedException()
+
+        self.logger.info(f"{row_count} entities removed from database.")
+
+        return row_count
+
+    def remove(self, entity: Entity = None,
+               filters: dict = None) -> Union[int, Entity]:
+        """
+        Removes entities from database. May be called either with an instance
+        of return_class or a dict of filters. *If both are passed, the instance
+        will be removed and the filters won't be considered.*
+
+        :param entity: `return_class` instance to delete.
+        :param filters: Filters to apply to delete query in dict format as
+        specified by `generate_filters`
+        :return: Number of affected rows or deleted instance.
+        """
+        if not isinstance(entity, self.return_class) and filters is None:
+            self.logger.error("Entity was not passed as an instance to remove"
+                              " and no filters where specified! "
+                              "Value received: %s", entity)
+            raise RuntimeError(
+                "Entity must be a {type} object or filters must be "
+                "specified!".format(type=self.return_class.__name__))
+
+        if filters is not None:
+            return self._remove_with_filters(filters)
+
+        if entity is not None:
+            return self._remove_instance(entity)
 
     def create(self, entity: Entity) -> str:
         if not isinstance(entity, self.return_class):
@@ -232,7 +251,7 @@ class GenericSQLDAO:
 
         ent_values = entity.get_db_values()
 
-        query = 'INSERT INTO {table} ({fields}) VALUES ({values});'.format(
+        query = GenericSQLDAO.INSERT_QUERY.format(
             table=self.table,
             fields=', '.join(self.fields.values()),
             values=', '.join(['%s'] * len(ent_values)))
@@ -270,7 +289,7 @@ class GenericSQLDAO:
 
         ent_values = entity.get_db_values()
 
-        query = "UPDATE {table} SET {fields} WHERE {column} = %s;".format(
+        query = GenericSQLDAO.UPDATE_QUERY.format(
             table=self.table,
             fields=', '.join(
                 [field + '=%s' for field in
@@ -316,7 +335,7 @@ class GenericSQLDAO:
 
             if field.metadata.get("primary_key"):
                 self.logger.debug("'%s' added as primary key", field_name)
-                primary_keys.append('`{key}`'.format(key=field_name))
+                primary_keys.append('{key}'.format(key=field_name))
                 if default == "NULL":
                     self.logger.warning("Had to change '%s' default because "
                                         "it is primary key and set to NULL.",
@@ -341,6 +360,80 @@ class GenericSQLDAO:
             return "CHAR(32)"
         return GenericSQLDAO.TYPE_MAPPING.get(cls_to_predict.__name__) \
                or "CHAR(100)"
+
+    def generate_filters(self, filters: dict) -> (str, List[str]):
+        """
+        Converts a dict of filters to apply to a query to a SQL query format.
+
+        Example:
+            >>> dao.generate_filters(filters={"id_":
+            "12345678901234567890123456789012", "creation_datetime": [">",
+            "2020-1-1"]})
+            ("WHERE id_ = %s AND creation_datetime > %s",
+            ["12345678901234567890123456789012", "2020-1-1"])
+
+
+        :param filters: dictionary of filters to apply. The key must be a \
+        property of `return_class` and the value may be only the values, \
+        if equality is expected or a list with the comparator and the value.
+        :return: a tupĺe with the where statement and the list of params to use
+        """
+        if filters is None:
+            raise ValueError("No filters where passed! Filters must be a dict "
+                             "with param names, expected values and "
+                             "comparators in this form: "
+                             "{'param':['comparator', 'value']} "
+                             "or {'param': 'value'} for equality.")
+
+        if not isinstance(filters, dict):
+            raise TypeError("Filters where passed not as dict!"
+                            " Filters must be a dict "
+                            "with param names, expected values and "
+                            "comparators in this form: "
+                            "{'param':['comparator', 'value']} "
+                            "or {'param': 'value'} for equality.")
+
+        query_params = [item[1] if isinstance(item, list) else item
+                        for item in filters.values()]
+
+        field_keys = self.fields.keys()
+        for property_, value in filters.items():
+            if property_ not in field_keys:
+                self.logger.error("Property %s not available in %s for "
+                                  "get_all.",
+                                  property_,
+                                  self.return_class.__name__)
+                raise ValueError(
+                    "Property {prop} not available in {entity}.".format(
+                        prop=property_,
+                        entity=self.return_class.__name__
+                    )
+                )
+            if isinstance(value, list) \
+                    and value[0] not in self.ALLOWED_COMPARATORS:
+                self.logger.error("Comparator %s not available in %s for "
+                                  "get_all.",
+                                  value[0],
+                                  self.return_class.__name__)
+                raise ValueError(
+                    "Comparator {comparator} not allowed for {entity}"
+                        .format(comparator=value[0],
+                                entity=self.return_class.__name__
+                                )
+                )
+
+        filters_for_query = [
+            GenericSQLDAO.FILTER.format(
+                column=self.fields[filter_],
+                comparator=(filters[filter_][0]
+                            if isinstance(filters[filter_], list)
+                            else '='))
+            for filter_ in filters.keys()
+        ]
+        filters_ = GenericSQLDAO.FILTERS.format(
+            filters=' AND '.join(filters_for_query))
+
+        return filters_, query_params
 
     def close(self):
         self.logger.debug("Closing connection to database.")

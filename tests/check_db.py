@@ -13,5 +13,8 @@ try:
 except mysql.connector.Error as err:
     print('Error:', err)
     sys.exit(-1)
+finally:
+    if db_conn is not None:
+      db_conn.close()
 sys.exit(0)
 

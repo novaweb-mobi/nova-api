@@ -2,7 +2,7 @@ from Contact import Contact, Phone
 from PhoneDAO import PhoneDAO
 
 from nova_api import error_response, success_response, use_dao
-from nova_api.generic_dao import GenericSQLDAO
+from nova_api.dao.generic_sql_dao import GenericSQLDAO
 
 
 @use_dao(PhoneDAO, "API Unavailable")

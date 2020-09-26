@@ -9,7 +9,8 @@ from functools import wraps
 from flask import jsonify, make_response
 from flask.wrappers import Response
 
-from nova_api import baseapi, generic_dao
+from nova_api import baseapi
+from nova_api.dao.generic_sql_dao import GenericSQLDAO
 
 # Authorization schemas
 JWT = 0
@@ -103,7 +104,7 @@ def success_response(status_code: int = 200, message: str = "OK",
                             message=message, data=data)
 
 
-def use_dao(dao_class: generic_dao.GenericSQLDAO, error_message: str = "Erro",
+def use_dao(dao_class: GenericSQLDAO, error_message: str = "Erro",
             dao_parameters: dict=None):
     """Decorator to handle database access in an API call
 

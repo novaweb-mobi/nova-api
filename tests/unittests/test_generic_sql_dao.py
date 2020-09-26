@@ -6,14 +6,17 @@ from mock import call
 from pytest import fixture, mark, raises
 
 from nova_api.entity import Entity
-from nova_api.generic_dao import GenericSQLDAO
+from nova_api.dao.generic_sql_dao import GenericSQLDAO
 from nova_api.exceptions import NoRowsAffectedException
+
+
 # pylint: disable=R0201
 
 @dataclass
 class TestEntity(Entity):
     name: str = "Anom"
     birthday: date = None
+
 
 @dataclass
 class TestEntity2(Entity):
@@ -33,7 +36,7 @@ class TestEntityWithChild(Entity):
 class TestGenericSQLDAO:
     @fixture
     def mysql_mock(self, mocker):
-        return mocker.patch('nova_api.generic_dao.MySQLHelper')
+        return mocker.patch('nova_api.dao.generic_sql_dao.MySQLHelper')
 
     @fixture
     def generic_dao(self, mysql_mock):
@@ -75,14 +78,13 @@ class TestGenericSQLDAO:
         generic_dao.create_table_if_not_exists()
         assert mysql_mock.mock_calls[1] == call().query(
             'CREATE table IF NOT EXISTS test_table ('
-            '`id` CHAR(32) NOT NULL, '
-            '`creation_datetime` DATETIME NULL, '
-            '`last_modified_datetime` DATETIME NULL, '
-            '`name` VARCHAR(100) NULL, '
-            '`birthday` DATE NULL, '
-            'PRIMARY KEY(`id`)'
-            ') '
-            'ENGINE = InnoDB;'
+            'id CHAR(32) NOT NULL, '
+            'creation_datetime TIMESTAMP NULL, '
+            'last_modified_datetime TIMESTAMP NULL, '
+            'name VARCHAR(100) NULL, '
+            'birthday DATE NULL, '
+            'PRIMARY KEY(id)'
+            ');'
         )
 
     def test_create_table_with_primary_key_null(self, generic_dao2,
@@ -90,32 +92,29 @@ class TestGenericSQLDAO:
         generic_dao2.create_table_if_not_exists()
         assert mysql_mock.mock_calls[1] == call().query(
             'CREATE table IF NOT EXISTS test_table ('
-            '`id` CHAR(32) NOT NULL, '
-            '`creation_datetime` DATETIME NULL, '
-            '`last_modified_datetime` DATETIME NULL, '
-            '`name` VARCHAR(100) NOT NULL, '
-            '`birthday` DATE NULL, '
-            'PRIMARY KEY(`id`, `name`)'
-            ') '
-            'ENGINE = InnoDB;'
+            'id CHAR(32) NOT NULL, '
+            'creation_datetime TIMESTAMP NULL, '
+            'last_modified_datetime TIMESTAMP NULL, '
+            'name VARCHAR(100) NOT NULL, '
+            'birthday DATE NULL, '
+            'PRIMARY KEY(id, name)'
+            ');'
         )
 
     def test_create_table_with_child(self, mysql_mock):
         generic_dao = GenericSQLDAO(return_class=TestEntityWithChild,
                                     prefix='')
         generic_dao.create_table_if_not_exists()
-        print(mysql_mock.mock_calls)
         assert mysql_mock.mock_calls[1] == call().query(
             'CREATE table IF NOT EXISTS test_entity_with_childs ('
-            '`id_` CHAR(32) NOT NULL, '
-            '`creation_datetime` DATETIME NULL, '
-            '`last_modified_datetime` DATETIME NULL, '
-            '`name` VARCHAR(100) NULL, '
-            '`birthday` DATE NULL, '
-            '`child_id_` CHAR(32) NULL, '
-            'PRIMARY KEY(`id_`)'
-            ') '
-            'ENGINE = InnoDB;'
+            'id_ CHAR(32) NOT NULL, '
+            'creation_datetime TIMESTAMP NULL, '
+            'last_modified_datetime TIMESTAMP NULL, '
+            'name VARCHAR(100) NULL, '
+            'birthday DATE NULL, '
+            'child_id_ CHAR(32) NULL, '
+            'PRIMARY KEY(id_)'
+            ');'
         )
 
     def test_init(self, mysql_mock):
@@ -185,7 +184,8 @@ class TestGenericSQLDAO:
                     "birthday": "birthday"},
             return_class=TestEntity, pooled=True,
             database_args={"ssl_ca": "file"})
-        assert mysql_mock.mock_calls == [call(pooled=True, database_args={"ssl_ca": "file"})]
+        assert mysql_mock.mock_calls == [
+            call(pooled=True, database_args={"ssl_ca": "file"})]
         assert generic_dao.database == mysql_mock.return_value
         assert generic_dao.table == "test_entitys"
         assert generic_dao.fields == {"id_": "id",
@@ -393,11 +393,67 @@ class TestGenericSQLDAO:
             ['12345678901234567890123456789012']
         )
 
+    def test_remove_with_filters(self, generic_dao, mysql_mock, entity):
+        def is_delete_query(*args):
+            if "DELETE" in args[0]:
+                return 1, 0
+            return None
+
+        db = mysql_mock.return_value
+        db.get_results.return_value = [["12345678901234567890123456789012",
+                                        datetime(2020, 7, 26, 12, 00, 00),
+                                        datetime(2020, 7, 26, 12, 00, 00),
+                                        "Anom",
+                                        None]]
+        db.query.side_effect = is_delete_query
+        generic_dao.remove(entity, filters={"name": ["LIKE", "M%"]})
+        assert mysql_mock.query.called_with(
+            'DELETE FROM test_table WHERE id = %s;',
+            ["12345678901234567890123456789012"]
+        )
+
+    def test_remove_only_filters(self, generic_dao, mysql_mock, entity):
+        def is_delete_query(*args):
+            if "DELETE" in args[0]:
+                return 1, 0
+            return None
+
+        db = mysql_mock.return_value
+        db.get_results.return_value = None
+        db.query.side_effect = is_delete_query
+        generic_dao.remove(filters={"name": ["LIKE", "M%"]})
+        assert mysql_mock.query.called_with(
+            'DELETE FROM test_table WHERE name LIKE %s;',
+            ['M%'])
+
+    def test_remove_filters_no_rows(self, generic_dao, mysql_mock, entity):
+        def is_delete_query(*args):
+            if "DELETE" in args[0]:
+                return 0, 0
+            return None
+
+        db = mysql_mock.return_value
+        db.get_results.return_value = None
+        db.query.side_effect = is_delete_query
+        with raises(NoRowsAffectedException):
+            generic_dao.remove(filters={"name": ["LIKE", "M%"]})
+
+    @mark.parametrize("param", ["12345", 1234, (11,), {"ent": None}, None])
+    def test__remove_instance_not_entity(self, generic_dao, param):
+        with raises(RuntimeError):
+            generic_dao._remove_instance(param)
+
+    @mark.parametrize("param", ["12345", 1234, (11,), [123,], object()])
+    def test__remove_with_filters_not_dict(self, generic_dao, param):
+        with raises(RuntimeError):
+            generic_dao._remove_with_filters(param)
+
     def test_remove_fail(self, generic_dao, mysql_mock, entity):
         def is_delete_query(*args):
             if "DELETE" in args[0]:
                 return 0, 0
             return None
+
 
         db = mysql_mock.return_value
         db.get_results.return_value = [["12345678901234567890123456789012",
@@ -416,7 +472,7 @@ class TestGenericSQLDAO:
             generic_dao.remove(entity)
 
     def test_remove_not_entity(self, generic_dao, mysql_mock):
-        with raises(TypeError):
+        with raises(RuntimeError):
             generic_dao.remove("12345678901234567890123456789012")
 
     def test_create(self, generic_dao, mysql_mock, entity):
@@ -531,8 +587,8 @@ class TestGenericSQLDAO:
         assert db.mock_calls == [call.close()]
 
     @mark.parametrize("cls, type_", [
-        (bool, "TINYINT(1)"),
-        (datetime, "DATETIME"),
+        (bool, "BOOLEAN"),
+        (datetime, "TIMESTAMP"),
         (str, "VARCHAR(100)"),
         (int, "INT"),
         (float, "DECIMAL"),
@@ -540,3 +596,25 @@ class TestGenericSQLDAO:
     ])
     def test_predict_db_type(self, cls, type_):
         assert GenericSQLDAO.predict_db_type(cls) == type_
+
+    def test_generate_filters(self, generic_dao):
+        filters = generic_dao.generate_filters(filters={
+            "id_": "12345678901234567890123456789012",
+            "creation_datetime": [">", "2020-1-1"]})
+        assert filters == ("WHERE id = %s AND creation_datetime > %s",
+                           ["12345678901234567890123456789012", "2020-1-1"])
+
+    def test_generate_filter(self, generic_dao):
+        filters = generic_dao.generate_filters(filters={
+            "id_": "12345678901234567890123456789012"})
+        assert filters == ("WHERE id = %s",
+                           ["12345678901234567890123456789012"])
+
+    def test_generate_filters_none(self, generic_dao):
+        with raises(ValueError):
+            generic_dao.generate_filters(None)
+
+    @mark.parametrize("param", [1, "test", 1.0, [1, 'test'], (1, 2)])
+    def test_generate_filters_not_dict(self, generic_dao, param):
+        with raises(TypeError):
+            generic_dao.generate_filters(param)
