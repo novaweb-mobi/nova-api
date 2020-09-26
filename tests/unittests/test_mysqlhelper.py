@@ -1,12 +1,19 @@
+from dataclasses import dataclass
+from datetime import date, datetime
+
 import mysql.connector
 from mock import call
 from mysql.connector import InterfaceError, DatabaseError, Error
 from pytest import fixture, mark, raises
 
 from nova_api.persistence.mysql_helper import MySQLHelper
+from nova_api.entity import Entity
 
 
-# pylint: disable=R0201
+@dataclass
+class TestEntity(Entity):
+    pass
+
 
 class TestMySQLHelper:
     @fixture
@@ -168,3 +175,16 @@ class TestMySQLHelper:
 
         with raises(RuntimeError):
             db_.get_results()
+
+    @mark.parametrize("cls, type_", [
+        (bool, "TINYINT(1)"),
+        (datetime, "DATETIME"),
+        (str, "VARCHAR(100)"),
+        (int, "INT"),
+        (float, "DECIMAL"),
+        (date, "DATE"),
+        (TestEntity, "CHAR(32)")
+    ])
+    def test_predict_db_type(self, cls, type_, mysql_mock):
+        helper = MySQLHelper(pooled=False)
+        assert helper.predict_db_type(cls) == type_

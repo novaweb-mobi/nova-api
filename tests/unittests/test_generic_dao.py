@@ -51,10 +51,6 @@ class TestGenericDAO:
         with raises(TypeError):
             MySecondDAO()
 
-    def test_predict_db_type(self):
-        with raises(NotImplementedError):
-            GenericDAO.predict_db_type(str)
-
     def test_get(self):
         dao = MyDAO()
         with raises(NotImplementedError):

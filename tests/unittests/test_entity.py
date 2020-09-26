@@ -40,6 +40,11 @@ class EntityForTestWithTypeError(Entity):
     childs: List[SampleEntity] = None
 
 
+@dataclass
+class EntityForTestWithString(Entity):
+    name: str = None
+
+
 class TestEntity:
 
     @fixture
@@ -82,6 +87,11 @@ class TestEntity:
     def test_datetime_parsing(self):
         ent1 = EntityForTestWithDatetime(my_date="2020-1-12 00:00:00")
         ent2 = EntityForTestWithDatetime(id_=ent1.id_)
+        assert ent1 == ent2
+
+    def test_str_stripping(self):
+        ent1 = EntityForTestWithString(name=" John ")
+        ent2 = EntityForTestWithString(id_=ent1.id_, name="John")
         assert ent1 == ent2
 
     def test_format_date(self):

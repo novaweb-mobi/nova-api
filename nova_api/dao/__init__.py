@@ -43,11 +43,6 @@ class GenericDAO(ABC):
     def create_table_if_not_exists(self):
         raise NotImplementedError()
 
-    @classmethod
-    @abstractmethod
-    def predict_db_type(cls, cls_to_predict):
-        raise NotImplementedError()
-
     @abstractmethod
     def close(self):
         raise NotImplementedError()

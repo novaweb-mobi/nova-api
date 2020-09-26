@@ -21,7 +21,7 @@ class PostgreSQLHelper(PersistenceHelper):
         "float": "DECIMAL",
         "date": "DATE"
     }
-    CREATE_QUERY = "CREATE table IF NOT EXISTS {table} ({fields}, " \
+    CREATE_QUERY = "CREATE TABLE IF NOT EXISTS {table} ({fields}, " \
                    "PRIMARY KEY({primary_keys}));"
     COLUMN = "{field} {type} {default}"
     SELECT_QUERY = "SELECT {fields} FROM {table} {filters} " \
@@ -81,6 +81,7 @@ class PostgreSQLHelper(PersistenceHelper):
                 from err
 
     def query(self, query: str, params: List = None) -> (int, int):
+        super(PostgreSQLHelper, self).query(query, params)
         try:
             self.logger.debug("Query to execute is %s, params %s",
                               query,
@@ -101,18 +102,8 @@ class PostgreSQLHelper(PersistenceHelper):
                 "\nSomething went wrong with the query: {}\n\n".format(err)
             ) from err
 
-    def get_results(self) -> List[Any]:
-        try:
-            results = self.cursor.fetchall()
-            self.logger.debug("Got results from database: %s", results)
-            return results if len(results) > 0 else None
-        except Error as err:
-            self.logger.critical("Unable to get query results!",
-                                 exc_info=True)
-            raise RuntimeError("\nSomething went wrong: {}\n\n".format(err)) \
-                from err
-
     def close(self) -> None:
+        super(PostgreSQLHelper, self).close()
         self.logger.info("Closing connection to database!")
         self.cursor.close()
         if self.pooled:

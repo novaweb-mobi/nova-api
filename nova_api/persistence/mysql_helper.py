@@ -14,20 +14,21 @@ class MySQLHelper(PersistenceHelper):
     ALLOWED_COMPARATORS = ['=', '<=>', '<>', '!=', '>', '>=', '<=', 'LIKE']
     TYPE_MAPPING = {
         "bool": "TINYINT(1)",
-        "datetime": "TIMESTAMP",
+        "datetime": "DATETIME",
         "str": "VARCHAR(100)",
         "int": "INT",
         "float": "DECIMAL",
         "date": "DATE"
     }
-    CREATE_QUERY = "CREATE table IF NOT EXISTS `{table}` ({fields}, " \
+
+    CREATE_QUERY = "CREATE TABLE IF NOT EXISTS `{table}` ({fields}, " \
                    "PRIMARY KEY({primary_keys}));"
     COLUMN = "`{field}` {type} {default}"
     SELECT_QUERY = "SELECT {fields} FROM `{table}` {filters} " \
                    "LIMIT %s OFFSET %s;"
     FILTERS = "WHERE {filters}"
     FILTER = "`{column}` {comparator} %s"
-    DELETE_QUERY = "DELETE FROM `{table}` {filters};"
+    DELETE_QUERY = "DELETE FROM {table} {filters};"
     INSERT_QUERY = "INSERT INTO `{table}` ({fields}) VALUES ({values});"
     UPDATE_QUERY = "UPDATE `{table}` SET {fields} WHERE {column} = %s;"
     QUERY_TOTAL_COLUMN = "SELECT count(`{column}`) FROM {table};"
@@ -36,8 +37,8 @@ class MySQLHelper(PersistenceHelper):
                  user: str = os.environ.get('DB_USER'),
                  password: str = os.environ.get('DB_PASSWORD'),
                  database: str = os.environ.get('DB_NAME'),
-                 pooled: bool = True,
-                 database_args: dict = None):
+                 pooled: bool = True, database_args: dict = None):
+        super().__init__(host, user, password, database, pooled, database_args)
 
         self.logger = logging.getLogger(__name__)
 
@@ -84,6 +85,7 @@ class MySQLHelper(PersistenceHelper):
                 from err
 
     def query(self, query: str, params: List = None) -> (int, int):
+        super(MySQLHelper, self).query(query, params)
         try:
             self.logger.debug("Query to execute is %s, params %s",
                               query,
@@ -108,18 +110,8 @@ class MySQLHelper(PersistenceHelper):
                 "\nSomething went wrong with the query: {}\n\n".format(err)
             ) from err
 
-    def get_results(self) -> List[Any]:
-        try:
-            results = self.cursor.fetchall()
-            self.logger.debug("Got results from database: %s", results)
-            return results if len(results) > 0 else None
-        except Error as err:
-            self.logger.critical("Unable to get query results!",
-                                 exc_info=True)
-            raise RuntimeError("\nSomething went wrong: {}\n\n".format(err)) \
-                from err
-
     def close(self):
+        super(MySQLHelper, self).close()
         self.logger.info("Closing connection to database!")
         self.cursor.close()
         self.db_conn.close()

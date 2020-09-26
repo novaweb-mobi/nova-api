@@ -24,7 +24,8 @@ class UserDAO(GenericSQLDAO):
     def __init__(self, database=None, pooled=False):
         if database is None:
             database = PostgreSQLHelper(pooled=pooled)
-        super(UserDAO, self).__init__(database=database, table=UserDAO.table,
+        super(UserDAO, self).__init__(database_instance=database,
+                                      table=UserDAO.table,
                                       return_class=User, prefix='',
                                       pooled=pooled)
 
@@ -42,7 +43,7 @@ class PaymentDAO(GenericSQLDAO):
     def __init__(self, database=None, pooled=False):
         if database is None:
             database = PostgreSQLHelper(pooled=pooled)
-        super(PaymentDAO, self).__init__(database=database,
+        super(PaymentDAO, self).__init__(database_instance=database,
                                          table=PaymentDAO.table,
                                          return_class=Payment, prefix='',
                                          pooled=pooled)

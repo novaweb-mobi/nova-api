@@ -20,10 +20,10 @@ class User(Entity):
 class UserDAO(GenericSQLDAO):
     table = 'usuarios'
 
-    def __init__(self, database=None, pooled=False):
-        super(UserDAO, self).__init__(database=database, table=UserDAO.table,
+    def __init__(self, pooled=False, **kwargs):
+        super(UserDAO, self).__init__(table=UserDAO.table,
                                       return_class=User, prefix='',
-                                      pooled=pooled)
+                                      pooled=pooled, **kwargs)
 
 
 @dataclass
@@ -36,11 +36,10 @@ class Payment(Entity):
 class PaymentDAO(GenericSQLDAO):
     table = 'payments'
 
-    def __init__(self, database=None, pooled=False):
-        super(PaymentDAO, self).__init__(database=database,
-                                         table=PaymentDAO.table,
+    def __init__(self, pooled=False, **kwargs):
+        super(PaymentDAO, self).__init__(table=PaymentDAO.table,
                                          return_class=Payment, prefix='',
-                                         pooled=pooled)
+                                         pooled=pooled, **kwargs)
 
 
 @mark.parametrize("pool", [True, False])

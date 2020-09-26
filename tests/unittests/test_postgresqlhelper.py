@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from datetime import date, datetime
+
 import psycopg2
 from mock import Mock, call
 from psycopg2._psycopg import DatabaseError, Error, InterfaceError
@@ -5,9 +8,13 @@ from psycopg2._psycopg import DatabaseError, Error, InterfaceError
 from pytest import fixture, mark, raises
 
 from nova_api.persistence.postgresql_helper import PostgreSQLHelper
+from nova_api.entity import Entity
 
 
-# pylint: disable=R0201
+@dataclass
+class TestEntity(Entity):
+    test: str = None
+
 
 class TestPostgreSQLHelper:
     @fixture
@@ -43,7 +50,7 @@ class TestPostgreSQLHelper:
         cursor_mock.lastrowid = 1
         return cursor_mock
 
-    def test_init(self, postgresql_mock):
+    def test_init_pghelper(self, postgresql_mock):
         PostgreSQLHelper(host='127.0.0.1', user='test',
                          password='12345', database='test_db', pooled=False)
         assert postgresql_mock.mock_calls == [
@@ -52,7 +59,7 @@ class TestPostgreSQLHelper:
             call.connect().cursor()
         ]
 
-    def test_init_extra_args_no_pool(self, postgresql_mock):
+    def test_init_extra_args_no_pool_pghelper(self, postgresql_mock):
         PostgreSQLHelper(host='127.0.0.1', user='test',
                          password='12345', database='test_db', pooled=False,
                          database_args={"ssl_ca": "file"})
@@ -62,9 +69,10 @@ class TestPostgreSQLHelper:
             call.connect().cursor()
         ]
 
-    def test_init_pooled(self, pool_mock):
+    def test_init_pooled_pghelper(self, pool_mock):
         help = PostgreSQLHelper(host='127.0.0.1', user='test',
-                         password='12345', database='test_db', pooled=True)
+                                password='12345', database='test_db',
+                                pooled=True)
         assert pool_mock.mock_calls == [
             call.get_instance(host='127.0.0.1', user='test',
                               password='12345', database='test_db',
@@ -73,19 +81,20 @@ class TestPostgreSQLHelper:
             call.get_instance().getconn().cursor()
         ]
 
-    def test_init_pooled_extra_args(self, pool_mock):
-        help = PostgreSQLHelper(host='127.0.0.1', user='test',
-                         password='12345', database='test_db', pooled=True,
-                         database_args={"ssl_ca": "file"})
+    def test_init_pooled_extra_args_pghelper(self, pool_mock):
+        helper = PostgreSQLHelper(host='127.0.0.1', user='test',
+                                password='12345', database='test_db',
+                                pooled=True,
+                                database_args={"ssl_ca": "file"})
         assert pool_mock.mock_calls == [
             call.get_instance(host='127.0.0.1', user='test',
                               password='12345', database='test_db',
                               database_args={"ssl_ca": "file"}),
-            call.get_instance().getconn(key=id(help)),
+            call.get_instance().getconn(key=id(helper)),
             call.get_instance().getconn().cursor()
         ]
 
-    def test_init_none(self, postgresql_mock):
+    def test_init_none_pghelper(self, postgresql_mock):
         PostgreSQLHelper(host=None, user='test',
                          password='12345', database='test_db', pooled=False)
         assert postgresql_mock.mock_calls == [
@@ -93,6 +102,19 @@ class TestPostgreSQLHelper:
                          password='12345', database='test_db'),
             call.connect().cursor()
         ]
+
+    @mark.parametrize("cls, type_", [
+        (bool, "BOOLEAN"),
+        (datetime, "TIMESTAMP"),
+        (str, "VARCHAR(100)"),
+        (int, "INT"),
+        (float, "DECIMAL"),
+        (date, "DATE"),
+        (TestEntity, "CHAR(32)")
+    ])
+    def test_predict_db_type_pghelper(self, cls, type_, postgresql_mock):
+        helper = PostgreSQLHelper(pooled=False)
+        assert helper.predict_db_type(cls) == type_
 
     @mark.parametrize("query, params, calls", [
         ("SELECT * FROM teste;", None,

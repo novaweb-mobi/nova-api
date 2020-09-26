@@ -5,19 +5,16 @@ from typing import List, Optional
 
 from nova_api.entity import Entity
 from nova_api.exceptions import NoRowsAffectedException
-from nova_api.persistence import mysql_helper
-from nova_api.persistence import postgresql_helper
 from nova_api.dao import GenericDAO, camel_to_snake
+from nova_api.persistence import PersistenceHelper
+from nova_api.persistence.mysql_helper import MySQLHelper
 
 
 class GenericSQLDAO(GenericDAO):
 
-    database_types = {
-        "MySQL": mysql_helper.MySQLHelper,
-        "PostgreSQL": postgresql_helper.PostgreSQLHelper}
-
     # pylint: disable=R0913
-    def __init__(self, database_type: str = "MySQL", database_instance=None,
+    def __init__(self, database_type: PersistenceHelper = None,
+                 database_instance=None,
                  table: str = None, fields: dict = None,
                  return_class: dataclasses.dataclass = Entity,
                  prefix: str = None, **kwargs) -> None:
@@ -26,9 +23,15 @@ class GenericSQLDAO(GenericDAO):
 
         self.logger = logging.getLogger(__name__)
 
+        self.database_type = database_type
+
+        if database_type is None and database_instance is None:
+            self.database_type = MySQLHelper
+
         self.logger.debug("Started %s with database type as %s, table as %s, "
                           "fields as %s, return_class as %s and prefix as %s",
-                          self.__class__.__name__, database_type, table, fields,
+                          self.__class__.__name__, database_type, table,
+                          fields,
                           return_class, prefix)
 
         self.database = database_instance
@@ -36,9 +39,7 @@ class GenericSQLDAO(GenericDAO):
         if self.database is None:
             self.logger.info("Database connection starting. Extra args: %s. ",
                              kwargs)
-            self.database = GenericSQLDAO\
-                .database_types\
-                .get(database_type, mysql_helper.MySQLHelper)(**kwargs)
+            self.database = self.database_type(**kwargs)
             self.logger.info("Connected to database.")
 
         self.return_class = return_class
@@ -188,6 +189,9 @@ class GenericSQLDAO(GenericDAO):
             raise RuntimeError(
                 "Entity must be a {type} object or filters must be "
                 "specified!".format(type=self.return_class.__name__))
+
+        filters_ = None
+        query_params = None
 
         if filters is not None:
             if not isinstance(filters, dict):
@@ -342,7 +346,7 @@ class GenericSQLDAO(GenericDAO):
                 continue
 
             type_ = field.metadata.get('type') \
-                    or GenericSQLDAO.predict_db_type(field.type)
+                    or self.database.predict_db_type(field.type)
             self.logger.debug("'%s' type defined as '%s'", field.name, type_)
 
             default = field.metadata.get('default') or "NULL"
@@ -361,28 +365,16 @@ class GenericSQLDAO(GenericDAO):
                     default = "NOT NULL"
 
             fields_.append(self.database.COLUMN.format(field=field_name,
-                                                       type=type_,
-                                                       default=default))
+                                              type=type_,
+                                              default=default))
         fields_ = ', '.join(fields_)
         primary_keys = ', '.join(primary_keys)
         query = self.database.CREATE_QUERY.format(table=self.table,
-                                                  fields=fields_,
-                                                  primary_keys=primary_keys)
+                                         fields=fields_,
+                                         primary_keys=primary_keys)
         self.logger.info("Creating table with query: %s", query)
         self.database.query(query)
         self.logger.info("Table created")
-
-    def predict_db_type(self, cls_to_predict) -> str:
-        """
-        Returns the predicted db type for a class.
-
-        :param cls_to_predict: Class to predict the db type.
-        :return: The db type.
-        """
-        if issubclass(cls_to_predict, Entity):
-            return "CHAR(32)"
-        return self.database.TYPE_MAPPING.get(cls_to_predict.__name__) \
-               or "CHAR(100)"
 
     def generate_filters(self, filters: dict) -> (str, List[str]):
         """

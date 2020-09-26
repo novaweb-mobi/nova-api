@@ -1,5 +1,6 @@
 """Base entity for modeling of API's"""
 import logging
+from abc import ABC
 from dataclasses import dataclass, field, fields, Field
 from datetime import date, datetime
 from uuid import uuid4
@@ -23,7 +24,7 @@ def get_time() -> datetime:
 
 
 @dataclass
-class Entity:
+class Entity(ABC):
     """Base Entity implementation
 
     This class is the base implementation of the entity for modeling
@@ -58,7 +59,8 @@ class Entity:
         Post init goes through the parameters passed to init and makes some
         validations. Fields that are subclasses of Entity will be instantiated
         (but only with id_ set). Datetime formats also will be cast if
-        received as strings.
+        received as strings. Strings will have trailing and leading white
+        spaces removed.
 
         __post_init__ may be overridden to include validations required by
         any use case. In such case, it's important to include a super call
@@ -67,55 +69,50 @@ class Entity:
         :return: None
         """
         logger = logging.getLogger(__name__)
-        for field_ in fields(self.__class__):
+        for field_ in fields(self):
             try:
+                field_value = self.__getattribute__(field_.name)
                 if issubclass(field_.type, Entity) \
                         and \
-                        not isinstance(self.__getattribute__(field_.name),
-                                       field_.type):
+                        not isinstance(field_value, field_.type):
                     # pylint: disable=W0511
                     # TODO call dao.get
                     logger.debug("Received %s field as %s. Converting.",
-                                 type(self.__getattribute__(field_.name)),
+                                 type(field_value),
                                  field_.type)
-                    self.__setattr__(field_.name, field_.type(
-                        self.__getattribute__(field_.name)
-                    ))
-                if issubclass(field_.type, datetime) \
+                    self.__setattr__(field_.name, field_.type(field_value))
+                elif issubclass(field_.type, datetime) \
                         and \
-                        not isinstance(self.__getattribute__(field_.name),
-                                       field_.type):
+                        not isinstance(field_value, field_.type):
                     logger.debug("Received %s field as %s. Converting.",
-                                 type(self.__getattribute__(field_.name)),
-                                 field_.type)
+                                 type(field_value), field_.type)
                     self.__setattr__(
                         field_.name,
                         datetime.strptime(
-                            self.__getattribute__(field_.name),
+                            field_value,
                             field_.metadata.get("datetime_format",
-                                                "%Y-%m-%d "
-                                                "%H:%M:%S")
+                                                "%Y-%m-%d %H:%M:%S")
                         ))
-                if issubclass(field_.type, date) \
+                elif issubclass(field_.type, date) \
                         and \
-                        not isinstance(self.__getattribute__(field_.name),
+                        not isinstance(field_value,
                                        field_.type):
                     logger.debug("Received %s field as %s. Converting.",
-                                 type(self.__getattribute__(field_.name)),
+                                 type(field_value),
                                  field_.type)
                     self.__setattr__(
                         field_.name,
                         datetime.strptime(
-                            self.__getattribute__(field_.name),
+                            field_value,
                             field_.metadata.get("date_format",
                                                 "%Y-%m-%d")
                         ).date())
-                if issubclass(field_.type, str) \
-                        and self.__getattribute__(field_.name) is not None:
+                elif issubclass(field_.type, str) \
+                        and field_value is not None:
                     logger.debug("Stripping string field")
                     self.__setattr__(
                         field_.name,
-                        str(self.__getattribute__(field_.name)).strip())
+                        str(field_value).strip())
             except TypeError:
                 logger.warning("Unable to check field %s type",
                                field_.name, exc_info=True)

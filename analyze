@@ -27,7 +27,7 @@ pylint nova_api -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] 
 cd tests
 docker-compose up -d &
 export DB_URL=localhost
-pytest --junitxml=../xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:../coverage-reports/coverage-python.xml  unittests
+pytest -p pytest_cov --junitxml=../xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:../coverage-reports/coverage-python.xml  unittests unittests/test_postgresqlhelper.py 
 sleep 15
 
 function db_ready(){
