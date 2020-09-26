@@ -107,9 +107,9 @@ def success_response(status_code: int = 200, message: str = "OK",
 def use_dao(dao_class: generic_dao.GenericSQLDAO,
             error_message: str = "Erro",
             dao_parameters: dict = None,
-            retry_delay: int = int(os.environ.get("NOVAAPI_RETRY_DELAY",
-                                                  "1")),
-            retries: float = float(os.environ.get("NOVAAPI_RETRIES", "3")),):
+            retry_delay: float = float(os.environ.get("NOVAAPI_RETRY_DELAY",
+                                                  "1.0")),
+            retries: int = int(os.environ.get("NOVAAPI_RETRIES", "3")),):
     """Decorator to handle database access in an API call
 
     This decorator instantiates the DAO specified in `dao_class` within a try \
