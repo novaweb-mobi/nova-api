@@ -5,7 +5,8 @@ from time import sleep
 from pytest import fixture, mark, raises
 
 from nova_api.entity import Entity
-from nova_api.generic_dao import GenericSQLDAO
+from nova_api.dao.generic_sql_dao import GenericSQLDAO
+from nova_api.persistence.postgresql_helper import PostgreSQLHelper
 
 
 @dataclass
@@ -21,7 +22,10 @@ class UserDAO(GenericSQLDAO):
     table = 'usuarios'
 
     def __init__(self, database=None, pooled=False):
-        super(UserDAO, self).__init__(database=database, table=UserDAO.table,
+        if database is None:
+            database = PostgreSQLHelper(pooled=pooled)
+        super(UserDAO, self).__init__(database_instance=database,
+                                      table=UserDAO.table,
                                       return_class=User, prefix='',
                                       pooled=pooled)
 
@@ -37,7 +41,9 @@ class PaymentDAO(GenericSQLDAO):
     table = 'payments'
 
     def __init__(self, database=None, pooled=False):
-        super(PaymentDAO, self).__init__(database=database,
+        if database is None:
+            database = PostgreSQLHelper(pooled=pooled)
+        super(PaymentDAO, self).__init__(database_instance=database,
                                          table=PaymentDAO.table,
                                          return_class=Payment, prefix='',
                                          pooled=pooled)
@@ -79,12 +85,14 @@ class TestIntegration:
         dao = dao(pooled=pool)
         try:
             dao.database.query("DROP TABLE {tbl}".format(tbl=dao.table))
-        except Exception:
+        except:
             pass
+        finally:
+            dao.database.db_conn.commit()
         dao.create_table_if_not_exists()
-        dao.database.query("show tables;")
+        dao.database.query("SELECT * FROM pg_tables;")
         table = dao.table
-        results = [result[0] for result in dao.database.get_results()]
+        results = [result[1] for result in dao.database.get_results()]
         dao.close()
         assert table in results
 

@@ -17,3 +17,13 @@ services:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_ROOT_DATABASE: default
       MYSQL_DATABASE: default
+  postgres:
+    image: postgres:12.4-alpine
+    ports:
+      - "5234:5234"
+
+    environment:
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: default
+      POSTGRES_USER: root
+

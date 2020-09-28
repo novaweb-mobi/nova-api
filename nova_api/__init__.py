@@ -10,7 +10,9 @@ from functools import wraps
 from flask import jsonify, make_response
 from flask.wrappers import Response
 
-from nova_api import baseapi, generic_dao
+from nova_api.dao import GenericDAO
+from nova_api import baseapi
+from nova_api.dao.generic_sql_dao import GenericSQLDAO
 
 # Authorization schemas
 JWT = 0
@@ -103,8 +105,7 @@ def success_response(status_code: int = 200, message: str = "OK",
     return default_response(success=True, status_code=status_code,
                             message=message, data=data)
 
-
-def use_dao(dao_class: generic_dao.GenericSQLDAO,
+def use_dao(dao_class: GenericDAO,
             error_message: str = "Erro",
             dao_parameters: dict = None,
             retry_delay: float = float(os.environ.get("NOVAAPI_RETRY_DELAY",

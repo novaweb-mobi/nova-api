@@ -1,17 +1,25 @@
+from dataclasses import dataclass
+from datetime import date, datetime
+
 import mysql.connector
 from mock import call
 from mysql.connector import InterfaceError, DatabaseError, Error
 from pytest import fixture, mark, raises
 
-from nova_api.mysql_helper import MySQLHelper
+from nova_api.persistence.mysql_helper import MySQLHelper
+from nova_api.entity import Entity
 
 
-# pylint: disable=R0201
+@dataclass
+class TestEntity(Entity):
+    pass
+
 
 class TestMySQLHelper:
     @fixture
     def mysql_mock(self, mocker):
-        return mocker.patch('nova_api.mysql_helper.mysql.connector')
+        return mocker.patch('nova_api.persistence'
+                            '.mysql_helper.mysql.connector')
 
     @fixture
     def raise_exception(self):
@@ -37,7 +45,7 @@ class TestMySQLHelper:
                     password='12345', database='test_db', pooled=False)
         assert mysql_mock.mock_calls == [
             call.connect(host='127.0.0.1', user='test',
-                         passwd='12345', database='test_db'),
+                         password='12345', database='test_db'),
             call.connect().cursor()
         ]
 
@@ -47,12 +55,12 @@ class TestMySQLHelper:
                     database_args={"ssl_ca": "file"})
         assert mysql_mock.mock_calls == [
             call.connect(host='127.0.0.1', user='test',
-                         passwd='12345', database='test_db', ssl_ca="file"),
+                         password='12345', database='test_db', ssl_ca="file"),
             call.connect().cursor()
         ]
 
     def test_init_pooled(self, mocker):
-        pool_mock = mocker.patch("nova_api.mysql_helper.MySQLPool")
+        pool_mock = mocker.patch("nova_api.persistence.mysql_helper.MySQLPool")
         MySQLHelper(host='127.0.0.1', user='test',
                     password='12345', database='test_db', pooled=True)
         assert pool_mock.mock_calls == [
@@ -64,7 +72,7 @@ class TestMySQLHelper:
         ]
 
     def test_init_pooled_extra_args(self, mocker):
-        pool_mock = mocker.patch("nova_api.mysql_helper.MySQLPool")
+        pool_mock = mocker.patch("nova_api.persistence.mysql_helper.MySQLPool")
         MySQLHelper(host='127.0.0.1', user='test',
                     password='12345', database='test_db', pooled=True,
                     database_args={"ssl_ca": "file"})
@@ -81,7 +89,7 @@ class TestMySQLHelper:
                     password='12345', database='test_db', pooled=False)
         assert mysql_mock.mock_calls == [
             call.connect(host='localhost', user='test',
-                         passwd='12345', database='test_db'),
+                         password='12345', database='test_db'),
             call.connect().cursor()
         ]
 
@@ -124,7 +132,7 @@ class TestMySQLHelper:
         db_.close()
         calls = [
             call.connect(host='localhost', user='root',
-                         passwd='root', database='default'),
+                         password='root', database='default'),
             call.connect().cursor(),
             call.connect().cursor().close(),
             call.connect().close()
@@ -167,3 +175,16 @@ class TestMySQLHelper:
 
         with raises(RuntimeError):
             db_.get_results()
+
+    @mark.parametrize("cls, type_", [
+        (bool, "TINYINT(1)"),
+        (datetime, "DATETIME"),
+        (str, "VARCHAR(100)"),
+        (int, "INT"),
+        (float, "DECIMAL"),
+        (date, "DATE"),
+        (TestEntity, "CHAR(32)")
+    ])
+    def test_predict_db_type(self, cls, type_, mysql_mock):
+        helper = MySQLHelper(pooled=False)
+        assert helper.predict_db_type(cls) == type_

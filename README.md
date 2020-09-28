@@ -54,7 +54,7 @@ class Contact(Entity):
 In out ContactDAO, we only need to inherit from GenericSQLDAO and assign our return_class in the init method
 
 ```python
-from nova_api.generic_dao import GenericSQLDAO
+from nova_api.dao.generic_sql_dao import GenericSQLDAO
 
 from Contact import Contact
 

@@ -22,7 +22,8 @@ setuptools.setup(
         'flask-cors',
         'connexion[swagger-ui]',
         'python-jose>=3.2.0',
-        'makefun'
+        'makefun',
+        'psycopg2'
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
