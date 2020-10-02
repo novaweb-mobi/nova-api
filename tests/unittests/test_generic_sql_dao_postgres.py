@@ -12,7 +12,7 @@ from nova_api.dao import generic_sql_dao
 
 
 # pylint: disable=R0201
-from persistence import postgresql_helper
+from nova_api.persistence import postgresql_helper
 
 
 @dataclass
