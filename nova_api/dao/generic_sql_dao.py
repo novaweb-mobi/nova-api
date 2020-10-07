@@ -16,7 +16,7 @@ class GenericSQLDAO(GenericDAO):
     def __init__(self, database_type: PersistenceHelper = None,
                  database_instance=None,
                  table: str = None, fields: dict = None,
-                 return_class: dataclasses.dataclass = Entity,
+                 return_class: Entity = Entity,
                  prefix: str = None, **kwargs) -> None:
         super().__init__(table, fields, return_class, prefix,
                          **kwargs)
