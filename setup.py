@@ -22,9 +22,11 @@ setuptools.setup(
         'flask-cors',
         'connexion[swagger-ui]',
         'python-jose>=3.2.0',
-        'makefun',
-        'psycopg2'
+        'makefun'
     ],
+    extras_require={
+        'postgresql': ['psycopg2-binary']
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
