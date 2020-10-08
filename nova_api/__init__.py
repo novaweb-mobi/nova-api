@@ -112,8 +112,8 @@ def use_dao(dao_class: GenericDAO,
             error_message: str = "Erro",
             dao_parameters: dict = None,
             retry_delay: float = float(os.environ.get("NOVAAPI_RETRY_DELAY",
-                                                  "1.0")),
-            retries: int = int(os.environ.get("NOVAAPI_RETRIES", "3")),):
+                                                      "1.0")),
+            retries: int = int(os.environ.get("NOVAAPI_RETRIES", "3")), ):
     """Decorator to handle database access in an API call
 
     This decorator instantiates the DAO specified in `dao_class` within a try \
@@ -162,7 +162,7 @@ def use_dao(dao_class: GenericDAO,
                         break
                     except ConnectionError as con_error:
                         print("Connection failed, will retry "
-                                       "%s times"% attempted_retries)
+                              "%s times" % attempted_retries)
                         time.sleep(retry_delay)
                         if attempted_retries == 1:
                             raise con_error
@@ -220,7 +220,7 @@ def generate_api():
             elif option == '-v':
                 version = value
             elif option == '-a':
-                auth = value
+                auth = value.strip()
             elif option == '-o':
                 overwrite = True
     except getopt.GetoptError:
@@ -254,6 +254,12 @@ def generate_api():
         logger.critical("Not able to import entity and dao class.",
                         exc_info=True)
         sys.exit(3)
+
+    if auth and auth not in AUTHENTICATION_SCHEMAS.keys():
+        print(("Schema %s not supported! The supported schemas "
+               "are: " % auth) + ', '.join(
+              AUTHENTICATION_SCHEMAS.keys()))
+        sys.exit(4)
 
     create_api_files(ent, dao, version, overwrite=overwrite,
                      auth_schema=AUTHENTICATION_SCHEMAS.get(auth, None))

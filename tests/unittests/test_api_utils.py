@@ -290,6 +290,12 @@ class TestAPIUtils:
         (
                 ["python", "-v", "2"],
                 2
+        ),
+        (
+                ["python",
+                 "-e", "EntityForTest",
+                 "-a", "InvSchema"],
+                4
         )
     ])
     def test_generate_api_cli_not_exists(self, mocker, argv, status_code):
