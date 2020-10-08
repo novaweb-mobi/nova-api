@@ -169,6 +169,8 @@ jobs:
         pytest --junitxml=xunit-reports/xunit-result-nova_api-integration-postgres.xml tests/integrationtests/test_integration_postgres.py
 
   scan:
+    runs-on: ubuntu-latest
+    needs: test
     steps:
     - name: SonarCloud Scan
       uses: SonarSource/sonarcloud-github-action@master
