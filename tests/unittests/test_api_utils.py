@@ -203,20 +203,49 @@ class TestAPIUtils:
 
     @mark.parametrize("call_, argv", [
         (
-                call(EntityForTest, EntityDAO, '2'),
+                call(EntityForTest, EntityDAO, '2',
+                     overwrite=False, auth_schema=None),
                 ["python",
                  "-e", "EntityForTest",
                  "-d", "EntityDAO",
                  "-v", "2"]
         ),
         (
-                call(EntityForTest, EntityDAO, ''),
+                call(EntityForTest, EntityDAO, '2',
+                     overwrite=False, auth_schema=0),
+                ["python",
+                 "-e", "EntityForTest",
+                 "-d", "EntityDAO",
+                 "-v", "2",
+                 "-a", "JWT"]
+        ),
+        (
+                call(EntityForTest, EntityDAO, '2',
+                     overwrite=True, auth_schema=0),
+                ["python",
+                 "-e", "EntityForTest",
+                 "-d", "EntityDAO",
+                 "-v", "2",
+                 "-a", "JWT",
+                 "-o"]
+        ),
+        (
+                call(EntityForTest, EntityDAO, '',
+                     overwrite=False, auth_schema=None),
                 ["python",
                  "-e", "EntityForTest",
                  "-d", "EntityDAO"]
         ),
         (
-                call(EntityForTest, EntityForTestDAO, ''),
+                call(EntityForTest, EntityForTestDAO, '',
+                     overwrite=True, auth_schema=None),
+                ["python",
+                 "-e", "EntityForTest",
+                 "-o"]
+        ),
+        (
+                call(EntityForTest, EntityForTestDAO, '',
+                     overwrite=False, auth_schema=None),
                 ["python",
                  "-e", "EntityForTest"]
         )

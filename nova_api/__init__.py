@@ -17,6 +17,8 @@ from nova_api.dao.generic_sql_dao import GenericSQLDAO
 # Authorization schemas
 JWT = 0
 
+AUTHENTICATION_SCHEMAS = {"JWT": 0}
+
 possible_level = {"DEBUG": logging.DEBUG,
                   "INFO": logging.INFO,
                   "WARNING": logging.WARNING,
@@ -104,6 +106,7 @@ def success_response(status_code: int = 200, message: str = "OK",
         data = dict()
     return default_response(success=True, status_code=status_code,
                             message=message, data=data)
+
 
 def use_dao(dao_class: GenericDAO,
             error_message: str = "Erro",
@@ -195,16 +198,20 @@ def generate_api():
      (Where Entity is the name of the entity passed to -e)
      * *-v*: API version string. Will be used in the base path before the \
      entity name
+     * *-a*: Authentication Schema, type of authentication which will be \
+     applied to endpoints in the generated API.
 
     :return: None.
     """
     entity = ''
     version = ''
     dao_class = ''
+    auth = None
+    overwrite = False
     usage = 'Usage: %s generate_api -e entity ' \
-            '[-d entity_dao -v api_version]'
+            '[-d entity_dao -v api_version -a auth_schema -o overwrite]'
     try:
-        options, _ = getopt.getopt(sys.argv[1:], "e:d:v:")
+        options, _ = getopt.getopt(sys.argv[1:], "e:d:v:a:o")
         for option, value in options:
             if option == '-e':
                 entity = value
@@ -212,6 +219,10 @@ def generate_api():
                 dao_class = value
             elif option == '-v':
                 version = value
+            elif option == '-a':
+                auth = value
+            elif option == '-o':
+                overwrite = True
     except getopt.GetoptError:
         logger.error("Error while reading options passed to generate_api. "
                      "Options received: %s", sys.argv,
@@ -244,7 +255,8 @@ def generate_api():
                         exc_info=True)
         sys.exit(3)
 
-    create_api_files(ent, dao, version)
+    create_api_files(ent, dao, version, overwrite=overwrite,
+                     auth_schema=AUTHENTICATION_SCHEMAS.get(auth, None))
 
 
 def get_auth_schema_yml(schema: int = None):
