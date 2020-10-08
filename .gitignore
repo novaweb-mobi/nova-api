@@ -13,3 +13,5 @@ xunit-reports/
 __pycache__/
 NovaAPI.egg-info/
 *.log
+docs/_build/
+*.pyc
