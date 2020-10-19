@@ -13,9 +13,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/novaweb-mobi/nova-api",
-    packages=[
-        'nova_api',
-    ],
+    packages=setuptools.find_packages(exclude=("*tests",)),
     install_requires=[
         'mysql-connector',
         'flask',
@@ -24,6 +22,9 @@ setuptools.setup(
         'python-jose>=3.2.0',
         'makefun'
     ],
+    extras_require={
+        'postgresql': ['psycopg2-binary']
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",

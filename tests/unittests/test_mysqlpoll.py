@@ -1,14 +1,14 @@
 from mock import call
 from pytest import fixture
 
-from nova_api.mysql_pool import MySQLPool
+from nova_api.persistence.mysql_pool import MySQLPool
 
 
 class TestMySQLPoll:
 
     @fixture
     def pooling_mock(self, mocker):
-        return mocker.patch('nova_api.mysql_pool.pooling')
+        return mocker.patch('nova_api.persistence.mysql_pool.pooling')
 
     def test_get_instance_not_exist(self, pooling_mock):
         mock = pooling_mock.MySQLConnectionPool

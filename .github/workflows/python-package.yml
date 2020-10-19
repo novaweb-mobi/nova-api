@@ -136,19 +136,36 @@ jobs:
         cd tests
         pytest --junitxml=../xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:../coverage-reports/coverage-python.xml  unittests
         
-    - name: Integration Test
+    - name: Integration Test with MySQL
       if: ${{ steps.files-changed.outputs.result == 'true' }}
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
-        function db_ready(){
+        function mysql_ready(){
           export DB_URL=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tests_database_1)
 
           python tests/check_db.py
         }
-        until db_ready; do
-          >&2 echo 'Waiting for database to become available...'
+        until mysql_ready; do
+          >&2 echo 'Waiting for mysql database to become available...'
           sleep 2
         done
-        >&2 echo 'Database is available'
-        pytest --junitxml=xunit-reports/xunit-result-nova_api-integration.xml tests/integrationtests
+        >&2 echo 'MySQL is available'
+        pytest --junitxml=xunit-reports/xunit-result-nova_api-integration-mysql.xml tests/integrationtests/test_integration_mysql.py
+
+    - name: Integration Test with PostgreSQL
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
+      run: |
+        export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
+        function postgres_ready(){
+          export DB_URL=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tests_postgres_1)
+
+          python tests/check_postgres.py
+        }
+        until postgres_ready; do
+          >&2 echo 'Waiting for postgres database to become available...'
+          sleep 2
+        done
+        >&2 echo 'PostgreSQL is available'
+        pytest --junitxml=xunit-reports/xunit-result-nova_api-integration-postgres.xml tests/integrationtests/test_integration_postgres.py
+
 

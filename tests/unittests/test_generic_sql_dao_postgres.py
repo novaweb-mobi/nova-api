@@ -12,6 +12,8 @@ from nova_api.dao import generic_sql_dao
 
 
 # pylint: disable=R0201
+from nova_api.persistence import postgresql_helper
+
 
 @dataclass
 class TestEntity(Entity):
@@ -34,11 +36,12 @@ class TestEntityWithChild(Entity):
     not_to_database: str = field(default='', metadata={"database": False})
 
 
-class TestGenericSQLDAO:
+class TestGenericSQLDAOPostgres:
     @fixture
-    def mysql_mock(self, mocker):
-        mysql_mock = mocker.patch('nova_api.dao.generic_sql_dao.MySQLHelper')
-        props = mysql_mock.return_value
+    def postgres_mock(self, mocker):
+        postgres_mock = mocker.patch.object(postgresql_helper,
+                                            'PostgreSQLHelper')
+        props = postgres_mock.return_value
         props.ALLOWED_COMPARATORS = ['=', '<=>', '<>', '!=',
                                                        '>', '>=', '<=', 'LIKE']
         props.CREATE_QUERY = "CREATE TABLE IF NOT EXISTS " \
@@ -68,12 +71,14 @@ class TestGenericSQLDAO:
                 "date": "DATE"
             }
             return TYPE_MAPPING.get(cls.__name__)
+
         props.predict_db_type.side_effect = predict
-        return mysql_mock
+        return postgres_mock
 
     @fixture
-    def generic_dao(self, mysql_mock):
+    def generic_dao(self, postgres_mock):
         generic_dao = GenericSQLDAO(
+            database_type=postgres_mock,
             table="test_table",
             fields={"id_": "id",
                     "creation_datetime": "creation_datetime",
@@ -84,8 +89,9 @@ class TestGenericSQLDAO:
         return generic_dao
 
     @fixture
-    def generic_dao2(self, mysql_mock):
+    def generic_dao2(self, postgres_mock):
         generic_dao = GenericSQLDAO(
+            database_type=postgres_mock,
             table="test_table",
             fields={"id_": "id",
                     "creation_datetime": "creation_datetime",
@@ -96,8 +102,9 @@ class TestGenericSQLDAO:
         return generic_dao
 
     @fixture
-    def generic_dao_with_child(self, mysql_mock):
+    def generic_dao_with_child(self, postgres_mock):
         generic_dao = GenericSQLDAO(
+            database_type=postgres_mock,
             table="test_table",
             prefix='',
             return_class=TestEntityWithChild)
@@ -107,9 +114,9 @@ class TestGenericSQLDAO:
     def entity(self):
         return TestEntity(id_="12345678901234567890123456789012")
 
-    def test_create_table(self, generic_dao, mysql_mock):
+    def test_create_table(self, generic_dao, postgres_mock):
         generic_dao.create_table_if_not_exists()
-        assert mysql_mock.query.called_with(
+        assert postgres_mock.query.called_with(
             'CREATE table IF NOT EXISTS test_table ('
             'id CHAR(32) NOT NULL, '
             'creation_datetime TIMESTAMP NULL, '
@@ -121,9 +128,9 @@ class TestGenericSQLDAO:
         )
 
     def test_create_table_with_primary_key_null(self, generic_dao2,
-                                                mysql_mock):
+                                                postgres_mock):
         generic_dao2.create_table_if_not_exists()
-        assert mysql_mock.query.called_with(
+        assert postgres_mock.query.called_with(
             'CREATE table IF NOT EXISTS test_table ('
             'id CHAR(32) NOT NULL, '
             'creation_datetime TIMESTAMP NULL, '
@@ -134,11 +141,12 @@ class TestGenericSQLDAO:
             ');'
         )
 
-    def test_create_table_with_child(self, mysql_mock):
-        generic_dao = GenericSQLDAO(return_class=TestEntityWithChild,
+    def test_create_table_with_child(self, postgres_mock):
+        generic_dao = GenericSQLDAO(database_type=postgres_mock,
+                                    return_class=TestEntityWithChild,
                                     prefix='')
         generic_dao.create_table_if_not_exists()
-        assert mysql_mock.query.called_with(
+        assert postgres_mock.query.called_with(
             'CREATE table IF NOT EXISTS test_entity_with_childs ('
             'id_ CHAR(32) NOT NULL, '
             'creation_datetime TIMESTAMP NULL, '
@@ -150,16 +158,17 @@ class TestGenericSQLDAO:
             ');'
         )
 
-    def test_init(self, mysql_mock):
+    def test_init(self, postgres_mock):
         generic_dao = GenericSQLDAO(
+            database_type=postgres_mock,
             fields={"id_": "id",
                     "creation_datetime": "creation_datetime",
                     "last_modified_datetime": "last_modified_datetime",
                     "name": "name",
                     "birthday": "birthday"},
             return_class=TestEntity)
-        assert mysql_mock.mock_calls == [call()]
-        assert generic_dao.database == mysql_mock.return_value
+        assert postgres_mock.mock_calls == [call()]
+        assert generic_dao.database == postgres_mock.return_value
         assert generic_dao.table == "test_entitys"
         assert generic_dao.fields == {"id_": "id",
                                       "creation_datetime": "creation_datetime",
@@ -169,8 +178,9 @@ class TestGenericSQLDAO:
                                       "birthday": "birthday"}
         assert generic_dao.return_class == TestEntity
 
-    def test_init_extra_params(self, mysql_mock):
+    def test_init_extra_params(self, postgres_mock):
         generic_dao = GenericSQLDAO(
+            database_type=postgres_mock,
             fields={"id_": "id",
                     "creation_datetime": "creation_datetime",
                     "last_modified_datetime": "last_modified_datetime",
@@ -178,8 +188,8 @@ class TestGenericSQLDAO:
                     "birthday": "birthday"},
             return_class=TestEntity,
             pooled=False, host="changed")
-        assert mysql_mock.mock_calls == [call(host="changed", pooled=False)]
-        assert generic_dao.database == mysql_mock.return_value
+        assert postgres_mock.mock_calls == [call(host="changed", pooled=False)]
+        assert generic_dao.database == postgres_mock.return_value
         assert generic_dao.table == "test_entitys"
         assert generic_dao.fields == {"id_": "id",
                                       "creation_datetime": "creation_datetime",
@@ -189,16 +199,17 @@ class TestGenericSQLDAO:
                                       "birthday": "birthday"}
         assert generic_dao.return_class == TestEntity
 
-    def test_init_pooled(self, mysql_mock):
+    def test_init_pooled(self, postgres_mock):
         generic_dao = GenericSQLDAO(
+            database_type=postgres_mock,
             fields={"id_": "id",
                     "creation_datetime": "creation_datetime",
                     "last_modified_datetime": "last_modified_datetime",
                     "name": "name",
                     "birthday": "birthday"},
             return_class=TestEntity, pooled=True)
-        assert mysql_mock.mock_calls == [call(pooled=True)]
-        assert generic_dao.database == mysql_mock.return_value
+        assert postgres_mock.mock_calls == [call(pooled=True)]
+        assert generic_dao.database == postgres_mock.return_value
         assert generic_dao.table == "test_entitys"
         assert generic_dao.fields == {"id_": "id",
                                       "creation_datetime": "creation_datetime",
@@ -208,8 +219,9 @@ class TestGenericSQLDAO:
                                       "birthday": "birthday"}
         assert generic_dao.return_class == TestEntity
 
-    def test_init_pooled_database_args(self, mysql_mock):
+    def test_init_pooled_database_args(self, postgres_mock):
         generic_dao = GenericSQLDAO(
+            database_type=postgres_mock,
             fields={"id_": "id",
                     "creation_datetime": "creation_datetime",
                     "last_modified_datetime": "last_modified_datetime",
@@ -217,9 +229,9 @@ class TestGenericSQLDAO:
                     "birthday": "birthday"},
             return_class=TestEntity, pooled=True,
             database_args={"ssl_ca": "file"})
-        assert mysql_mock.mock_calls == [
+        assert postgres_mock.mock_calls == [
             call(pooled=True, database_args={"ssl_ca": "file"})]
-        assert generic_dao.database == mysql_mock.return_value
+        assert generic_dao.database == postgres_mock.return_value
         assert generic_dao.table == "test_entitys"
         assert generic_dao.fields == {"id_": "id",
                                       "creation_datetime": "creation_datetime",
@@ -229,8 +241,9 @@ class TestGenericSQLDAO:
                                       "birthday": "birthday"}
         assert generic_dao.return_class == TestEntity
 
-    def test_init_parameter_gen(self, mysql_mock):
-        generic_dao = GenericSQLDAO(table='test_table', prefix='test_',
+    def test_init_parameter_gen(self, postgres_mock):
+        generic_dao = GenericSQLDAO(database_type=postgres_mock,
+                                    table='test_table', prefix='test_',
                                     return_class=TestEntity)
         assert generic_dao.fields == {"id_": "test_id_",
                                       "creation_datetime":
@@ -240,8 +253,9 @@ class TestGenericSQLDAO:
                                       "name": "test_name",
                                       "birthday": "test_birthday"}
 
-    def test_init_parameter_gen_no_prefix(self, mysql_mock):
-        generic_dao = GenericSQLDAO(table='test_table',
+    def test_init_parameter_gen_no_prefix(self, postgres_mock):
+        generic_dao = GenericSQLDAO(database_type=postgres_mock,
+                                    table='test_table',
                                     return_class=TestEntity)
         assert generic_dao.fields == {"id_": "test_entity_id_",
                                       "creation_datetime":
@@ -251,10 +265,10 @@ class TestGenericSQLDAO:
                                       "name": "test_entity_name",
                                       "birthday": "test_entity_birthday"}
 
-    def test_get(self, generic_dao, mysql_mock):
+    def test_get(self, generic_dao, postgres_mock):
         id_ = "12345678901234567890123456789012"
 
-        db = mysql_mock.return_value
+        db = postgres_mock.return_value
         db.get_results.return_value = [[id_,
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         datetime(2020, 7, 26, 12, 00, 00),
@@ -263,7 +277,7 @@ class TestGenericSQLDAO:
 
         entity = generic_dao.get(id_=id_)
 
-        assert mysql_mock.mock_calls[1] == call().query(
+        assert postgres_mock.mock_calls[1] == call().query(
             "SELECT id, creation_datetime, last_modified_datetime,"
             " name, birthday "
             "FROM test_table WHERE id = %s LIMIT %s OFFSET %s;",
@@ -273,12 +287,13 @@ class TestGenericSQLDAO:
                                     datetime(2020, 7, 26, 12, 00, 00),
                                     datetime(2020, 7, 26, 12, 00, 00))
 
-    def test_get_child(self, mysql_mock):
-        generic_dao = GenericSQLDAO(return_class=TestEntityWithChild,
+    def test_get_child(self, postgres_mock):
+        generic_dao = GenericSQLDAO(database_type=postgres_mock,
+                                    return_class=TestEntityWithChild,
                                     prefix='')
         id_ = "12345678901234567890123456789012"
 
-        db = mysql_mock.return_value
+        db = postgres_mock.return_value
         db.get_results.return_value = [[id_,
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         datetime(2020, 7, 26, 12, 00, 00),
@@ -288,7 +303,7 @@ class TestGenericSQLDAO:
 
         entity = generic_dao.get(id_=id_)
 
-        assert mysql_mock.mock_calls[1] == call().query(
+        assert postgres_mock.mock_calls[1] == call().query(
             "SELECT id_, creation_datetime, last_modified_datetime,"
             " name, birthday, child_id_ "
             "FROM test_entity_with_childs WHERE id_ = %s "
@@ -301,15 +316,15 @@ class TestGenericSQLDAO:
             datetime(2020, 7, 26, 12, 00, 00),
             child=TestEntity(id_))
 
-    def test_get_no_results(self, generic_dao, mysql_mock):
+    def test_get_no_results(self, generic_dao, postgres_mock):
         id_ = "12345678901234567890123456789012"
 
-        db = mysql_mock.return_value
+        db = postgres_mock.return_value
         db.get_results.return_value = None
 
         entity = generic_dao.get(id_=id_)
 
-        assert mysql_mock.mock_calls[1] == call().query(
+        assert postgres_mock.mock_calls[1] == call().query(
             "SELECT id, creation_datetime, last_modified_datetime,"
             " name, birthday "
             "FROM test_table WHERE id = %s LIMIT %s OFFSET %s;",
@@ -325,8 +340,8 @@ class TestGenericSQLDAO:
         with raises(error_type):
             generic_dao.get(id_=id_)
 
-    def test_get_all(self, generic_dao, mysql_mock):
-        db = mysql_mock.return_value
+    def test_get_all(self, generic_dao, postgres_mock):
+        db = postgres_mock.return_value
         db.get_results.return_value = [["12345678901234567890123456789012",
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         datetime(2020, 7, 26, 12, 00, 00),
@@ -343,7 +358,7 @@ class TestGenericSQLDAO:
                                                        "2020-01-01 00:00:00"],
                                                   "id_": ['LIKE', "123%"],
                                                   "name": "Anom"})
-        assert mysql_mock.mock_calls[1] == call().query(
+        assert postgres_mock.mock_calls[1] == call().query(
             "SELECT id, creation_datetime, last_modified_datetime,"
             " name, birthday "
             "FROM test_table WHERE creation_datetime > %s "
@@ -353,7 +368,7 @@ class TestGenericSQLDAO:
             ["2020-01-01 00:00:00", '123%', 'Anom', 20, 0]
         )
 
-        assert mysql_mock.mock_calls[3] == call().query(
+        assert postgres_mock.mock_calls[3] == call().query(
             'SELECT count(id) FROM test_table;'
         )
 
@@ -368,8 +383,8 @@ class TestGenericSQLDAO:
                                   "Testando",
                                   None)]
 
-    def test_get_all_no_results(self, generic_dao, mysql_mock):
-        db = mysql_mock.return_value
+    def test_get_all_no_results(self, generic_dao, postgres_mock):
+        db = postgres_mock.return_value
         db.get_results.return_value = None
 
         total, res = generic_dao.get_all(filters={"creation_datetime":
@@ -377,7 +392,7 @@ class TestGenericSQLDAO:
                                                        "2020-01-01 00:00:00"],
                                                   "id_": ['LIKE', "123%"],
                                                   "name": "Anom"})
-        assert mysql_mock.mock_calls[1] == call().query(
+        assert postgres_mock.mock_calls[1] == call().query(
             "SELECT id, creation_datetime, last_modified_datetime,"
             " name, birthday "
             "FROM test_table WHERE creation_datetime > %s "
@@ -389,9 +404,9 @@ class TestGenericSQLDAO:
 
         assert total == 0 and res == []
 
-    def test_get_all_no_filter(self, generic_dao, mysql_mock):
+    def test_get_all_no_filter(self, generic_dao, postgres_mock):
         generic_dao.get_all()
-        assert mysql_mock.mock_calls[1] == call().query(
+        assert postgres_mock.mock_calls[1] == call().query(
             "SELECT id, creation_datetime, last_modified_datetime,"
             " name, birthday "
             "FROM test_table  "
@@ -407,13 +422,13 @@ class TestGenericSQLDAO:
         with raises(ValueError):
             generic_dao.get_all(filters={"test": 1})
 
-    def test_remove(self, generic_dao, mysql_mock, entity):
+    def test_remove(self, generic_dao, postgres_mock, entity):
         def is_delete_query(*args):
             if "DELETE" in args[0]:
                 return 1, 0
             return None
 
-        db = mysql_mock.return_value
+        db = postgres_mock.return_value
         db.get_results.return_value = [["12345678901234567890123456789012",
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         datetime(2020, 7, 26, 12, 00, 00),
@@ -421,18 +436,18 @@ class TestGenericSQLDAO:
                                         None]]
         db.query.side_effect = is_delete_query
         generic_dao.remove(entity)
-        assert mysql_mock.query.called_with(
+        assert postgres_mock.query.called_with(
             'DELETE FROM test_table WHERE id = %s;',
             ['12345678901234567890123456789012']
         )
 
-    def test_remove_with_filters(self, generic_dao, mysql_mock, entity):
+    def test_remove_with_filters(self, generic_dao, postgres_mock, entity):
         def is_delete_query(*args):
             if "DELETE" in args[0]:
                 return 1, 0
             return None
 
-        db = mysql_mock.return_value
+        db = postgres_mock.return_value
         db.get_results.return_value = [["12345678901234567890123456789012",
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         datetime(2020, 7, 26, 12, 00, 00),
@@ -440,45 +455,45 @@ class TestGenericSQLDAO:
                                         None]]
         db.query.side_effect = is_delete_query
         generic_dao.remove(entity, filters={"name": ["LIKE", "M%"]})
-        assert mysql_mock.query.called_with(
+        assert postgres_mock.query.called_with(
             'DELETE FROM test_table WHERE id = %s;',
             ["12345678901234567890123456789012"]
         )
 
-    def test_remove_only_filters(self, generic_dao, mysql_mock, entity):
+    def test_remove_only_filters(self, generic_dao, postgres_mock, entity):
         def is_delete_query(*args):
             if "DELETE" in args[0]:
                 return 1, 0
             return None
 
-        db = mysql_mock.return_value
+        db = postgres_mock.return_value
         db.get_results.return_value = None
         db.query.side_effect = is_delete_query
         generic_dao.remove(filters={"name": ["LIKE", "M%"]})
-        assert mysql_mock.query.called_with(
+        assert postgres_mock.query.called_with(
             'DELETE FROM test_table WHERE name LIKE %s;',
             ['M%'])
 
-    def test_remove_filters_no_rows(self, generic_dao, mysql_mock, entity):
+    def test_remove_filters_no_rows(self, generic_dao, postgres_mock, entity):
         def is_delete_query(*args):
             if "DELETE" in args[0]:
                 return 0, 0
             return None
 
-        db = mysql_mock.return_value
+        db = postgres_mock.return_value
         db.get_results.return_value = None
         db.query.side_effect = is_delete_query
         with raises(NoRowsAffectedException):
             generic_dao.remove(filters={"name": ["LIKE", "M%"]})
 
-    def test_remove_fail(self, generic_dao, mysql_mock, entity):
+    def test_remove_fail(self, generic_dao, postgres_mock, entity):
         def is_delete_query(*args):
             if "DELETE" in args[0]:
                 return 0, 0
             return None
 
 
-        db = mysql_mock.return_value
+        db = postgres_mock.return_value
         db.get_results.return_value = [["12345678901234567890123456789012",
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         datetime(2020, 7, 26, 12, 00, 00),
@@ -488,13 +503,13 @@ class TestGenericSQLDAO:
         with raises(NoRowsAffectedException):
             generic_dao.remove(entity)
 
-    def test_remove_not_exist(self, generic_dao, mysql_mock, entity):
-        db = mysql_mock.return_value
+    def test_remove_not_exist(self, generic_dao, postgres_mock, entity):
+        db = postgres_mock.return_value
         db.get_results.return_value = None
         with raises(AssertionError):
             generic_dao.remove(entity)
 
-    def test_remove_not_entity(self, generic_dao, mysql_mock):
+    def test_remove_not_entity(self, generic_dao, postgres_mock):
         with raises(RuntimeError):
             generic_dao.remove("12345678901234567890123456789012")
 
@@ -503,27 +518,27 @@ class TestGenericSQLDAO:
         with raises(RuntimeError):
             generic_dao.remove(filters=param)
 
-    def test_create(self, generic_dao, mysql_mock, entity):
+    def test_create(self, generic_dao, postgres_mock, entity):
         def is_insert_query(*args):
             if "INSERT" in args[0]:
                 return 1, 0
             return None
 
-        db = mysql_mock.return_value
+        db = postgres_mock.return_value
         db.get_results.return_value = None
 
         db.query.side_effect = is_insert_query
 
         id_ = generic_dao.create(entity)
 
-        assert mysql_mock.mock_calls[3] == call().query(
+        assert postgres_mock.mock_calls[3] == call().query(
             'INSERT INTO test_table (id, creation_datetime,'
             ' last_modified_datetime, name, birthday) '
             'VALUES (%s, %s, %s, %s, %s);', list(dict(entity).values()))
         assert id_ == entity.id_
 
     def test_create_with_child(self, generic_dao_with_child,
-                               mysql_mock):
+                               postgres_mock):
         def is_insert_query(*args):
             if "INSERT" in args[0]:
                 return 1, 0
@@ -531,54 +546,54 @@ class TestGenericSQLDAO:
 
         entity = TestEntityWithChild()
 
-        db = mysql_mock.return_value
+        db = postgres_mock.return_value
         db.get_results.return_value = None
 
         db.query.side_effect = is_insert_query
 
         id_ = generic_dao_with_child.create(entity)
 
-        assert mysql_mock.mock_calls[3] == call().query(
+        assert postgres_mock.mock_calls[3] == call().query(
             'INSERT INTO test_table (id_, creation_datetime,'
             ' last_modified_datetime, name, birthday, child_id_) '
             'VALUES (%s, %s, %s, %s, %s, %s);', entity.get_db_values())
         assert id_ == entity.id_
 
-    def test_create_exist(self, generic_dao, mysql_mock, entity):
-        db = mysql_mock.return_value
+    def test_create_exist(self, generic_dao, postgres_mock, entity):
+        db = postgres_mock.return_value
         db.get_results.return_value = [list(entity.__dict__.values())]
         with raises(AssertionError):
             generic_dao.create(entity)
 
-    def test_create_not_entity(self, generic_dao, mysql_mock):
+    def test_create_not_entity(self, generic_dao, postgres_mock):
         with raises(TypeError):
             generic_dao.create("12345678901234567890123456789012")
 
-    def test_create_no_rows_affected(self, generic_dao, mysql_mock, entity):
-        db = mysql_mock.return_value
+    def test_create_no_rows_affected(self, generic_dao, postgres_mock, entity):
+        db = postgres_mock.return_value
         db.query.return_value = 0, 0
         with raises(NoRowsAffectedException):
             generic_dao.create(entity)
 
-    def test_update_not_entity(self, generic_dao, mysql_mock):
+    def test_update_not_entity(self, generic_dao, postgres_mock):
         with raises(TypeError):
             generic_dao.update("12345678901234567890123456789012")
 
-    def test_update_entity_not_exists(self, generic_dao, mysql_mock, entity):
-        db = mysql_mock.return_value
+    def test_update_entity_not_exists(self, generic_dao, postgres_mock, entity):
+        db = postgres_mock.return_value
         db.get_results.return_value = None
         with raises(AssertionError):
             generic_dao.update(entity)
 
-    def test_update(self, generic_dao, mysql_mock, entity):
-        db = mysql_mock.return_value
+    def test_update(self, generic_dao, postgres_mock, entity):
+        db = postgres_mock.return_value
         db.get_results.return_value = [list(entity.__dict__.values())]
         db.query.return_value = 1, 0
         entity.birthday = date(1998, 12, 21)
         entity.name = "MyTestName"
         sleep(1)
         generic_dao.update(entity)
-        assert mysql_mock.mock_calls[5] == call().query(
+        assert postgres_mock.mock_calls[5] == call().query(
             'UPDATE test_table SET id=%s, creation_datetime=%s, '
             'last_modified_datetime=%s, name=%s, birthday=%s '
             'WHERE id = %s;', list(dict(entity).values()) + [entity.id_]
@@ -586,31 +601,31 @@ class TestGenericSQLDAO:
         assert entity.creation_datetime < entity.last_modified_datetime
 
     def test_update_with_child(self, generic_dao_with_child,
-                               mysql_mock):
+                               postgres_mock):
         entity = TestEntityWithChild()
-        db = mysql_mock.return_value
+        db = postgres_mock.return_value
         db.get_results.return_value = [list(entity.__dict__.values())]
         db.query.return_value = 1, 0
         entity.birthday = date(1998, 12, 21)
         entity.name = "MyTestName"
         sleep(1)
         generic_dao_with_child.update(entity)
-        assert mysql_mock.mock_calls[5] == call().query(
+        assert postgres_mock.mock_calls[5] == call().query(
             'UPDATE test_table SET id_=%s, creation_datetime=%s, '
             'last_modified_datetime=%s, name=%s, birthday=%s, child_id_=%s '
             'WHERE id_ = %s;', entity.get_db_values() + [entity.id_]
         )
         assert entity.creation_datetime < entity.last_modified_datetime
 
-    def test_update_no_rows_affected(self, generic_dao, mysql_mock, entity):
-        db = mysql_mock.return_value
+    def test_update_no_rows_affected(self, generic_dao, postgres_mock, entity):
+        db = postgres_mock.return_value
         db.get_results.return_value = [list(entity.__dict__.values())]
         db.query.return_value = 0, 0
         with raises(NoRowsAffectedException):
             generic_dao.update(entity)
 
-    def test_close(self, generic_dao, mysql_mock):
-        db = mysql_mock.return_value
+    def test_close(self, generic_dao, postgres_mock):
+        db = postgres_mock.return_value
         generic_dao.close()
         assert db.mock_calls == [call.close()]
 

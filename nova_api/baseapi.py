@@ -1,4 +1,4 @@
-BASE_API = """from nova_api.generic_dao import GenericSQLDAO
+BASE_API = """from nova_api.dao.generic_sql_dao import GenericSQLDAO
 from nova_api import error_response, success_response, use_dao
 
 from {DAO_CLASS} import {DAO_CLASS}
