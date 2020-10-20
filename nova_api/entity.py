@@ -1,4 +1,4 @@
-"""Base entity for modeling of API's"""
+"""Base entity for modeling of API's entities"""
 import logging
 from abc import ABC
 from dataclasses import dataclass, field, fields, Field
@@ -58,7 +58,7 @@ class Entity(ABC):
 
         Post init goes through the parameters passed to init and makes some
         validations. Fields that are subclasses of Entity will be instantiated
-        (but only with id_ set). Datetime formats also will be cast if
+        (but only with 'id_' set). Datetime formats also will be cast if
         received as strings. Strings will have trailing and leading white
         spaces removed.
 
@@ -123,9 +123,15 @@ class Entity(ABC):
             raise NotImplementedError("Abstract class can't be instantiated")
 
     def __iter__(self):
-        """
+        """Iteration through the Entity receiving the tuple
+        (field_name, field_value_serialized)
 
-        :return:
+        Iterates through the fields in the entity and yields a tuple with the
+        field_name and the serialized field_value. For fields that are
+        instances of Entities, the key will have '_id_' appended and the value
+        will be the id_, as stated in _serialize_field.
+
+        :return key, value: The tuple with the field_name and field_value
         """
         for key in self.__dict__:
             if issubclass(self.__dict__[key].__class__, Entity):
@@ -135,10 +141,14 @@ class Entity(ABC):
 
     @staticmethod
     def _serialize_field(field_: Field):
-        """
+        """Returns the value of a field formatted to be saved in the database.
 
-        :param field_:
-        :return:
+        For fields that are subclasses of Entity, returns only the id_ to save
+        in the database. For datetime and date fields, values are transformed
+        into strings with strftime function from datetime.
+
+        :param field_: value of the field in the entity being serialized.
+        :return: The serialized value of the field for database insertion.
         """
         if issubclass(field_.__class__, Entity):
             return field_.id_

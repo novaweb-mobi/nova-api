@@ -58,7 +58,7 @@ def validate_jwt_claims(add_token_info: bool = False, claims={}):
         In the following example, if the `token_info` doesn't have the iss \
         claim with value "novaweb", `my_endpoint` won't be called. ::
 
-            @validate_jwt_claims(claims = {iss="novaweb"})
+            @validate_jwt_claims(claims = {"iss":"novaweb"})
             def my_endpoint():
                 ...
 
