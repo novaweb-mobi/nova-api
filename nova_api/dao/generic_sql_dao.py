@@ -1,11 +1,11 @@
 import dataclasses
 import logging
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Type
 
+from nova_api.dao import GenericDAO, camel_to_snake
 from nova_api.entity import Entity
 from nova_api.exceptions import NoRowsAffectedException
-from nova_api.dao import GenericDAO, camel_to_snake
 from nova_api.persistence import PersistenceHelper
 from nova_api.persistence.mysql_helper import MySQLHelper
 
@@ -13,10 +13,10 @@ from nova_api.persistence.mysql_helper import MySQLHelper
 class GenericSQLDAO(GenericDAO):
 
     # pylint: disable=R0913
-    def __init__(self, database_type: PersistenceHelper = None,
+    def __init__(self, database_type: Type[PersistenceHelper] = None,
                  database_instance=None,
                  table: str = None, fields: dict = None,
-                 return_class: Entity = Entity,
+                 return_class: Type[Entity] = Entity,
                  prefix: str = None, **kwargs) -> None:
         super().__init__(table, fields, return_class, prefix,
                          **kwargs)
@@ -24,8 +24,8 @@ class GenericSQLDAO(GenericDAO):
         self.logger = logging.getLogger(__name__)
 
         self.database_type = database_type
-
-        if database_type is None and database_instance is None:
+        self.database = database_instance
+        if self.database_type is None and self.database is None:
             self.database_type = MySQLHelper
 
         self.logger.debug("Started %s with database type as %s, table as %s, "
@@ -33,8 +33,6 @@ class GenericSQLDAO(GenericDAO):
                           self.__class__.__name__, database_type, table,
                           fields,
                           return_class, prefix)
-
-        self.database = database_instance
 
         if self.database is None:
             self.logger.info("Database connection starting. Extra args: %s. ",
