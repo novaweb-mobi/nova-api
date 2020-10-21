@@ -1,6 +1,8 @@
+from os import environ
+
 import connexion
 from flask_cors import CORS
-from os import environ
+
 from nova_api import create_api_files
 
 debug = environ.get('DEBUG') or '0'
@@ -11,7 +13,6 @@ elif debug == '1':
 
 port = int(environ.get('PORT')) if environ.get('PORT') else 80
 
-#ENTITIES = environ.get('ENTITIES') or ''
 ENTITIES = "User, Publication"
 ENTITIES = [entity.strip() for entity in ENTITIES.split(',')]
 

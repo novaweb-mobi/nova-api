@@ -1,16 +1,16 @@
 import os
 import time
-from os.path import isfile as is_file
 from json import dumps
+from os.path import isfile as is_file
 
+from EntityDAO import EntityDAO
+from EntityForTest import EntityForTest
+from EntityForTestDAO import EntityForTestDAO
 from connexion.spec import Specification
 from mock import Mock, call
 from pytest import mark, raises
 
 import nova_api
-from EntityDAO import EntityDAO
-from EntityForTest import EntityForTest
-from EntityForTestDAO import EntityForTestDAO
 
 
 # pylint: disable=R0201
@@ -272,30 +272,30 @@ class TestAPIUtils:
             nova_api.generate_api()
 
         assert pytest_wrapped_e.type == SystemExit
-        assert pytest_wrapped_e.value.code == 1
+        assert pytest_wrapped_e.value.code == 65
 
     @mark.parametrize("argv, status_code", [
         (
                 ["python", "-e", "EntityFail"],
-                3
+                74
         ),
         (
                 ["python", "-e", "EntityForTest", "-d", "MyDAO"],
-                3
+                74
         ),
         (
                 ["python"],
-                2
+                64
         ),
         (
                 ["python", "-v", "2"],
-                2
+                64
         ),
         (
                 ["python",
                  "-e", "EntityForTest",
                  "-a", "InvSchema"],
-                4
+                65
         )
     ])
     def test_generate_api_cli_not_exists(self, mocker, argv, status_code):
@@ -310,3 +310,26 @@ class TestAPIUtils:
 
         assert pytest_wrapped_e.type == SystemExit
         assert pytest_wrapped_e.value.code == status_code
+
+    @mark.parametrize("exc_type", [
+        IOError,
+        FileExistsError,
+        FileNotFoundError,
+        OSError,
+        EOFError,
+        IsADirectoryError
+    ])
+    def test_generate_api_create_fail(self, mocker, exc_type):
+        def raise_exception(*args, **kwargs):
+            raise exc_type()
+
+        mock = mocker.patch.object(nova_api,
+                                   "create_api_files")
+        mock.side_effect = raise_exception
+        nova_api.sys.argv = ["python",
+                             "-e", "EntityForTest"]
+        with raises(SystemExit) as pytest_wrapped_e:
+            nova_api.generate_api()
+
+        assert pytest_wrapped_e.type == SystemExit
+        assert pytest_wrapped_e.value.code == 73
