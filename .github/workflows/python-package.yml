@@ -81,7 +81,7 @@ jobs:
         }
         check_files $(pwd)/nova_api
 
-  Test and Sonar:
+  TestAndSonar:
     needs: lint
     runs-on: ubuntu-latest
     strategy:
