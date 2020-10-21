@@ -81,7 +81,7 @@ jobs:
         }
         check_files $(pwd)/nova_api
 
-  test:
+  Test and Sonar:
     needs: lint
     runs-on: ubuntu-latest
     strategy:
@@ -89,9 +89,9 @@ jobs:
         python-version: [3.7.x, 3.8.x, 3.9.0-rc.1]
 
     steps:
-    - name: Check if python files have changed
-      uses: actions/github-script@0.9.0
-      id: files-changed
+      - name: Check if python files have changed
+        uses: actions/github-script@0.9.0
+        id: files-changed
       with:
         result-encoding: string
         script: |
@@ -168,10 +168,6 @@ jobs:
         >&2 echo 'PostgreSQL is available'
         pytest --junitxml=xunit-reports/xunit-result-nova_api-integration-postgres.xml tests/integrationtests/test_integration_postgres.py
 
-  scan:
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
     - name: SonarCloud Scan
       uses: SonarSource/sonarcloud-github-action@master
       env:
