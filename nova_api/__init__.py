@@ -10,9 +10,8 @@ from functools import wraps
 from flask import jsonify, make_response
 from flask.wrappers import Response
 
-from nova_api.dao import GenericDAO
 from nova_api import baseapi
-from nova_api.dao.generic_sql_dao import GenericSQLDAO
+from nova_api.dao import GenericDAO
 
 # Authorization schemas
 JWT = 0
@@ -228,12 +227,12 @@ def generate_api():
                      "Options received: %s", sys.argv,
                      exc_info=True)
         print(usage % (sys.argv[0]))
-        sys.exit(1)
+        sys.exit(os.EX_DATAERR)
     if entity == '':
         logger.critical("Entity not passed in the arguments! Call: %s",
                         sys.argv)
         print(usage % (sys.argv[0]))
-        sys.exit(2)
+        sys.exit(os.EX_USAGE)
     try:
         sys.path.insert(0, '')
         mod = __import__(entity, fromlist=[entity])
@@ -253,16 +252,20 @@ def generate_api():
               "the DAO name with -d. You may inform the version with -v.")
         logger.critical("Not able to import entity and dao class.",
                         exc_info=True)
-        sys.exit(3)
+        sys.exit(os.EX_IOERR)
 
     if auth and auth not in AUTHENTICATION_SCHEMAS.keys():
         print(("Schema %s not supported! The supported schemas "
                "are: " % auth) + ', '.join(
-              AUTHENTICATION_SCHEMAS.keys()))
-        sys.exit(4)
+            AUTHENTICATION_SCHEMAS.keys()))
+        sys.exit(os.EX_DATAERR)
 
-    create_api_files(ent, dao, version, overwrite=overwrite,
-                     auth_schema=AUTHENTICATION_SCHEMAS.get(auth, None))
+    try:
+        create_api_files(ent, dao, version, overwrite=overwrite,
+                         auth_schema=AUTHENTICATION_SCHEMAS.get(auth, None))
+    except (OSError, EOFError) as err:
+        print("Something went wrong while creating the API files...", err)
+        sys.exit(os.EX_CANTCREAT)
 
 
 def get_auth_schema_yml(schema: int = None):
