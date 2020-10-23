@@ -168,4 +168,39 @@ jobs:
         >&2 echo 'PostgreSQL is available'
         pytest --junitxml=xunit-reports/xunit-result-nova_api-integration-postgres.xml tests/integrationtests/test_integration_postgres.py
 
+  sonar:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9.0-rc.1]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pylint pytest
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: (Unit)Test with pytest
+        run: |
+          export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
+          mkdir xunit-reports
+          mkdir coverage-reports
+          cd tests
+          pytest --junitxml=../xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:../coverage-reports/coverage-python.xml  unittests
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
 
