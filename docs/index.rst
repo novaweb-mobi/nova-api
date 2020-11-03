@@ -1,5 +1,5 @@
 Welcome to NovaAPI's documentation!
-===================================
+***********************************
 
 Getting Started
 ===============

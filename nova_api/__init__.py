@@ -11,9 +11,9 @@ from typing import Type
 from flask import jsonify, make_response
 from flask.wrappers import Response
 
-from entity import Entity
-from nova_api.dao import GenericDAO
 from nova_api import baseapi
+from nova_api.dao import GenericDAO
+from nova_api.entity import Entity
 
 # Authorization schemas
 JWT = 0

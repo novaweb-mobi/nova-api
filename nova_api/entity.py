@@ -1,7 +1,7 @@
 """Base entity for modeling of API's entities"""
 import logging
 from abc import ABC
-from dataclasses import dataclass, field, fields, Field
+from dataclasses import Field, dataclass, field, fields
 from datetime import date, datetime
 from uuid import uuid4
 
@@ -58,7 +58,7 @@ class Entity(ABC):
 
         Post init goes through the parameters passed to init and makes some
         validations. Fields that are subclasses of Entity will be instantiated
-        (but only with 'id_' set). Datetime formats also will be cast if
+        (but only with `id_` set). Datetime formats also will be cast if
         received as strings. Strings will have trailing and leading white
         spaces removed.
 
@@ -128,8 +128,8 @@ class Entity(ABC):
 
         Iterates through the fields in the entity and yields a tuple with the
         field_name and the serialized field_value. For fields that are
-        instances of Entities, the key will have '_id_' appended and the value
-        will be the id_, as stated in _serialize_field.
+        instances of Entities, the key will have `_id_` appended and the value
+        will be the `id_`, as stated in `_serialize_field`.
 
         :return key, value: The tuple with the field_name and field_value
         """

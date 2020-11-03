@@ -1,8 +1,8 @@
 Authentication/Authorization module
-===================================
+***********************************
 
 Quick Start
-***********
+===========
 
 As of this version, NovaAPI supports authentication and authorization with JWT tokens. To use JWT tokens, it
 is necessary necessary to set the environment variable `JWT_SECRET` with the key used to validate the JWS
@@ -82,7 +82,7 @@ a keyword argument or `**kwargs` ::
         ...
 
 Module Documentation
-********************
+====================
 
 .. automodule:: nova_api.auth
     :members:
