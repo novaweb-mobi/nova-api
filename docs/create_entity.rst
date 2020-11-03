@@ -104,3 +104,18 @@ is not directly this options intention, you may add constraints through it, like
 If you would like to restrict NULL values, add `{"default": "NOT NULL"}` to the metadata,
 to use UNIQUE, you could add {"default": "NOT NULL UNIQUE"}.
 Defaults to NULL.
+
+datetime_format
+^^^^^^^^^^^^^^^
+This may be used to determine how the entity accepts datetime values in its `__init__` method.
+Considering that most times we receive data through http and parse it to an entity, being able
+to initialize datetime fields with string may help you a lot. This property should be set
+according to the `strptime` function in the datetime module. For example:
+`{"datetime_format":"%Y-%m-%d %H:%M:%S"}`, which is the default format.
+
+date_format
+^^^^^^^^^^^
+This may be used to determine how the entity accepts date values in its `__init__` method.
+This works like the datetime_format. This property should be set according to the `strptime`
+function in the datetime module. For example: `{"datetime_format":"%Y-%m-%d"}`, which is
+the default format.
