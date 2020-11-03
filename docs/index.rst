@@ -145,5 +145,6 @@ More Information
 
    novaapi
    entity
+   create_entity
    auth
    license
