@@ -11,7 +11,8 @@ from nova_api.persistence.mysql_helper import MySQLHelper
 
 
 class GenericSQLDAO(GenericDAO):
-
+    """SQL implementation for the GenericDAO interface
+    """
     # pylint: disable=R0913
     def __init__(self, database_type: Type[PersistenceHelper] = None,
                  database_instance=None,
@@ -67,9 +68,10 @@ class GenericSQLDAO(GenericDAO):
                               self.fields)
 
     def get(self, id_: str) -> Optional[Entity]:
-        """
-        Recovers and entity with `id_` from the database. The id_ must be the \
-        nova_api generated id_ which is a 32-char uuid v4.
+        """Recovers one entity with `id_` from the database.
+
+        The `id_` must be the nova_api generated `id_` which is \
+        a 32-char uuid v4.
 
         :raises TypeError: If the UUID is not a string
         :raises ValueError: If the UUID is not a valid UUID.
@@ -103,9 +105,8 @@ class GenericSQLDAO(GenericDAO):
 
     def get_all(self, length: int = 20, offset: int = 0,
                 filters: dict = None) -> (int, List[Entity]):
-        """
-        Recovers all instances that match the given filters up to the length \
-        specified starting from the offset given.
+        """Recovers all instances that match the given filters up to the
+         length specified starting from the offset given.
 
         The filters should be given as a dictionary, available keys are the \
         `return_class` attributes. The values may be only the desired value \
@@ -118,10 +119,13 @@ class GenericSQLDAO(GenericDAO):
             ...                      "name":"John"})
             (2, [ent1, ent2])
 
-        :param length:
-        :param offset:
-        :param filters:
-        :return:
+        :param length: The number of items to select
+        :param offset: The number of items to skip before starting to select
+        :param filters: A dict with the filters to use. The key must be a \
+        valid attribute in the entity and the value may either be an specific \
+        value or a list with two elements: an operator and a value.
+        :return: A tuple with the totoal number of entities in the database \
+        and a list of the matched results.
         """
         self.logger.debug("Getting all with filters %s limit %s and offset %s",
                           filters, length, offset)
@@ -164,10 +168,10 @@ class GenericSQLDAO(GenericDAO):
 
     def remove(self, entity: Entity = None,
                filters: dict = None) -> int:
-        """
-        Removes entities from database. May be called either with an instance
-        of return_class or a dict of filters. *If both are passed, the instance
-        will be removed and the filters won't be considered.*
+        """Removes entities from database.
+        May be called either with an instance of return_class or a dict
+        of filters.  *If both are passed, the instance will be removed
+        and the filters won't be considered.*
 
         :raises RuntimeError: If `entity` is not a `return_class` instance \
         and filters are None or if filters is not None and is not a dict.
@@ -176,7 +180,7 @@ class GenericSQLDAO(GenericDAO):
         delete query.
 
         :param entity: `return_class` instance to delete.
-        :param filters: Filters to apply to delete query in dict format as
+        :param filters: Filters to apply to delete query in dict format as \
         specified by `generate_filters`
         :return: Number of affected rows.
         """
@@ -231,8 +235,7 @@ class GenericSQLDAO(GenericDAO):
         return row_count
 
     def create(self, entity: Entity) -> str:
-        """
-        Creates a new row in the databse with data from `entity`.
+        """Creates a new row in the databse with data from `entity`.
 
         :param entity: The instance to save in the database.
         :return: The entity uuid.
@@ -277,12 +280,11 @@ class GenericSQLDAO(GenericDAO):
         return entity.id_
 
     def update(self, entity: Entity) -> str:
-        """
-        Updates an entity on the database.
+        """Updates an entity on the database.
 
         :param entity: The entity with updated values to update on \
         the database.
-        :return: The id_ of the updated entity.
+        :return: The `id_` of the updated entity.
         """
         if not isinstance(entity, self.return_class):
             self.logger.error("Entity was not passed as an instance to update."
@@ -325,8 +327,7 @@ class GenericSQLDAO(GenericDAO):
         return entity.id_
 
     def create_table_if_not_exists(self) -> None:
-        """
-        Creates the table in the database based on the `return_class` \
+        """Creates the table in the database based on the `return_class` \
         attributes. The types used in the database will be inferred through \
         `predict_db_types` or through the field metadata in the "type" key.
 
@@ -368,21 +369,21 @@ class GenericSQLDAO(GenericDAO):
         fields_ = ', '.join(fields_)
         primary_keys = ', '.join(primary_keys)
         query = self.database.CREATE_QUERY.format(table=self.table,
-                                         fields=fields_,
-                                         primary_keys=primary_keys)
+                                                  fields=fields_,
+                                                  primary_keys=primary_keys)
         self.logger.info("Creating table with query: %s", query)
         self.database.query(query)
         self.logger.info("Table created")
 
     def generate_filters(self, filters: dict) -> (str, List[str]):
-        """
-        Converts a dict of filters to apply to a query to a SQL query format.
+        """Converts a dict of filters to apply to a query to a SQL query \
+         format.
 
         Example:
             >>> dao.generate_filters(
             ...     filters={"id_": "12345678901234567890123456789012",
             ...              "creation_datetime": [">", "2020-1-1"]})
-            ("WHERE id_ = %s AND creation_datetime > %s", \
+            ("WHERE id_ = %s AND creation_datetime > %s",
             ["12345678901234567890123456789012", "2020-1-1"])
 
         :raises ValueError: If filters is None.
@@ -451,8 +452,7 @@ class GenericSQLDAO(GenericDAO):
         return filters_, query_params
 
     def close(self) -> None:
-        """
-        Closes the connection to the database
+        """Closes the connection to the database
 
         :return: None
         """

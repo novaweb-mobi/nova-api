@@ -145,6 +145,8 @@ More Information
 
    novaapi
    entity
+   dao
    create_entity
+   create_dao
    auth
    license

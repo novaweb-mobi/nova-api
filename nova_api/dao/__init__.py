@@ -1,3 +1,4 @@
+"""Module for Data Access Objects implementation"""
 from abc import ABC, abstractmethod
 from re import sub
 from typing import List, Optional, Type
@@ -5,12 +6,20 @@ from typing import List, Optional, Type
 from nova_api.entity import Entity
 
 
-def camel_to_snake(name):
+def camel_to_snake(name: str):
+    """Converts a camel case name to snake case.
+
+    :param name: String in camel case to be converted
+    :return: String in snake case
+    """
+    assert isinstance(name, str)
     name = sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
 
 
 class GenericDAO(ABC):
+    """ Interface class for the implementation of Data Access Objects.
+    """
     @abstractmethod
     def __init__(self, table: str = None, fields: dict = None,
                  return_class: Type[Entity] = Entity,
