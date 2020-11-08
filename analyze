@@ -67,5 +67,5 @@ docker-compose down
 docker-compose rm -f
 cd ..
 if [ -f './sonar-project.properties' ]; then
-	sonar-scanner
+	sonar-scanner -D sonar.branch.name=feature_generate_with_auth
 fi

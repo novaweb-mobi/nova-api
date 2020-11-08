@@ -69,6 +69,7 @@ class Entity(ABC):
         :return: None
         """
         logger = logging.getLogger(__name__)
+        received_log = "Received %s field as %s. Converting."
         for field_ in fields(self):
             try:
                 field_value = self.__getattribute__(field_.name)
@@ -77,14 +78,14 @@ class Entity(ABC):
                         not isinstance(field_value, field_.type):
                     # pylint: disable=W0511
                     # TODO call dao.get
-                    logger.debug("Received %s field as %s. Converting.",
+                    logger.debug(received_log,
                                  type(field_value),
                                  field_.type)
                     self.__setattr__(field_.name, field_.type(field_value))
                 elif issubclass(field_.type, datetime) \
                         and \
                         not isinstance(field_value, field_.type):
-                    logger.debug("Received %s field as %s. Converting.",
+                    logger.debug(received_log,
                                  type(field_value), field_.type)
                     self.__setattr__(
                         field_.name,
@@ -97,7 +98,7 @@ class Entity(ABC):
                         and \
                         not isinstance(field_value,
                                        field_.type):
-                    logger.debug("Received %s field as %s. Converting.",
+                    logger.debug(received_log,
                                  type(field_value),
                                  field_.type)
                     self.__setattr__(
@@ -114,8 +115,8 @@ class Entity(ABC):
                         field_.name,
                         str(field_value).strip())
             except TypeError:
-                logger.warning("Unable to check field %s type",
-                               field_.name, exc_info=True)
+                logger.debug("Unable to check field %s type",
+                             field_.name, exc_info=True)
             finally:
                 logger.debug("Processed field %s", field_.name)
         if self.__class__ == Entity:

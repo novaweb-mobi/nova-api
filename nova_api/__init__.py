@@ -18,6 +18,8 @@ from nova_api.entity import Entity
 # Authorization schemas
 JWT = 0
 
+AUTHENTICATION_SCHEMAS = {"JWT": 0}
+
 possible_level = {"DEBUG": logging.DEBUG,
                   "INFO": logging.INFO,
                   "WARNING": logging.WARNING,
@@ -111,8 +113,8 @@ def use_dao(dao_class: Type[GenericDAO],
             error_message: str = "Erro",
             dao_parameters: dict = None,
             retry_delay: float = float(os.environ.get("NOVAAPI_RETRY_DELAY",
-                                                  "1.0")),
-            retries: int = int(os.environ.get("NOVAAPI_RETRIES", "3")),):
+                                                      "1.0")),
+            retries: int = int(os.environ.get("NOVAAPI_RETRIES", "3")), ):
     """Decorator to handle database access in an API call
 
     This decorator instantiates the DAO specified in `dao_class` within a try \
@@ -161,7 +163,7 @@ def use_dao(dao_class: Type[GenericDAO],
                         break
                     except ConnectionError as con_error:
                         print("Connection failed, will retry "
-                                       "%s times"% attempted_retries)
+                              "%s times" % attempted_retries)
                         time.sleep(retry_delay)
                         if attempted_retries == 1:
                             raise con_error
@@ -198,16 +200,20 @@ def generate_api():
      (Where Entity is the name of the entity passed to -e)
      * *-v*: API version string. Will be used in the base path before the \
      entity name
+     * *-a*: Authentication Schema, type of authentication which will be \
+     applied to endpoints in the generated API.
 
     :return: None.
     """
     entity = ''
     version = ''
     dao_class = ''
+    auth = None
+    overwrite = False
     usage = 'Usage: %s generate_api -e entity ' \
-            '[-d entity_dao -v api_version]'
+            '[-d entity_dao -v api_version -a auth_schema -o overwrite]'
     try:
-        options, _ = getopt.getopt(sys.argv[1:], "e:d:v:")
+        options, _ = getopt.getopt(sys.argv[1:], "e:d:v:a:o")
         for option, value in options:
             if option == '-e':
                 entity = value
@@ -215,17 +221,21 @@ def generate_api():
                 dao_class = value
             elif option == '-v':
                 version = value
+            elif option == '-a':
+                auth = value.strip()
+            elif option == '-o':
+                overwrite = True
     except getopt.GetoptError:
         logger.error("Error while reading options passed to generate_api. "
                      "Options received: %s", sys.argv,
                      exc_info=True)
         print(usage % (sys.argv[0]))
-        sys.exit(1)
+        sys.exit(os.EX_DATAERR)
     if entity == '':
         logger.critical("Entity not passed in the arguments! Call: %s",
                         sys.argv)
         print(usage % (sys.argv[0]))
-        sys.exit(2)
+        sys.exit(os.EX_USAGE)
     try:
         sys.path.insert(0, '')
         mod = __import__(entity, fromlist=[entity])
@@ -245,9 +255,20 @@ def generate_api():
               "the DAO name with -d. You may inform the version with -v.")
         logger.critical("Not able to import entity and dao class.",
                         exc_info=True)
-        sys.exit(3)
+        sys.exit(os.EX_IOERR)
 
-    create_api_files(ent, dao, version)
+    if auth and auth not in AUTHENTICATION_SCHEMAS.keys():
+        print(("Schema %s not supported! The supported schemas "
+               "are: " % auth) + ', '.join(
+            AUTHENTICATION_SCHEMAS.keys()))
+        sys.exit(os.EX_DATAERR)
+
+    try:
+        create_api_files(ent, dao, version, overwrite=overwrite,
+                         auth_schema=AUTHENTICATION_SCHEMAS.get(auth, None))
+    except (OSError, EOFError) as err:
+        print("Something went wrong while creating the API files...", err)
+        sys.exit(os.EX_CANTCREAT)
 
 
 def get_auth_schema_yml(schema: int = None) -> str:
