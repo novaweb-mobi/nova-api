@@ -1,9 +1,8 @@
-.. _creating_entity:
 Creating your Entity
 ********************
 
 To read the full documentation on the entity module, refer to
-:ref:`entity_module`.
+:doc:`entity`.
 
 Quick Start
 ===========
@@ -119,3 +118,9 @@ This may be used to determine how the entity accepts date values in its `__init_
 This works like the datetime_format. This property should be set according to the `strptime`
 function in the datetime module. For example: `{"datetime_format":"%Y-%m-%d"}`, which is
 the default format.
+
+
+Next Steps
+==========
+
+Next, you should create your DAO class. For more information on this topic, refer to :doc:`create_dao`

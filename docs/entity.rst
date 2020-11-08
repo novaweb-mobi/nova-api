@@ -1,4 +1,3 @@
-.. _entity_module:
 Entity module
 *************
 
@@ -6,7 +5,7 @@ Quick Start
 ===========
 
 For a quick start and a high level description of the usage of this
-module, refer to :ref:`creating_your_entity`.
+module, refer to :doc:`create_entity`.
 
 Module Documentation
 ====================
