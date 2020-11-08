@@ -33,6 +33,12 @@ class TestEntityWithChild(Entity):
     not_to_database: str = field(default='', metadata={"database": False})
 
 
+class TestEntityDAO(GenericSQLDAO):
+    def __init__(self, database_type=None, **kwargs):
+        super(TestEntityDAO, self).__init__(database_type=database_type,
+                                            return_class=TestEntity, **kwargs)
+
+
 class TestGenericSQLDAO:
     @fixture
     def mysql_mock(self, mocker):
@@ -186,6 +192,12 @@ class TestGenericSQLDAO:
                                           "last_modified_datetime",
                                       "name": "name",
                                       "birthday": "birthday"}
+        assert generic_dao.return_class == TestEntity
+
+    def test_init_change_database_inherited(self, mysql_mock):
+        generic_dao = TestEntityDAO(database="test_db_change")
+        assert mysql_mock.mock_calls == [call(database="test_db_change")]
+        assert generic_dao.database == mysql_mock.return_value
         assert generic_dao.return_class == TestEntity
 
     def test_init_extra_params(self, mysql_mock):

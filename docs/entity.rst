@@ -6,7 +6,7 @@ Quick Start
 ===========
 
 For a quick start and a high level description of the usage of this
-module, refer to :ref:`creating_entity`.
+module, refer to :ref:`creating_your_entity`.
 
 Module Documentation
 ====================
