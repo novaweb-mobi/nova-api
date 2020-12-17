@@ -1,2 +1,2 @@
-NovaAPI=={{VERSION}}
+NovaAPI[postgresql]==0.2.0-rc.1
 uwsgi
