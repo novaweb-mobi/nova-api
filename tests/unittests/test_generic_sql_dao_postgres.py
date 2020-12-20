@@ -5,12 +5,9 @@ from time import sleep
 from mock import call
 from pytest import fixture, mark, raises
 
-from nova_api.entity import Entity
 from nova_api.dao.generic_sql_dao import GenericSQLDAO
+from nova_api.entity import Entity
 from nova_api.exceptions import NoRowsAffectedException
-from nova_api.dao import generic_sql_dao
-
-
 # pylint: disable=R0201
 from nova_api.persistence import postgresql_helper
 
@@ -168,6 +165,27 @@ class TestGenericSQLDAOPostgres:
                     "birthday": "birthday"},
             return_class=TestEntity)
         assert postgres_mock.mock_calls == [call()]
+        assert generic_dao.database == postgres_mock.return_value
+        assert generic_dao.table == "test_entitys"
+        assert generic_dao.fields == {"id_": "id",
+                                      "creation_datetime": "creation_datetime",
+                                      "last_modified_datetime":
+                                          "last_modified_datetime",
+                                      "name": "name",
+                                      "birthday": "birthday"}
+        assert generic_dao.return_class == TestEntity
+
+    def test_init_change_database(self, postgres_mock):
+        generic_dao = GenericSQLDAO(
+            database_type=postgres_mock,
+            fields={"id_": "id",
+                    "creation_datetime": "creation_datetime",
+                    "last_modified_datetime": "last_modified_datetime",
+                    "name": "name",
+                    "birthday": "birthday"},
+            database="test_db_change",
+            return_class=TestEntity)
+        assert postgres_mock.mock_calls == [call(database="test_db_change")]
         assert generic_dao.database == postgres_mock.return_value
         assert generic_dao.table == "test_entitys"
         assert generic_dao.fields == {"id_": "id",

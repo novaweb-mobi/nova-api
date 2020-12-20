@@ -6,12 +6,14 @@ import sys
 import time
 from dataclasses import fields
 from functools import wraps
+from typing import Type
 
 from flask import jsonify, make_response
 from flask.wrappers import Response
 
 from nova_api import baseapi
 from nova_api.dao import GenericDAO
+from nova_api.entity import Entity
 
 # Authorization schemas
 JWT = 0
@@ -107,7 +109,7 @@ def success_response(status_code: int = 200, message: str = "OK",
                             message=message, data=data)
 
 
-def use_dao(dao_class: GenericDAO,
+def use_dao(dao_class: Type[GenericDAO],
             error_message: str = "Erro",
             dao_parameters: dict = None,
             retry_delay: float = float(os.environ.get("NOVAAPI_RETRY_DELAY",
@@ -169,6 +171,7 @@ def use_dao(dao_class: GenericDAO,
                         attempted_retries -= 1
 
                 return function(dao=dao, *args, **kwargs)
+
             # pylint: disable=W0703
             except Exception as exception:
                 logger.error(
@@ -268,14 +271,33 @@ def generate_api():
         sys.exit(os.EX_CANTCREAT)
 
 
-def get_auth_schema_yml(schema: int = None):
+def get_auth_schema_yml(schema: int = None) -> str:
+    """Returns the yml definition for the selected schema.
+
+    :param schema: The identifier of the authorization schema.
+    :return: The yml definition for the schema
+    """
     if schema is None:
         return None
     return baseapi.SECURITY_DEFINITIONS[schema]
 
 
-def create_api_files(entity, dao_class, version,
-                     overwrite=False, auth_schema=None):
+def create_api_files(entity: Entity, dao_class: GenericDAO, version: int, *,
+                     overwrite: bool = False, auth_schema: int = None) -> None:
+    """Write api files for the entity informed with the dao_class informed.
+
+    Generated the api.py and api.yml with the informed entity, dao and version.
+    If overwrite is false and files exist, no file will be generated. If
+    overwrite is True and the files already exist, they'll be replaced.
+    Adds the Authorization schema informed.
+
+    :param entity: The entity to generate api files for.
+    :param dao_class: The dao class for the entity
+    :param version: The version of the api
+    :param overwrite: Whether to overwrite existing files or not
+    :param auth_schema: The authorization schema to apply to api methods.
+    :return: None
+    """
     entity_lower = entity.__name__.lower()
 
     if os.path.isfile(
