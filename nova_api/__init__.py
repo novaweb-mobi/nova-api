@@ -4,8 +4,9 @@ import logging
 import os
 import sys
 import time
-from dataclasses import fields
+from dataclasses import Field, fields
 from functools import wraps
+from typing import Type
 
 from flask import jsonify, make_response
 from flask.wrappers import Response
@@ -27,6 +28,17 @@ possible_level = {"DEBUG": logging.DEBUG,
 logger = logging.getLogger(__name__)
 
 JWT_SECRET = os.environ.get('JWT_SECRET', "1234567890a")
+DEBUG = os.environ.get('NOVAAPI_DEBUG', False)
+
+
+def close_if_still_open(dao: GenericDAO) -> None:
+    """Closes a DAO connection if it's still open.
+
+    :param dao: DAO instance to be closed
+    :return:
+    """
+    if dao:
+        dao.close()
 
 
 def default_response(success: bool, status_code: int,
@@ -174,11 +186,15 @@ def use_dao(dao_class: GenericDAO,
                 logger.error(
                     "Unable to generate api response due to an error.",
                     exc_info=True)
+
+                error_description = str(exception) \
+                    if DEBUG \
+                    else "Something went wrong... Please try again later."
+
                 return error_response(message=error_message,
-                                      data={"error": str(exception)})
+                                      data={"error": error_description})
             finally:
-                if dao:
-                    dao.close()
+                close_if_still_open(dao)
 
         return wrapper
 
@@ -254,7 +270,7 @@ def generate_api():
                         exc_info=True)
         sys.exit(os.EX_IOERR)
 
-    if auth and auth not in AUTHENTICATION_SCHEMAS.keys():
+    if auth and not is_valid_auth_schema(auth):
         print(("Schema %s not supported! The supported schemas "
                "are: " % auth) + ', '.join(
             AUTHENTICATION_SCHEMAS.keys()))
@@ -268,6 +284,15 @@ def generate_api():
         sys.exit(os.EX_CANTCREAT)
 
 
+def is_valid_auth_schema(auth: str) -> bool:
+    """Checks if the informed auth schema is valid.
+
+    :param auth: The informed auth schema
+    :return: True if the schema is in the valid schemas and False otherwise
+    """
+    return auth in AUTHENTICATION_SCHEMAS.keys()
+
+
 def get_auth_schema_yml(schema: int = None):
     if schema is None:
         return None
@@ -278,32 +303,20 @@ def create_api_files(entity, dao_class, version,
                      overwrite=False, auth_schema=None):
     entity_lower = entity.__name__.lower()
 
-    if os.path.isfile(
-            "{entity_lower}_api.py".format(entity_lower=entity_lower)) \
-            and not overwrite:
+    if python_api_exists(entity_lower) and not overwrite:
         logger.debug("API already exists. Skipping generation...")
     else:
-        with open("{entity_lower}_api.py".format(entity_lower=entity_lower),
-                  'w+') as api_implementation:
-            logger.info("Writing api implementation for entity %s...",
-                        entity_lower)
-            api_implementation.write(baseapi.BASE_API.format(
-                DAO_CLASS=dao_class.__name__,
-                ENTITY=entity.__name__,
-                ENTITY_LOWER=entity_lower))
-            logger.info("Done writing api for entity %s.", entity_lower)
-
+        write_api_implementation(get_python_api_filename(entity_lower),
+                                 dao_class, entity)
     if version == '':
         version = '1'
     logger.info("Version for api is %s", version)
+
     parameters = list()
     for field in fields(entity):
         if not field.metadata.get("database", True):
             continue
-        parameters.append(
-            baseapi.PARAMETER.format(parameter_name=field.name,
-                                     parameter_location='query',
-                                     parameter_type='string'))
+        parameters.append(format_parameter(field))
 
     parameters = '\n'.join(parameters)
 
@@ -329,3 +342,77 @@ def create_api_files(entity, dao_class, version,
                 api_documentation.write(get_auth_schema_yml(auth_schema))
             logger.info("Done writing api documentation for entity %s.",
                         entity_lower)
+
+
+def format_parameter(field: Field) -> str:
+    """Formats the field for the query parameters in get_all function.
+
+    :param field: The field of the dataclass
+    :return: The formatted param to the YAML Swagger file
+    """
+    parameter_format = get_parameter_format()
+    return parameter_format.format(parameter_name=field.name,
+                                   parameter_location='query',
+                                   parameter_type='string')
+
+
+def get_parameter_format() -> str:
+    """Returns the base query parameter format for the YAML Swagger file.
+
+    :return: The base format with the fields for the format function.
+    """
+    return baseapi.PARAMETER_FORMAT
+
+
+def write_api_implementation(api_implementation_file: str,
+                             dao_class: Type, entity: Type) -> None:
+    """Writes the api implementation for the entity and dao_class in the
+    api_implementation_file
+
+    :param api_implementation_file: File name to write api implementation
+    :param dao_class: The dao class for the entity
+    :param entity: The entity class
+    :return: None
+    """
+    entity_lower = entity.__name__.lower()
+
+    with open(api_implementation_file,
+              'w+') as api_implementation_file:
+        logger.info("Writing api implementation for entity %s...",
+                    entity_lower)
+
+        api_implementation_file.write(
+            generate_base_api_for_entity(dao_class, entity))
+
+        logger.info("Done writing api for entity %s.", entity_lower)
+
+
+def generate_base_api_for_entity(dao_class: Type, entity: Type) -> str:
+    """Generates the base API implementation for the dao_class and the entity.
+
+    :param dao_class: The dao class for the entity
+    :param entity: The entity
+    :return: The API implementation
+    """
+    return baseapi.BASE_API.format(
+        DAO_CLASS=dao_class.__name__,
+        ENTITY=entity.__name__,
+        ENTITY_LOWER=entity.__name__.lower())
+
+
+def get_python_api_filename(entity_lower: str) -> str:
+    """Returns the default API filename.
+
+    :param entity_lower: The entity name in lower case.
+    :return:
+    """
+    return "{entity_lower}_api.py".format(entity_lower=entity_lower)
+
+
+def python_api_exists(entity_lower: str) -> bool:
+    """ Checks if the api implementation file exists with the default name.
+
+    :param entity_lower: The entity name in lower case.
+    :return: True if the file exists, false otherwise
+    """
+    return os.path.isfile(get_python_api_filename(entity_lower))

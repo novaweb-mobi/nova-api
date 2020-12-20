@@ -359,7 +359,7 @@ paths:
                     type: string
 """
 
-PARAMETER = \
+PARAMETER_FORMAT = \
     """        - name: {parameter_name}
           in: {parameter_location}
           type: {parameter_type}
