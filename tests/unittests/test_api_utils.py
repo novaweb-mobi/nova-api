@@ -136,7 +136,7 @@ class TestAPIUtils:
         end = time.time()
 
         assert my_mock.mock_calls == [call(), call(), call()]
-        assert end-start > 3
+        assert end - start > 3
 
     def test_use_dao_exception(self, mocker):
         my_mock = Mock()
@@ -151,6 +151,37 @@ class TestAPIUtils:
         ret = test()
         assert my_mock.mock_calls == [call(), call().close()]
         assert ret == "NOT OK"
+
+    def test_use_dao_exception_debug(self, mocker):
+        nova_api.DEBUG = True
+        my_mock = Mock()
+        mocker.patch("nova_api.error_response",
+                     side_effect=lambda **kwargs: kwargs)
+
+        @nova_api.use_dao(dao_class=my_mock, retries=1)
+        def test(**kwargs):
+            if kwargs.get('dao') == my_mock.return_value:
+                raise Exception("Just a test")
+
+        ret = test()
+        assert my_mock.mock_calls == [call(), call().close()]
+        assert ret == {"message": "Erro", "data": {"error": "Just a test"}}
+
+    def test_use_dao_exception_no_debug(self, mocker):
+        nova_api.DEBUG = False
+        my_mock = Mock()
+        mocker.patch("nova_api.error_response",
+                     side_effect=lambda **kwargs: kwargs)
+
+        @nova_api.use_dao(dao_class=my_mock, retries=1)
+        def test(**kwargs):
+            if kwargs.get('dao') == my_mock.return_value:
+                raise Exception("Just a test")
+
+        ret = test()
+        assert my_mock.mock_calls == [call(), call().close()]
+        assert ret == {"message": "Erro", "data":
+            {"error": "Something went wrong... Please try again later."}}
 
     def test_generate_valid_api_yml(self):
         nova_api.create_api_files(EntityForTest, EntityDAO, '1')
