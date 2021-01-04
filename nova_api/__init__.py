@@ -28,7 +28,7 @@ possible_level = {"DEBUG": logging.DEBUG,
 logger = logging.getLogger(__name__)
 
 JWT_SECRET = os.environ.get('JWT_SECRET', "1234567890a")
-DEBUG = os.environ.get('NOVAAPI_DEBUG', False)
+DEBUG = bool(os.environ.get('NOVAAPI_DEBUG', False))
 
 
 def close_if_still_open(dao: GenericDAO) -> None:
