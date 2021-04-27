@@ -193,7 +193,7 @@ class TestAPIUtils:
         nova_api.create_api_files(EntityForTest, EntityDAO, '1')
         gen_spec = Specification.load('entityfortest_api.yml')
         base_spec = Specification.load(
-            'unittests/entityfortest_api_result.yml'
+            'tests/unittests/entityfortest_api_result.yml'
         )
         assert gen_spec == base_spec
         os.remove('entityfortest_api.yml')
@@ -211,7 +211,7 @@ class TestAPIUtils:
                                   '1', auth_schema=nova_api.JWT)
         gen_spec = Specification.load('entityfortest_api.yml')
         base_spec = Specification.load(
-            'unittests/entityfortest_api_jwt_result.yml'
+            'tests/unittests/entityfortest_api_jwt_result.yml'
         )
         with open('entityfortest_api.yml') as f:
             print(f.read())
@@ -224,7 +224,7 @@ class TestAPIUtils:
         gen_spec = ''
         with open('entityfortest_api.py', 'r') as f:
             gen_spec = f.read()
-        with open('unittests/entityfortest_api_result.py') as f:
+        with open('tests/unittests/entityfortest_api_result.py') as f:
             base_spec = f.read()
         os.remove('entityfortest_api.yml')
         os.remove('entityfortest_api.py')
