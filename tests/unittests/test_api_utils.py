@@ -13,6 +13,10 @@ from pytest import mark, raises
 import nova_api
 
 
+NOVA_API_ERROR_RESPONSE = "nova_api.error_response"
+SAMPLE_ERROR_MESSAGE = "A error test"
+
+
 # pylint: disable=R0201
 class TestAPIUtils:
     @mark.parametrize("status_code", [404, 400, 500, 200, 201])
@@ -67,10 +71,10 @@ class TestAPIUtils:
         my_mock = Mock()
 
         @nova_api.use_dao(dao_class=my_mock, retries=1)
-        def test(**kwargs):
+        def test_decorated_function(**kwargs):
             return kwargs.get('dao') == my_mock.return_value
 
-        ret = test()
+        ret = test_decorated_function()
         assert my_mock.mock_calls == [call(), call().close()] and ret
 
     def test_use_dao_db_args(self, mocker):
@@ -119,7 +123,7 @@ class TestAPIUtils:
 
     def test_use_dao_retry(self, mocker):
         my_mock = Mock()
-        mocker.patch("nova_api.error_response",
+        mocker.patch(NOVA_API_ERROR_RESPONSE,
                      return_value="NOT OK")
 
         def raise_exception():
@@ -140,7 +144,7 @@ class TestAPIUtils:
 
     def test_use_dao_exception(self, mocker):
         my_mock = Mock()
-        mocker.patch("nova_api.error_response",
+        mocker.patch(NOVA_API_ERROR_RESPONSE,
                      return_value="NOT OK")
 
         @nova_api.use_dao(dao_class=my_mock, retries=1)
@@ -152,31 +156,33 @@ class TestAPIUtils:
         assert my_mock.mock_calls == [call(), call().close()]
         assert ret == "NOT OK"
 
-    def test_use_dao_exception_debug(self, mocker):
+    @staticmethod
+    def test_use_dao_exception_debug(mocker):
         nova_api.DEBUG = True
         my_mock = Mock()
-        mocker.patch("nova_api.error_response",
+        mocker.patch(NOVA_API_ERROR_RESPONSE,
                      side_effect=lambda **kwargs: kwargs)
 
         @nova_api.use_dao(dao_class=my_mock, retries=1)
         def test(**kwargs):
             if kwargs.get('dao') == my_mock.return_value:
-                raise Exception("Just a test")
+                raise Exception(SAMPLE_ERROR_MESSAGE)
 
         ret = test()
         assert my_mock.mock_calls == [call(), call().close()]
-        assert ret == {"message": "Erro", "data": {"error": "Just a test"}}
+        assert ret == {"message": "Erro", "data": {"error": SAMPLE_ERROR_MESSAGE}}
 
-    def test_use_dao_exception_no_debug(self, mocker):
+    @staticmethod
+    def test_use_dao_exception_no_debug(mocker):
         nova_api.DEBUG = False
         my_mock = Mock()
-        mocker.patch("nova_api.error_response",
+        mocker.patch(NOVA_API_ERROR_RESPONSE,
                      side_effect=lambda **kwargs: kwargs)
 
         @nova_api.use_dao(dao_class=my_mock, retries=1)
         def test(**kwargs):
             if kwargs.get('dao') == my_mock.return_value:
-                raise Exception("Just a test")
+                raise Exception(SAMPLE_ERROR_MESSAGE)
 
         ret = test()
         assert my_mock.mock_calls == [call(), call().close()]
