@@ -378,11 +378,11 @@ def write_api_implementation(api_implementation_file: str,
     entity_lower = entity.__name__.lower()
 
     with open(api_implementation_file,
-              'w+') as api_implementation_file:
+              'w+') as api_implementation:
         logger.info("Writing api implementation for entity %s...",
                     entity_lower)
 
-        api_implementation_file.write(
+        api_implementation.write(
             generate_base_api_for_entity(dao_class, entity))
 
         logger.info("Done writing api for entity %s.", entity_lower)
