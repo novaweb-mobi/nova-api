@@ -197,6 +197,9 @@ jobs:
           mkdir -p reports
           pylint nova_api --exit-zero --rcfile=standard.rc -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
           python3 -m pytest --junitxml=xunit-reports/xunit-result.xml --cov=nova_api --cov-report xml:coverage-reports/coverage.xml  tests/unittests
+          sed -i 's@'$GITHUB_WORKSPACE'@/github/workspace/@g' xunit-reports/xunit-result.xml
+          sed -i 's@'$GITHUB_WORKSPACE'@/github/workspace/@g' coverage-reports/coverage.xml
+          
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@master
