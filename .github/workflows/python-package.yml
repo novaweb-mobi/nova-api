@@ -172,19 +172,16 @@ jobs:
   sonar:
     needs: test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.9.x]
 
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.9.x
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.9.x
 
       - name: Install dependencies
         run: |
@@ -195,11 +192,11 @@ jobs:
       - name: (Unit)Test with pytest
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api:$(pwd)/tests
-          mkdir xunit-reports
-          mkdir coverage-reports
-          mkdir reports
+          mkdir -p xunit-reports
+          mkdir -p coverage-reports
+          mkdir -p reports
           pylint nova_api --exit-zero --rcfile=standard.rc -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
-          pytest --junitxml=xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:coverage-reports/coverage-python.xml  tests/unittests
+          python3 -m pytest --junitxml=xunit-reports/xunit-result.xml --cov=nova_api --cov-report xml:coverage-reports/coverage.xml  tests/unittests
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@master
@@ -208,6 +205,6 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.python.coverage.reportPaths=coverage-reports/coverage-python.xml
+            -Dsonar.python.coverage.reportPaths=coverage-reports/coverage.xml
+            -Dsonar.python.xunit.reportPath=xunit-reports/xunit-result.xml
             -Dsonar.python.pylint.reportPaths=reports/lint_report
-
