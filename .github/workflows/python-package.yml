@@ -5,7 +5,7 @@ name: Python Package
 
 on:
   pull_request:
-    branches: [ master, dev ]
+    branches: [ master, dev, dev-fix, dev-feature ]
 
 jobs:
   lint:
