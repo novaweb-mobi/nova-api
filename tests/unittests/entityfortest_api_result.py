@@ -17,7 +17,7 @@ def read(length: int = 20, offset: int = 0,
          dao: GenericSQLDAO = None, **kwargs):
     for key, value in kwargs.items():
         kwargs[key] = value.split(',') \
-                        if len(value.split(',')) > 1 \
+                        if len(str(value.split(','))) > 1 \
                         else value
     total, results = dao.get_all(length=length, offset=offset,
                                  filters=kwargs if len(kwargs) > 0 else None)
