@@ -86,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7.x, 3.8.x, 3.9.x, 3.10.0-beta.1]
+        python-version: [3.7.x, 3.8.x, 3.9.x] # 3.10.0-beta.1]
 
     steps:
     - name: Check if python files have changed
@@ -173,7 +173,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.10.0-beta.1]
+        python-version: [3.9.x]
 
     steps:
       - uses: actions/checkout@v2
