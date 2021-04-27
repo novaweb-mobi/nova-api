@@ -195,6 +195,8 @@ jobs:
           export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api:$(pwd)/tests
           mkdir xunit-reports
           mkdir coverage-reports
+          mkdir reports
+          pylint nova_api --exit-zero --rcfile=standard.rc -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
           pytest --junitxml=xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:coverage-reports/coverage-python.xml  tests/unittests
 
       - name: SonarCloud Scan
@@ -205,5 +207,7 @@ jobs:
         with:
           args: >
             -Dsonar.python.coverage.reportPaths=coverage-reports/coverage-python.xml
+            -Dsonar.python.pylint.reportPaths=reports/lint_report
+            -Dsonar.sources=./nova_api
 
 
