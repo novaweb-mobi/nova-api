@@ -86,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7.x, 3.8.x, 3.9.0-rc.1]
+        python-version: [3.7.x, 3.8.x, 3.9.x, 3.10.0-beta.1]
 
     steps:
     - name: Check if python files have changed
@@ -173,7 +173,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9.0-rc.1]
+        python-version: [3.10.0-beta.1]
 
     steps:
       - uses: actions/checkout@v2
@@ -193,7 +193,7 @@ jobs:
 
       - name: (Unit)Test with pytest
         run: |
-          export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
+          export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api:$(pwd)/tests
           mkdir xunit-reports
           mkdir coverage-reports
           pytest --junitxml=xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:coverage-reports/coverage-python.xml  tests/unittests
