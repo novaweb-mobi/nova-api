@@ -5,7 +5,7 @@ name: Python Package
 
 on:
   pull_request:
-    branches: [ master, dev ]
+    branches: [ master, dev, dev-fix, dev-feature ]
 
 jobs:
   lint:
@@ -30,6 +30,7 @@ jobs:
 
     - uses: actions/checkout@v2
       if: ${{ steps.files-changed.outputs.result == 'true' }}
+
     - name: Set up Python ${{ matrix.python-version }}
       if: ${{ steps.files-changed.outputs.result == 'true' }}
       uses: actions/setup-python@v2
@@ -86,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7.x, 3.8.x, 3.9.0-rc.1]
+        python-version: [3.7.x, 3.8.x, 3.9.x] # 3.10.0-beta.1]
 
     steps:
     - name: Check if python files have changed
@@ -107,6 +108,7 @@ jobs:
 
     - uses: actions/checkout@v2
       if: ${{ steps.files-changed.outputs.result == 'true' }}
+
     - name: Set up Python ${{ matrix.python-version }}
       if: ${{ steps.files-changed.outputs.result == 'true' }}
       uses: actions/setup-python@v2
@@ -130,11 +132,10 @@ jobs:
     - name: (Unit)Test with pytest
       if: ${{ steps.files-changed.outputs.result == 'true' }}
       run: |
-        export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
+        export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api:$(pwd)/tests
         mkdir xunit-reports
         mkdir coverage-reports
-        cd tests
-        pytest --junitxml=../xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:../coverage-reports/coverage-python.xml  unittests
+        pytest --junitxml=xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:coverage-reports/coverage-python.xml  tests/unittests
         
     - name: Integration Test with MySQL
       if: ${{ steps.files-changed.outputs.result == 'true' }}
@@ -171,17 +172,16 @@ jobs:
   sonar:
     needs: test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.9.0-rc.1]
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.9.x
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.9.x
 
       - name: Install dependencies
         run: |
@@ -191,16 +191,23 @@ jobs:
 
       - name: (Unit)Test with pytest
         run: |
-          export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
-          mkdir xunit-reports
-          mkdir coverage-reports
-          cd tests
-          pytest --junitxml=../xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:../coverage-reports/coverage-python.xml  unittests
+          export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api:$(pwd)/tests
+          mkdir -p xunit-reports
+          mkdir -p coverage-reports
+          mkdir -p reports
+          pylint nova_api --exit-zero --rcfile=standard.rc -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/lint_report
+          python3 -m pytest --junitxml=xunit-reports/xunit-result.xml --cov=nova_api --cov-report xml:coverage-reports/coverage.xml  tests/unittests
+          sed -i 's@'$GITHUB_WORKSPACE'@/github/workspace/@g' xunit-reports/xunit-result.xml
+          sed -i 's@'$GITHUB_WORKSPACE'@/github/workspace/@g' coverage-reports/coverage.xml
+          
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: sonarsource/sonarcloud-github-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-
+        with:
+          args: >
+            -Dsonar.python.coverage.reportPaths=coverage-reports/coverage.xml
+            -Dsonar.python.xunit.reportPath=xunit-reports/xunit-result.xml
+            -Dsonar.python.pylint.reportPaths=reports/lint_report
