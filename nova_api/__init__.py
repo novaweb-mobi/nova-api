@@ -190,8 +190,7 @@ def use_dao(dao_class: GenericDAO,
                     status_code=nova_api_exception.status_code,
                     message=nova_api_exception.message,
                     data=response_data)
-            # pylint: disable=W0703
-            except Exception as exception:
+            except Exception as exception: # pylint: disable=W0703
                 logger.error(
                     "Unable to generate api response due to an error.",
                     exc_info=True)
@@ -317,7 +316,7 @@ def create_api_files(entity, dao_class, version,
     else:
         write_api_implementation(get_python_api_filename(entity_lower),
                                  dao_class, entity)
-    
+
     if version == '':
         version = '1'
     logger.info("Version for api is %s", version)
