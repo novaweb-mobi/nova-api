@@ -1,10 +1,10 @@
 from dataclasses import fields
 
+from nova_api.dao.generic_sql_dao import GenericSQLDAO
+from nova_api import error_response, success_response, use_dao
+
 from EntityDAO import EntityDAO
 from EntityForTest import EntityForTest
-
-from nova_api import error_response, success_response, use_dao
-from nova_api.dao.generic_sql_dao import GenericSQLDAO
 
 
 @use_dao(EntityDAO, "API Unavailable")
