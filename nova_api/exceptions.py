@@ -1,2 +1,0 @@
-class NoRowsAffectedException(IOError):
-    pass
