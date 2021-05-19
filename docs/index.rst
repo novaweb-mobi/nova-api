@@ -145,4 +145,5 @@ More Information
    novaapi
    entity
    auth
+   error
    license
