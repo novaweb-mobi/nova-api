@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, List
+from typing import List
 
 import mysql.connector
 from mysql.connector import Error, InterfaceError, DatabaseError, PoolError, \
@@ -85,7 +85,7 @@ class MySQLHelper(PersistenceHelper):
                 from err
 
     def query(self, query: str, params: List = None) -> (int, int):
-        super(MySQLHelper, self).query(query, params)
+        super().query(query, params)
         try:
             self.logger.debug("Query to execute is %s, params %s",
                               query,
@@ -111,7 +111,7 @@ class MySQLHelper(PersistenceHelper):
             ) from err
 
     def close(self):
-        super(MySQLHelper, self).close()
+        super().close()
         self.logger.info("Closing connection to database!")
         self.cursor.close()
         self.db_conn.close()

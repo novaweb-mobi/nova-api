@@ -13,6 +13,7 @@ from flask.wrappers import Response
 
 from nova_api import baseapi
 from nova_api.dao import GenericDAO
+from nova_api.exceptions import NovaAPIException
 
 # Authorization schemas
 JWT = 0
@@ -181,8 +182,15 @@ def use_dao(dao_class: GenericDAO,
                         attempted_retries -= 1
 
                 return function(dao=dao, *args, **kwargs)
-            # pylint: disable=W0703
-            except Exception as exception:
+            except NovaAPIException as nova_api_exception:
+                response_data = {"error_code": nova_api_exception.error_code}
+                if DEBUG:
+                    response_data["debug"]=nova_api_exception.debug
+                return error_response(
+                    status_code=nova_api_exception.status_code,
+                    message=nova_api_exception.message,
+                    data=response_data)
+            except Exception as exception: # pylint: disable=W0703
                 logger.error(
                     "Unable to generate api response due to an error.",
                     exc_info=True)
@@ -308,7 +316,7 @@ def create_api_files(entity, dao_class, version,
     else:
         write_api_implementation(get_python_api_filename(entity_lower),
                                  dao_class, entity)
-    
+
     if version == '':
         version = '1'
     logger.info("Version for api is %s", version)

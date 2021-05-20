@@ -11,10 +11,14 @@ from mock import Mock, call
 from pytest import mark, raises
 
 import nova_api
-
+from nova_api.exceptions import NovaAPIException
 
 NOVA_API_ERROR_RESPONSE = "nova_api.error_response"
 SAMPLE_ERROR_MESSAGE = "A error test"
+
+
+class SimpleCustomException(NovaAPIException):
+    pass
 
 
 # pylint: disable=R0201
@@ -67,7 +71,7 @@ class TestAPIUtils:
                  message="Error",
                  data={} if data is None else data)])
 
-    def test_use_dao(self, mocker):
+    def test_use_dao_should_open_and_close_dao(self, mocker):
         my_mock = Mock()
 
         @nova_api.use_dao(dao_class=my_mock, retries=1)
@@ -155,6 +159,57 @@ class TestAPIUtils:
         ret = test()
         assert my_mock.mock_calls == [call(), call().close()]
         assert ret == "NOT OK"
+
+    def test_use_dao_custom_exception_debug(self, mocker):
+        nova_api.DEBUG = True
+        my_mock = Mock()
+        mocker.patch(NOVA_API_ERROR_RESPONSE,
+                     side_effect=lambda *args, **kwargs
+                     : (args, kwargs))
+
+        @nova_api.use_dao(dao_class=my_mock, retries=1)
+        def test(**kwargs):
+            raise SimpleCustomException(404, "something not found",
+                                        1, "debug message")
+
+        ret = test()
+        assert my_mock.mock_calls == [call(), call().close()]
+        assert ret == ((), {"status_code": 404, "message": "something not found",
+                        "data": {"error_code": 1, "debug": "debug message"}})
+
+    def test_use_dao_custom_exception_debug_default_error_code(self, mocker):
+        nova_api.DEBUG = True
+        my_mock = Mock()
+        mocker.patch(NOVA_API_ERROR_RESPONSE,
+                     side_effect=lambda *args, **kwargs
+                     : (args, kwargs))
+
+        @nova_api.use_dao(dao_class=my_mock, retries=1)
+        def test(**kwargs):
+            raise SimpleCustomException(404, "something not found",
+                                        debug="debug message")
+
+        ret = test()
+        assert my_mock.mock_calls == [call(), call().close()]
+        assert ret == ((), {"status_code": 404, "message": "something not found",
+                        "data": {"error_code": 404, "debug": "debug message"}})
+
+    def test_use_dao_custom_exception_no_debug(self, mocker):
+        nova_api.DEBUG = False
+        my_mock = Mock()
+        mocker.patch(NOVA_API_ERROR_RESPONSE,
+                     side_effect=lambda *args, **kwargs
+                     : (args, kwargs))
+
+        @nova_api.use_dao(dao_class=my_mock, retries=1)
+        def test(**kwargs):
+            raise SimpleCustomException(404, "something not found",
+                                        1, "debug message")
+
+        ret = test()
+        assert my_mock.mock_calls == [call(), call().close()]
+        assert ret == ((), {"status_code": 404, "message": "something not found",
+                        "data": {"error_code": 1}})
 
     @staticmethod
     def test_use_dao_exception_debug(mocker):
