@@ -1,4 +1,6 @@
-BASE_API = """from nova_api.dao.generic_sql_dao import GenericSQLDAO
+BASE_API = """from dataclasses import fields
+
+from nova_api.dao.generic_sql_dao import GenericSQLDAO
 from nova_api import error_response, success_response, use_dao
 
 from {DAO_CLASS} import {DAO_CLASS}
@@ -15,12 +17,20 @@ def probe(dao: GenericSQLDAO = None):
 @use_dao({DAO_CLASS}, "Unable to list {ENTITY_LOWER}")
 def read(length: int = 20, offset: int = 0,
          dao: GenericSQLDAO = None, **kwargs):
+    filters = dict()
+
+    entity_attributes = [field.name for field in fields({ENTITY})]
+
     for key, value in kwargs.items():
-        kwargs[key] = value.split(',') \\
-                        if len(value.split(',')) > 1 \\
-                        else value
+        if key not in entity_attributes:
+            continue
+
+        filters[key] = value.split(',') \\
+                       if len(str(value).split(',')) > 1 \\
+                       else value
+
     total, results = dao.get_all(length=length, offset=offset,
-                                 filters=kwargs if len(kwargs) > 0 else None)
+                                 filters=filters if filters else None)
     return success_response(message="List of {ENTITY_LOWER}",
                             data={{"total": total, "results": [dict(result)
                                                               for result
@@ -359,7 +369,7 @@ paths:
                     type: string
 """
 
-PARAMETER = \
+PARAMETER_FORMAT = \
     """        - name: {parameter_name}
           in: {parameter_location}
           type: {parameter_type}

@@ -1,3 +1,5 @@
+from dataclasses import fields
+
 from nova_api.dao.generic_sql_dao import GenericSQLDAO
 from nova_api import error_response, success_response, use_dao
 
@@ -15,12 +17,20 @@ def probe(dao: GenericSQLDAO = None):
 @use_dao(EntityDAO, "Unable to list entityfortest")
 def read(length: int = 20, offset: int = 0,
          dao: GenericSQLDAO = None, **kwargs):
+    filters = dict()
+
+    entity_attributes = [field.name for field in fields(EntityForTest)]
+
     for key, value in kwargs.items():
-        kwargs[key] = value.split(',') \
-                        if len(value.split(',')) > 1 \
-                        else value
+        if key not in entity_attributes:
+            continue
+
+        filters[key] = value.split(',') \
+                       if len(str(value).split(',')) > 1 \
+                       else value
+
     total, results = dao.get_all(length=length, offset=offset,
-                                 filters=kwargs if len(kwargs) > 0 else None)
+                                 filters=filters if filters else None)
     return success_response(message="List of entityfortest",
                             data={"total": total, "results": [dict(result)
                                                               for result

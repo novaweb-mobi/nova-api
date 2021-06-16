@@ -11,6 +11,14 @@ from mock import Mock, call
 from pytest import mark, raises
 
 import nova_api
+from nova_api.exceptions import NovaAPIException
+
+NOVA_API_ERROR_RESPONSE = "nova_api.error_response"
+SAMPLE_ERROR_MESSAGE = "A error test"
+
+
+class SimpleCustomException(NovaAPIException):
+    pass
 
 
 # pylint: disable=R0201
@@ -63,14 +71,14 @@ class TestAPIUtils:
                  message="Error",
                  data={} if data is None else data)])
 
-    def test_use_dao(self, mocker):
+    def test_use_dao_should_open_and_close_dao(self, mocker):
         my_mock = Mock()
 
         @nova_api.use_dao(dao_class=my_mock, retries=1)
-        def test(**kwargs):
+        def test_decorated_function(**kwargs):
             return kwargs.get('dao') == my_mock.return_value
 
-        ret = test()
+        ret = test_decorated_function()
         assert my_mock.mock_calls == [call(), call().close()] and ret
 
     def test_use_dao_db_args(self, mocker):
@@ -119,7 +127,7 @@ class TestAPIUtils:
 
     def test_use_dao_retry(self, mocker):
         my_mock = Mock()
-        mocker.patch("nova_api.error_response",
+        mocker.patch(NOVA_API_ERROR_RESPONSE,
                      return_value="NOT OK")
 
         def raise_exception():
@@ -136,11 +144,11 @@ class TestAPIUtils:
         end = time.time()
 
         assert my_mock.mock_calls == [call(), call(), call()]
-        assert end-start > 3
+        assert end - start > 3
 
     def test_use_dao_exception(self, mocker):
         my_mock = Mock()
-        mocker.patch("nova_api.error_response",
+        mocker.patch(NOVA_API_ERROR_RESPONSE,
                      return_value="NOT OK")
 
         @nova_api.use_dao(dao_class=my_mock, retries=1)
@@ -152,11 +160,95 @@ class TestAPIUtils:
         assert my_mock.mock_calls == [call(), call().close()]
         assert ret == "NOT OK"
 
+    def test_use_dao_custom_exception_debug(self, mocker):
+        nova_api.DEBUG = True
+        my_mock = Mock()
+        mocker.patch(NOVA_API_ERROR_RESPONSE,
+                     side_effect=lambda *args, **kwargs
+                     : (args, kwargs))
+
+        @nova_api.use_dao(dao_class=my_mock, retries=1)
+        def test(**kwargs):
+            raise SimpleCustomException(404, "something not found",
+                                        1, "debug message")
+
+        ret = test()
+        assert my_mock.mock_calls == [call(), call().close()]
+        assert ret == ((), {"status_code": 404, "message": "something not found",
+                        "data": {"error_code": 1, "debug": "debug message"}})
+
+    def test_use_dao_custom_exception_debug_default_error_code(self, mocker):
+        nova_api.DEBUG = True
+        my_mock = Mock()
+        mocker.patch(NOVA_API_ERROR_RESPONSE,
+                     side_effect=lambda *args, **kwargs
+                     : (args, kwargs))
+
+        @nova_api.use_dao(dao_class=my_mock, retries=1)
+        def test(**kwargs):
+            raise SimpleCustomException(404, "something not found",
+                                        debug="debug message")
+
+        ret = test()
+        assert my_mock.mock_calls == [call(), call().close()]
+        assert ret == ((), {"status_code": 404, "message": "something not found",
+                        "data": {"error_code": 404, "debug": "debug message"}})
+
+    def test_use_dao_custom_exception_no_debug(self, mocker):
+        nova_api.DEBUG = False
+        my_mock = Mock()
+        mocker.patch(NOVA_API_ERROR_RESPONSE,
+                     side_effect=lambda *args, **kwargs
+                     : (args, kwargs))
+
+        @nova_api.use_dao(dao_class=my_mock, retries=1)
+        def test(**kwargs):
+            raise SimpleCustomException(404, "something not found",
+                                        1, "debug message")
+
+        ret = test()
+        assert my_mock.mock_calls == [call(), call().close()]
+        assert ret == ((), {"status_code": 404, "message": "something not found",
+                        "data": {"error_code": 1}})
+
+    @staticmethod
+    def test_use_dao_exception_debug(mocker):
+        nova_api.DEBUG = True
+        my_mock = Mock()
+        mocker.patch(NOVA_API_ERROR_RESPONSE,
+                     side_effect=lambda **kwargs: kwargs)
+
+        @nova_api.use_dao(dao_class=my_mock, retries=1)
+        def test(**kwargs):
+            if kwargs.get('dao') == my_mock.return_value:
+                raise Exception(SAMPLE_ERROR_MESSAGE)
+
+        ret = test()
+        assert my_mock.mock_calls == [call(), call().close()]
+        assert ret == {"message": "Erro", "data": {"error": SAMPLE_ERROR_MESSAGE}}
+
+    @staticmethod
+    def test_use_dao_exception_no_debug(mocker):
+        nova_api.DEBUG = False
+        my_mock = Mock()
+        mocker.patch(NOVA_API_ERROR_RESPONSE,
+                     side_effect=lambda **kwargs: kwargs)
+
+        @nova_api.use_dao(dao_class=my_mock, retries=1)
+        def test(**kwargs):
+            if kwargs.get('dao') == my_mock.return_value:
+                raise Exception(SAMPLE_ERROR_MESSAGE)
+
+        ret = test()
+        assert my_mock.mock_calls == [call(), call().close()]
+        assert ret == {"message": "Erro", "data":
+            {"error": "Something went wrong... Please try again later."}}
+
     def test_generate_valid_api_yml(self):
         nova_api.create_api_files(EntityForTest, EntityDAO, '1')
         gen_spec = Specification.load('entityfortest_api.yml')
         base_spec = Specification.load(
-            'unittests/entityfortest_api_result.yml'
+            'tests/unittests/entityfortest_api_result.yml'
         )
         assert gen_spec == base_spec
         os.remove('entityfortest_api.yml')
@@ -174,7 +266,7 @@ class TestAPIUtils:
                                   '1', auth_schema=nova_api.JWT)
         gen_spec = Specification.load('entityfortest_api.yml')
         base_spec = Specification.load(
-            'unittests/entityfortest_api_jwt_result.yml'
+            'tests/unittests/entityfortest_api_jwt_result.yml'
         )
         with open('entityfortest_api.yml') as f:
             print(f.read())
@@ -187,7 +279,7 @@ class TestAPIUtils:
         gen_spec = ''
         with open('entityfortest_api.py', 'r') as f:
             gen_spec = f.read()
-        with open('unittests/entityfortest_api_result.py') as f:
+        with open('tests/unittests/entityfortest_api_result.py') as f:
             base_spec = f.read()
         os.remove('entityfortest_api.yml')
         os.remove('entityfortest_api.py')

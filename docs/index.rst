@@ -149,4 +149,5 @@ More Information
    create_entity
    create_dao
    auth
+   error
    license
