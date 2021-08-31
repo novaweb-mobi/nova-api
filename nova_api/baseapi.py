@@ -25,8 +25,9 @@ def read(length: int = 20, offset: int = 0,
         if key not in entity_attributes:
             continue
 
-        filters[key] = value.split(',') \\
+        filters[key] = value.split(',', 1) \\
                        if len(str(value).split(',')) > 1 \\
+                           and str(value).split(',')[0] in dao.database.ALLOWED_COMPARATORS \\
                        else value
 
     total, results = dao.get_all(length=length, offset=offset,
