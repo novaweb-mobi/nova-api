@@ -26,7 +26,7 @@ def read(length: int = 20, offset: int = 0,
             continue
 
         filters[key] = value.split(',', 1) \
-                       if len(str(value).split(',')) > 1 \
+                       if str(value).count(',') >= 1 \
                            and str(value).split(',')[0] in dao.database.ALLOWED_COMPARATORS \
                        else value
 
