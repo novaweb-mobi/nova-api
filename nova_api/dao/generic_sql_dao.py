@@ -18,10 +18,6 @@ class GenericSQLDAO(GenericDAO):
                  table: str = None, fields: dict = None,
                  return_class: Type[Entity] = Entity,
                  prefix: str = None, **kwargs) -> None:
-        super().__init__(table=table, fields=fields,
-                         return_class=return_class,
-                         prefix=prefix, **kwargs)
-
         self.logger = logging.getLogger(__name__)
 
         self.database_type = database_type
