@@ -137,11 +137,11 @@ class Entity(ABC):
 
         :return:
         """
-        for key in self.__dict__:
-            if issubclass(self.__dict__[key].__class__, Entity):
-                yield key + '_id_', Entity._serialize_field(self.__dict__[key])
+        for key, value in self.__dict__.items():
+            if isinstance(value, Entity):
+                yield key + '_id_', Entity._serialize_field(value)
             else:
-                yield key, Entity._serialize_field(self.__dict__[key])
+                yield key, Entity._serialize_field(value)
 
     @staticmethod
     def _serialize_field(field_value):
@@ -150,15 +150,16 @@ class Entity(ABC):
         :param field_value: Value of the field to be serialized
         :return: Serialized value
         """
+        serialized_value = field_value
         if issubclass(field_value.__class__, Entity):
-            return field_value.id_
-        if isinstance(field_value, datetime):
-            return field_value.strftime("%Y-%m-%d %H:%M:%S")
-        if isinstance(field_value, date):
-            return field_value.strftime("%Y-%m-%d")
-        if isinstance(field_value, Enum):
-            return field_value.value
-        return field_value
+            serialized_value = field_value.id_
+        elif isinstance(field_value, datetime):
+            serialized_value = field_value.strftime("%Y-%m-%d %H:%M:%S")
+        elif isinstance(field_value, date):
+            serialized_value = field_value.strftime("%Y-%m-%d")
+        elif isinstance(field_value, Enum):
+            serialized_value = field_value.value
+        return serialized_value
 
     def get_db_values(self) -> list:
         """Returns all attributes to save in database with formatted values.

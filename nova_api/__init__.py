@@ -94,7 +94,7 @@ def error_response(status_code: int = 500, message: str = "Error",
     :return: Default response with success=false
     """
     if data is None:
-        data = dict()
+        data = {}
     return default_response(success=False, status_code=status_code,
                             message=message, data=data)
 
@@ -115,7 +115,7 @@ def success_response(status_code: int = 200, message: str = "OK",
         :return: Default response with success=true
         """
     if data is None:
-        data = dict()
+        data = {}
     return default_response(success=True, status_code=status_code,
                             message=message, data=data)
 
@@ -150,7 +150,7 @@ def use_dao(dao_class: Type[GenericDAO],
     """
 
     if dao_parameters is None:
-        dao_parameters = dict()
+        dao_parameters = {}
 
     def make_call(function):
 
@@ -174,7 +174,7 @@ def use_dao(dao_class: Type[GenericDAO],
                         break
                     except ConnectionError as con_error:
                         print("Connection failed, will retry "
-                              "%s times" % attempted_retries)
+                              f"{attempted_retries} times")
                         time.sleep(retry_delay)
                         if attempted_retries == 1:
                             raise con_error
@@ -185,12 +185,12 @@ def use_dao(dao_class: Type[GenericDAO],
             except NovaAPIException as nova_api_exception:
                 response_data = {"error_code": nova_api_exception.error_code}
                 if DEBUG:
-                    response_data["debug"]=nova_api_exception.debug
+                    response_data["debug"] = nova_api_exception.debug
                 return error_response(
                     status_code=nova_api_exception.status_code,
                     message=nova_api_exception.message,
                     data=response_data)
-            except Exception as exception: # pylint: disable=W0703
+            except Exception as exception:  # pylint: disable=W0703
                 logger.error(
                     "Unable to generate api response due to an error.",
                     exc_info=True)
@@ -279,8 +279,8 @@ def generate_api():
         sys.exit(os.EX_IOERR)
 
     if auth and not is_valid_auth_schema(auth):
-        print(("Schema %s not supported! The supported schemas "
-               "are: " % auth) + ', '.join(
+        print((f"Schema {auth} not supported! The supported schemas "
+               "are: ") + ', '.join(
             AUTHENTICATION_SCHEMAS.keys()))
         sys.exit(os.EX_DATAERR)
 
@@ -298,7 +298,7 @@ def is_valid_auth_schema(auth: str) -> bool:
     :param auth: The informed auth schema
     :return: True if the schema is in the valid schemas and False otherwise
     """
-    return auth in AUTHENTICATION_SCHEMAS.keys()
+    return auth in AUTHENTICATION_SCHEMAS
 
 
 def get_auth_schema_yml(schema: int = None):
@@ -321,7 +321,7 @@ def create_api_files(entity, dao_class, version,
         version = '1'
     logger.info("Version for api is %s", version)
 
-    parameters = list()
+    parameters = []
     for field in fields(entity):
         if not field.metadata.get("database", True):
             continue
@@ -329,14 +329,12 @@ def create_api_files(entity, dao_class, version,
 
     parameters = '\n'.join(parameters)
 
-    if os.path.isfile(
-            "{entity_lower}_api.yml".format(entity_lower=entity_lower)) \
+    if os.path.isfile(f"{entity_lower}_api.yml") \
             and not overwrite:
         logger.debug(
             "API documentation already exists. Skipping generation...")
     else:
-        with open("{entity_lower}_api.yml".format(entity_lower=entity_lower),
-                  'w+') as api_documentation:
+        with open(f"{entity_lower}_api.yml", 'w+', encoding='utf-8') as api_documentation:
             logger.info("Writing api documentation for entity %s...",
                         entity_lower)
             api_documentation.write(baseapi.API_SWAGGER.format(
@@ -386,7 +384,7 @@ def write_api_implementation(api_implementation_file: str,
     entity_lower = entity.__name__.lower()
 
     with open(api_implementation_file,
-              'w+') as api_implementation:
+              'w+', encoding='utf-8') as api_implementation:
         logger.info("Writing api implementation for entity %s...",
                     entity_lower)
 
@@ -415,7 +413,7 @@ def get_python_api_filename(entity_lower: str) -> str:
     :param entity_lower: The entity name in lower case.
     :return:
     """
-    return "{entity_lower}_api.py".format(entity_lower=entity_lower)
+    return f"{entity_lower}_api.py"
 
 
 def python_api_exists(entity_lower: str) -> bool:
