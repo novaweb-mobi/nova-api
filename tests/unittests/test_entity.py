@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime, date
+from enum import Enum
 from typing import List
 
 from pytest import fixture, raises
@@ -43,6 +44,16 @@ class EntityForTestWithTypeError(Entity):
 @dataclass
 class EntityForTestWithString(Entity):
     name: str = None
+
+
+class SimpleEnum(Enum):
+    name1 = 0
+    name2 = 1
+
+
+@dataclass
+class EntityForTestWithEnum(Entity):
+    simple_enum: SimpleEnum = None
 
 
 class TestEntity:
@@ -106,3 +117,22 @@ class TestEntity:
                                                                 hour=19,
                                                                 minute=7))
         assert ent1 == ent2
+
+    def test_enum_parsing(self):
+        ent = EntityForTestWithEnum('0' * 32,
+                                    datetime(day=21,
+                                             month=9,
+                                             year=2021,
+                                             hour=0,
+                                             minute=0),
+                                    datetime(day=21,
+                                             month=9,
+                                             year=2021,
+                                             hour=0,
+                                             minute=0),
+                                    simple_enum=0)
+
+        assert isinstance(ent.simple_enum, Enum)
+        assert ent.get_db_values() == ['0' * 32,
+                                       *['2021-09-21 00:00:00'] * 2,
+                                       0]

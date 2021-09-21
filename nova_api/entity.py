@@ -1,8 +1,9 @@
 """Base entity for modeling of API's"""
 import logging
 from abc import ABC
-from dataclasses import Field, dataclass, field, fields
+from dataclasses import dataclass, field, fields
 from datetime import date, datetime
+from enum import Enum
 from uuid import uuid4
 
 
@@ -114,6 +115,14 @@ class Entity(ABC):
                     self.__setattr__(
                         field_.name,
                         str(field_value).strip())
+                elif issubclass(field_.type, Enum) \
+                        and \
+                        not isinstance(field_value, field_.type):
+                    logger.debug(received_log,
+                                 type(field_value),
+                                 field_.type)
+                    self.__setattr__(field_.name,
+                                     field_.type(field_value))
             except TypeError:
                 logger.debug("Unable to check field %s type",
                              field_.name, exc_info=True)
@@ -135,19 +144,21 @@ class Entity(ABC):
                 yield key, Entity._serialize_field(self.__dict__[key])
 
     @staticmethod
-    def _serialize_field(field_: Field):
+    def _serialize_field(field_value):
         """
 
-        :param field_:
-        :return:
+        :param field_value: Value of the field to be serialized
+        :return: Serialized value
         """
-        if issubclass(field_.__class__, Entity):
-            return field_.id_
-        if isinstance(field_, datetime):
-            return field_.strftime("%Y-%m-%d %H:%M:%S")
-        if isinstance(field_, date):
-            return field_.strftime("%Y-%m-%d")
-        return field_
+        if issubclass(field_value.__class__, Entity):
+            return field_value.id_
+        if isinstance(field_value, datetime):
+            return field_value.strftime("%Y-%m-%d %H:%M:%S")
+        if isinstance(field_value, date):
+            return field_value.strftime("%Y-%m-%d")
+        if isinstance(field_value, Enum):
+            return field_value.value
+        return field_value
 
     def get_db_values(self) -> list:
         """Returns all attributes to save in database with formatted values.

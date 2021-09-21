@@ -1,7 +1,6 @@
-import dataclasses
 from abc import ABC, abstractmethod
 from re import sub
-from typing import List, Optional
+from typing import List, Optional, Type
 
 from nova_api.entity import Entity
 
@@ -14,7 +13,7 @@ def camel_to_snake(name):
 class GenericDAO(ABC):
     @abstractmethod
     def __init__(self, database=None, table: str = None, fields: dict = None,
-                 return_class: Entity = Entity,
+                 return_class: Type[Entity] = Entity,
                  prefix: str = None, **kwargs) -> None:
         pass
 

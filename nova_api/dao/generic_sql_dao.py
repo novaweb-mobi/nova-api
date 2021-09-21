@@ -1,7 +1,7 @@
 import dataclasses
 import logging
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Type
 
 from nova_api.entity import Entity
 from nova_api.exceptions import NoRowsAffectedException
@@ -16,10 +16,11 @@ class GenericSQLDAO(GenericDAO):
     def __init__(self, database_type: PersistenceHelper = None,
                  database_instance=None,
                  table: str = None, fields: dict = None,
-                 return_class: Entity = Entity,
+                 return_class: Type[Entity] = Entity,
                  prefix: str = None, **kwargs) -> None:
-        super().__init__(table, fields, return_class, prefix,
-                         **kwargs)
+        super().__init__(table=table, fields=fields,
+                         return_class=return_class,
+                         prefix=prefix, **kwargs)
 
         self.logger = logging.getLogger(__name__)
 
@@ -365,13 +366,13 @@ class GenericSQLDAO(GenericDAO):
                     default = "NOT NULL"
 
             fields_.append(self.database.COLUMN.format(field=field_name,
-                                              type=type_,
-                                              default=default))
+                                                       type=type_,
+                                                       default=default))
         fields_ = ', '.join(fields_)
         primary_keys = ', '.join(primary_keys)
         query = self.database.CREATE_QUERY.format(table=self.table,
-                                         fields=fields_,
-                                         primary_keys=primary_keys)
+                                                  fields=fields_,
+                                                  primary_keys=primary_keys)
         self.logger.info("Creating table with query: %s", query)
         self.database.query(query)
         self.logger.info("Table created")
