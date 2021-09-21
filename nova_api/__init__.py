@@ -120,7 +120,7 @@ def success_response(status_code: int = 200, message: str = "OK",
                             message=message, data=data)
 
 
-def use_dao(dao_class: GenericDAO,
+def use_dao(dao_class: Type[GenericDAO],
             error_message: str = "Erro",
             dao_parameters: dict = None,
             retry_delay: float = float(os.environ.get("NOVAAPI_RETRY_DELAY",
