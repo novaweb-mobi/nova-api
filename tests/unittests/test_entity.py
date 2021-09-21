@@ -132,20 +132,6 @@ class TestEntity:
                                              minute=0),
                                     simple_enum=0)
 
-    def test_enum_not_parsed_when_value_is_already_enum(self):
-        ent = EntityForTestWithEnum('0' * 32,
-                                    datetime(day=21,
-                                             month=9,
-                                             year=2021,
-                                             hour=0,
-                                             minute=0),
-                                    datetime(day=21,
-                                             month=9,
-                                             year=2021,
-                                             hour=0,
-                                             minute=0),
-                                    simple_enum=SimpleEnum.name1)
-
         assert isinstance(ent.simple_enum, Enum)
         assert ent.get_db_values() == ['0' * 32,
                                        *['2021-09-21 00:00:00'] * 2,
