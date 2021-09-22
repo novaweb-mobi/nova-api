@@ -12,3 +12,4 @@ wheel
 connexion
 python-jose
 makefun
+python-dateutil

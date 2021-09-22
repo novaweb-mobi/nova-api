@@ -1,13 +1,13 @@
+from datetime import date, datetime
 from os import environ
 from typing import List, Optional, Type
 from urllib.parse import quote_plus
 
 from pymongo import MongoClient
 
-from dao import camel_to_snake
-from entity import Entity
-from nova_api.exceptions import NotEntityException
 from nova_api import GenericDAO
+from nova_api.dao import camel_to_snake
+from nova_api.entity import Entity
 
 
 class MongoDAO(GenericDAO):
@@ -21,6 +21,7 @@ class MongoDAO(GenericDAO):
                  password: str = environ.get('DB_PASSWORD', ''),
                  database_instance=None, **kwargs) -> None:
         super().__init__(fields, return_class, prefix)
+        self.fields["id_"] = "_id"
 
         self.client = database_instance
         if user:
@@ -47,8 +48,21 @@ class MongoDAO(GenericDAO):
     def remove(self, entity: Entity) -> None:
         pass
 
+    @staticmethod
+    def custom_serializer(field_):
+        if isinstance(field_, datetime) or isinstance(field_, date):
+            return field_
+        return Entity._serialize_field(field_)
+
     def create(self, entity: Entity) -> str:
         super().create(entity)
+
+        ent_values = entity.get_db_values(MongoDAO.custom_serializer)
+        db_doc = {key: value
+                  for key, value in zip(self.fields.values(), ent_values)}
+        self.database[self.collection].insert_one(db_doc)
+
+
 
     def update(self, entity: Entity) -> str:
         pass

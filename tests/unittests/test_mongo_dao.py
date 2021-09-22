@@ -1,14 +1,12 @@
-import os
+import datetime
 from dataclasses import dataclass
 from datetime import date
-from unittest import mock
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
-from pytest import fixture, raises, mark
+from pytest import fixture
 
 from dao.mongo_dao import MongoDAO
 from entity import Entity
-from nova_api.exceptions import NotEntityException
 
 
 @dataclass
@@ -96,25 +94,31 @@ class TestMongoDAO:
     def test_should_set_fields_from_return_class(mongo_mock):
         dao = MongoDAO(return_class=TestEntity)
         assert dao.fields == {
-            "id_": "test_entity_id_",
+            "id_": "_id",
             "creation_datetime": "test_entity_creation_datetime",
             "last_modified_datetime": "test_entity_last_modified_datetime",
             "name": "test_entity_name",
             "birthday": "test_entity_birthday"
         }
 
+
     @staticmethod
-    @mark.parametrize("arg",[
-        "",
-        1,
-        True,
-        1.0
-    ])
-    def test_should_raise_NotEntityException_if_create_not_entity(mongo_mock,
-                                                                  arg):
+    def test_should_call_insert_one_if_create_valid(mongo_mock):
         dao = MongoDAO(return_class=TestEntity)
-        with raises(NotEntityException):
-            dao.create(arg)
+        dao.database: Mock
+        ent = TestEntity(id_="12345678901234567890123456789012",
+                         creation_datetime=datetime.datetime(1, 1, 1),
+                         last_modified_datetime=datetime.datetime(1, 1, 1),
+                         name="Mateus",
+                         birthday=datetime.datetime(2, 2, 2))
+        dao.create(ent)
+        dao.database["test_entitys"].insert_one.assert_has_calls(
+            [call({'_id': '12345678901234567890123456789012',
+                   'test_entity_creation_datetime': ent.creation_datetime,
+                   'test_entity_last_modified_datetime': ent.last_modified_datetime,
+                   'test_entity_name': 'Mateus',
+                   'test_entity_birthday': ent.birthday})],
+            any_order=True)
 
     @staticmethod
     @fixture

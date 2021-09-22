@@ -152,7 +152,7 @@ class Entity(ABC):
             return field_.strftime("%Y-%m-%d")
         return field_
 
-    def get_db_values(self) -> list:
+    def get_db_values(self, field_serializer=None) -> list:
         """Returns all attributes to save in database with formatted values.
 
         Goes through the fields in the entity and converts them to the
@@ -162,8 +162,11 @@ class Entity(ABC):
         Also verifies if a field contains in metadata `database=False` and
         excludes it from the list if so. Default for `database` is True.
 
+        :param field_serializer: Custom function to define serialization of
+        fields
         :return: Serialized values to save in database
         """
-        return [Entity._serialize_field(self.__getattribute__(field_.name))
+        field_serializer = field_serializer or Entity._serialize_field
+        return [field_serializer(self.__getattribute__(field_.name))
                 for field_ in fields(self)
                 if field_.metadata.get("database", True)]

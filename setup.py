@@ -24,7 +24,7 @@ setuptools.setup(
     ],
     extras_require={
         'postgresql': ['psycopg2-binary'],
-        'mongo': ['pymongo']
+        'mongo': ['pymongo', 'python-dateutil']
     },
     classifiers=[
         "Programming Language :: Python :: 3",
