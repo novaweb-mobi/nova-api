@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Optional, Type
 
 from nova_api.entity import Entity
-from nova_api.exceptions import NoRowsAffectedException
+from nova_api.exceptions import NoRowsAffectedException, NotEntityException
 from nova_api.dao import GenericDAO, camel_to_snake
 from nova_api.persistence import PersistenceHelper
 from nova_api.persistence.mysql_helper import MySQLHelper
@@ -211,24 +211,12 @@ class GenericSQLDAO(GenericDAO):
 
         :param entity: The instance to save in the database.
         :return: The entity uuid.
+        :raise NotEntityException: Raised if the entity argument
+        is not of the return_class of this DAO
+        :raise DuplicateEntityException: Raised if an entity with
+        the same ID exists in the database already.
         """
-        if not isinstance(entity, self.return_class):
-            self.logger.error("Entity was not passed as an instance to create."
-                              " Value received: %s", entity)
-            raise TypeError(
-                "Entity must be a {entity} object!".format(
-                    entity=self.return_class.__name__
-                )
-            )
-
-        if self.get(entity.id_) is not None:
-            self.logger.error("Entity was found in database before create."
-                              " Value received: %s", entity)
-            raise AssertionError(
-                "{entity} uuid already exists in database!".format(
-                    entity=self.return_class.__name__
-                )
-            )
+        super().create(entity)
 
         ent_values = entity.get_db_values()
 

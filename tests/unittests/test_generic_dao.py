@@ -1,36 +1,43 @@
 from abc import ABC
+from dataclasses import dataclass
 from typing import List
 
-from nova_api.entity import Entity
-from pytest import raises
+from pytest import raises, mark
 
+from nova_api.entity import Entity
 from nova_api.dao import GenericDAO
+from nova_api.exceptions import DuplicateEntityException, NotEntityException
+
+
+@dataclass
+class TestEntity(Entity):
+    name: str = ""
 
 
 class MyDAO(GenericDAO):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        
+        super().__init__(return_class=TestEntity, **kwargs)
+
     def get(self, id_):
         super(MyDAO, self).get(id_)
-    
+
     def get_all(self, length: int = 20, offset: int = 0,
                 filters: dict = None) -> (int, List[Entity]):
         super(MyDAO, self).get_all(length, offset, filters)
-        
+
     def remove(self, entity: Entity) -> None:
         super(MyDAO, self).remove(entity)
-    
+
     def create(self, entity: Entity) -> str:
-        super(MyDAO, self).create(entity)
-        
+        return super(MyDAO, self).create(entity)
+
     def update(self, entity: Entity) -> str:
         super(MyDAO, self).update(entity)
-        
+
     @classmethod
     def predict_db_type(cls, cls_to_predict):
         super(MyDAO, cls).predict_db_type(cls_to_predict)
-        
+
     def close(self):
         super(MyDAO, self).close()
 
@@ -63,10 +70,32 @@ class TestGenericDAO:
         with raises(NotImplementedError):
             dao.remove(None)
 
-    def test_create(self):
+    @staticmethod
+    @mark.parametrize("arg", [
+        "",
+        1,
+        True,
+        1.0
+    ])
+    def test_should_raise_NotEntityException_if_create_not_entity(arg):
         dao = MyDAO()
-        with raises(NotImplementedError):
-            dao.create(None)
+        with raises(NotEntityException):
+            dao.create(arg)
+
+    @staticmethod
+    def test_should_raise_if_entity_already_exists(mocker):
+        existing_ent = TestEntity(id_="00000000000000000000000000000000")
+        mocker.patch.object(MyDAO, 'get', return_value=existing_ent)
+        dao = MyDAO()
+        with raises(DuplicateEntityException):
+            dao.create(existing_ent)
+
+    @staticmethod
+    def test_should_return_id_if_ok(mocker):
+        existing_ent = TestEntity(id_="00000000000000000000000000000000")
+        mocker.patch.object(MyDAO, 'get', return_value=None)
+        dao = MyDAO()
+        assert dao.create(existing_ent) == existing_ent.id_
 
     def test_update(self):
         dao = MyDAO()

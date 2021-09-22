@@ -6,11 +6,12 @@ from pymongo import MongoClient
 
 from dao import camel_to_snake
 from entity import Entity
+from nova_api.exceptions import NotEntityException
 from nova_api import GenericDAO
 
 
 class MongoDAO(GenericDAO):
-    def __init__(self, database=environ.get('DB_NAME'),
+    def __init__(self, database=environ.get('DB_NAME', 'default'),
                  fields: dict = None,
                  collection: str = None,
                  return_class: Type[Entity] = Entity,
@@ -36,7 +37,6 @@ class MongoDAO(GenericDAO):
         self.collection = collection \
                           or camel_to_snake(return_class.__name__) + 's'
 
-
     def get(self, id_: str) -> Optional[Entity]:
         pass
 
@@ -48,7 +48,7 @@ class MongoDAO(GenericDAO):
         pass
 
     def create(self, entity: Entity) -> str:
-        pass
+        super().create(entity)
 
     def update(self, entity: Entity) -> str:
         pass

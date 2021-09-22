@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from re import sub
 from typing import List, Optional, Type
 
+from nova_api.exceptions import DuplicateEntityException, NotEntityException
 from nova_api.entity import Entity
 
 
@@ -18,7 +19,7 @@ class GenericDAO(ABC):
                  fields: dict = None,
                  return_class: Type[Entity] = Entity,
                  prefix: str = None) -> None:
-        self.logger = logging.getLogger("nova_api_logger")
+        self.logger = logging.getLogger("nova_api")
         self.return_class = return_class
 
         self.prefix = prefix or camel_to_snake(return_class.__name__) + "_"
@@ -58,7 +59,38 @@ class GenericDAO(ABC):
 
     @abstractmethod
     def create(self, entity: Entity) -> str:
-        raise NotImplementedError()
+        """
+            Creates a new entry in the databse with data from `entity`.
+
+            :param entity: The instance to save in the database.
+            :return: The entity uuid.
+            :raise NotEntityException: Raised if the entity argument
+            is not of the return_class of this DAO
+            :raise DuplicateEntityException: Raised if an entity with
+            the same ID exists in the database already.
+        """
+        if not isinstance(entity, self.return_class):
+            self.logger.error("Entity was not passed as an instance to create."
+                              " Value received: %s", entity)
+            raise NotEntityException(
+                debug="Entity must be a {entity} object! "
+                      "Entity was a {class_} object.".format(
+                    entity=self.return_class.__name__,
+                    class_=entity.__class__.__name__
+                )
+            )
+
+        if self.get(entity.id_) is not None:
+            self.logger.error("Entity was found in database before create."
+                              " Value received: %s", entity)
+            raise DuplicateEntityException(
+                debug="{entity} uuid {id_} already exists in database!".format(
+                    entity=self.return_class.__name__,
+                    id_=entity.id_
+                )
+            )
+
+        return entity.id_
 
     @abstractmethod
     def update(self, entity: Entity) -> str:

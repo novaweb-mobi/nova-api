@@ -43,7 +43,7 @@ class PaymentDAO(GenericSQLDAO):
 
 
 @mark.parametrize("pool", [True, False])
-class TestIntegration:
+class TestIntegrationMySQL:
     @fixture
     def user_dao(self, pool):
         return UserDAO(pooled=pool)

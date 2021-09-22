@@ -32,5 +32,15 @@ class NovaAPIException(Exception):
             self.error_code = self.status_code
 
 
+class NotEntityException(NovaAPIException):
+    status_code = 400
+    message = "Argument is not an Entity"
+
+
+class DuplicateEntityException(NovaAPIException):
+    status_code = 409
+    message = "Entity already exists in database"
+
+
 class NoRowsAffectedException(IOError):
     pass

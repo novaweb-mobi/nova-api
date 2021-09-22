@@ -7,7 +7,8 @@ from pytest import fixture, mark, raises
 
 from nova_api.entity import Entity
 from nova_api.dao.generic_sql_dao import GenericSQLDAO
-from nova_api.exceptions import NoRowsAffectedException
+from nova_api.exceptions import DuplicateEntityException, \
+    NoRowsAffectedException, NotEntityException
 from nova_api.dao import generic_sql_dao
 
 
@@ -562,11 +563,11 @@ class TestGenericSQLDAOPostgres:
     def test_create_exist(self, generic_dao, postgres_mock, entity):
         db = postgres_mock.return_value
         db.get_results.return_value = [list(entity.__dict__.values())]
-        with raises(AssertionError):
+        with raises(DuplicateEntityException):
             generic_dao.create(entity)
 
     def test_create_not_entity(self, generic_dao, postgres_mock):
-        with raises(TypeError):
+        with raises(NotEntityException):
             generic_dao.create("12345678901234567890123456789012")
 
     def test_create_no_rows_affected(self, generic_dao, postgres_mock, entity):

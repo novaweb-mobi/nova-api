@@ -4,10 +4,11 @@ from datetime import date
 from unittest import mock
 from unittest.mock import Mock
 
-from pytest import fixture
+from pytest import fixture, raises, mark
 
 from dao.mongo_dao import MongoDAO
 from entity import Entity
+from nova_api.exceptions import NotEntityException
 
 
 @dataclass
@@ -101,6 +102,19 @@ class TestMongoDAO:
             "name": "test_entity_name",
             "birthday": "test_entity_birthday"
         }
+
+    @staticmethod
+    @mark.parametrize("arg",[
+        "",
+        1,
+        True,
+        1.0
+    ])
+    def test_should_raise_NotEntityException_if_create_not_entity(mongo_mock,
+                                                                  arg):
+        dao = MongoDAO(return_class=TestEntity)
+        with raises(NotEntityException):
+            dao.create(arg)
 
     @staticmethod
     @fixture
