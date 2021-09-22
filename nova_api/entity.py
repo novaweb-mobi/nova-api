@@ -3,6 +3,7 @@ import logging
 from abc import ABC
 from dataclasses import Field, dataclass, field, fields
 from datetime import date, datetime
+from enum import Enum
 from uuid import uuid4
 
 
@@ -143,6 +144,8 @@ class Entity(ABC):
         """
         if issubclass(field_.__class__, Entity):
             return field_.id_
+        if issubclass(field_.__class__, Enum):
+            return field_.value
         if isinstance(field_, datetime):
             return field_.strftime("%Y-%m-%d %H:%M:%S")
         if isinstance(field_, date):

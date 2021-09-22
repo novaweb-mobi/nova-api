@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime, date
+from enum import Enum
 from typing import List
 
 from pytest import fixture, raises
@@ -45,6 +46,17 @@ class EntityForTestWithString(Entity):
     name: str = None
 
 
+class TestEnum(Enum):
+    VALUE1 = 1
+    VALUE2 = 2
+
+
+@dataclass
+class EntityForTestWithEnum(Entity):
+    name: str = None
+    value: TestEnum = TestEnum.VALUE1
+
+
 class TestEntity:
 
     @fixture
@@ -70,6 +82,17 @@ class TestEntity:
                                "test_field": 0,
                                "my_date": "2020-01-01",
                                "child_id_": "12345678901234567890123456789012"}
+
+    def test_to_dict_with_enum(self):
+        entity_dict = dict(
+            EntityForTestWithEnum("12345678901234567890123456789012",
+                                  datetime(2020, 1, 1, 0, 0, 0),
+                                  datetime(2020, 1, 1, 0, 0, 0)))
+        assert entity_dict == {"id_": "12345678901234567890123456789012",
+                               "creation_datetime": "2020-01-01 00:00:00",
+                               "last_modified_datetime": "2020-01-01 00:00:00",
+                               "name": None,
+                               "value": 1}
 
     def test_not_implemented(self):
         with raises(NotImplementedError):
