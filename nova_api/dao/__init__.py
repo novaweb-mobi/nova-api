@@ -1,7 +1,8 @@
 import dataclasses
+import logging
 from abc import ABC, abstractmethod
 from re import sub
-from typing import List, Optional
+from typing import List, Optional, Type
 
 from nova_api.entity import Entity
 
@@ -13,10 +14,34 @@ def camel_to_snake(name):
 
 class GenericDAO(ABC):
     @abstractmethod
-    def __init__(self, database=None, table: str = None, fields: dict = None,
-                 return_class: Entity = Entity,
-                 prefix: str = None, **kwargs) -> None:
-        pass
+    def __init__(self,
+                 fields: dict = None,
+                 return_class: Type[Entity] = Entity,
+                 prefix: str = None) -> None:
+        self.logger = logging.getLogger("nova_api_logger")
+        self.return_class = return_class
+
+        self.prefix = prefix or camel_to_snake(return_class.__name__) + "_"
+
+        if prefix == '':
+            self.prefix = ''
+
+        self.fields = fields
+        if not self.fields:
+            class_args = dataclasses.fields(return_class)
+            self.logger.debug("Field passed to %s are %s.", self, class_args)
+            self.fields = {arg.name:
+                               self.prefix
+                               + arg.name
+                               + (''
+                                  if not issubclass(arg.type,
+                                                    Entity)
+                                  else "_id_")
+                           for arg in class_args
+                           if arg.metadata.get("database", True)}
+            self.logger.debug("Processed fields for %s are %s.",
+                              self,
+                              self.fields)
 
     @abstractmethod
     def get(self, id_: str) -> Optional[Entity]:
@@ -37,10 +62,6 @@ class GenericDAO(ABC):
 
     @abstractmethod
     def update(self, entity: Entity) -> str:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def create_table_if_not_exists(self):
         raise NotImplementedError()
 
     @abstractmethod

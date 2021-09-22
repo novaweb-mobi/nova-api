@@ -1,7 +1,7 @@
 import dataclasses
 import logging
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Type
 
 from nova_api.entity import Entity
 from nova_api.exceptions import NoRowsAffectedException
@@ -11,17 +11,14 @@ from nova_api.persistence.mysql_helper import MySQLHelper
 
 
 class GenericSQLDAO(GenericDAO):
-
     # pylint: disable=R0913
-    def __init__(self, database_type: PersistenceHelper = None,
+    def __init__(self, database_type: Type[PersistenceHelper] = None,
                  database_instance=None,
-                 table: str = None, fields: dict = None,
-                 return_class: Entity = Entity,
+                 table: str = None,
+                 fields: dict = None,
+                 return_class: Type[Entity] = Entity,
                  prefix: str = None, **kwargs) -> None:
-        super().__init__(table, fields, return_class, prefix,
-                         **kwargs)
-
-        self.logger = logging.getLogger(__name__)
+        super().__init__(fields, return_class, prefix)
 
         self.database_type = database_type
 
@@ -42,31 +39,7 @@ class GenericSQLDAO(GenericDAO):
             self.database = self.database_type(**kwargs)
             self.logger.info("Connected to database.")
 
-        self.return_class = return_class
-
         self.table = table or camel_to_snake(return_class.__name__) + 's'
-
-        self.prefix = prefix or camel_to_snake(return_class.__name__) + "_"
-
-        if prefix == '':
-            self.prefix = ''
-
-        self.fields = fields
-        if not self.fields:
-            class_args = dataclasses.fields(return_class)
-            self.logger.debug("Field passed to %s are %s.", self, class_args)
-            self.fields = {arg.name:
-                               self.prefix
-                               + arg.name
-                               + (''
-                                  if not issubclass(arg.type,
-                                                    Entity)
-                                  else "_id_")
-                           for arg in class_args
-                           if arg.metadata.get("database", True)}
-            self.logger.debug("Processed fields for %s are %s.",
-                              self,
-                              self.fields)
 
     def get(self, id_: str) -> Optional[Entity]:
         """

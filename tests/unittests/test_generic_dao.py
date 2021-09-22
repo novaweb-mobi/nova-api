@@ -27,9 +27,6 @@ class MyDAO(GenericDAO):
     def update(self, entity: Entity) -> str:
         super(MyDAO, self).update(entity)
         
-    def create_table_if_not_exists(self):
-        super(MyDAO, self).create_table_if_not_exists()
-        
     @classmethod
     def predict_db_type(cls, cls_to_predict):
         super(MyDAO, cls).predict_db_type(cls_to_predict)
@@ -75,11 +72,6 @@ class TestGenericDAO:
         dao = MyDAO()
         with raises(NotImplementedError):
             dao.update(None)
-
-    def test_create_table_if_not_exists(self):
-        dao = MyDAO()
-        with raises(NotImplementedError):
-            dao.create_table_if_not_exists()
 
     def test_close(self):
         dao = MyDAO()

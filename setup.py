@@ -23,7 +23,8 @@ setuptools.setup(
         'makefun'
     ],
     extras_require={
-        'postgresql': ['psycopg2-binary']
+        'postgresql': ['psycopg2-binary'],
+        'mongo': ['pymongo']
     },
     classifiers=[
         "Programming Language :: Python :: 3",

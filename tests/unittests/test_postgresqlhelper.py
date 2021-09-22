@@ -156,7 +156,7 @@ class TestPostgreSQLHelper:
         db_.close()
         calls = [
             call.connect(host='localhost', user='root',
-                         password='root', database='default'),
+                         password='root', database='TEST'),
             call.connect().cursor(),
             call.connect().cursor().close(),
             call.connect().close()
