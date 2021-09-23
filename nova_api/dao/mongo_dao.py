@@ -37,32 +37,54 @@ class MongoDAO(GenericDAO):
 
         self.collection = collection \
                           or camel_to_snake(return_class.__name__) + 's'
+        self.cursor = self.database[self.collection]
 
     def get(self, id_: str) -> Optional[Entity]:
         pass
 
     def get_all(self, length: int = 20, offset: int = 0,
-                filters: dict = None) -> (int, List[Entity]):
-        pass
+                filters=None) -> (int, List[Entity]):
+        if filters is None:
+            filters = {}
+        self.logger.debug("Getting all with filters %s limit %s and offset %s",
+                          filters, length, offset)
+
+        result_cur = self.cursor.find(filters, limit=length, skip=offset)
+
+        results = []
+        for result in result_cur:
+            for prop, field in self.fields.items():
+                result[prop] = result.pop(field)
+            results.append(self.return_class(**result))
+
+        if not results:
+            self.logger.info("No results found in get_all. Returning none")
+            return 0, []
+
+        amount = self.cursor.count_documents({})
+
+        return amount, results
 
     def remove(self, entity: Entity) -> None:
         pass
+
+    def create(self, entity: Entity) -> str:
+        super().create(entity)
+
+        db_values = self.prepare_db_dict(entity)
+        print(db_values)
+        self.cursor.insert_one(db_values)
+
+    def prepare_db_dict(self, entity):
+        values = entity.get_db_values(MongoDAO.custom_serializer)
+        return {key: value
+                for key, value in zip(self.fields.values(), values)}
 
     @staticmethod
     def custom_serializer(field_):
         if isinstance(field_, datetime) or isinstance(field_, date):
             return field_
-        return Entity._serialize_field(field_)
-
-    def create(self, entity: Entity) -> str:
-        super().create(entity)
-
-        ent_values = entity.get_db_values(MongoDAO.custom_serializer)
-        db_doc = {key: value
-                  for key, value in zip(self.fields.values(), ent_values)}
-        self.database[self.collection].insert_one(db_doc)
-
-
+        return Entity.serialize_field(field_)
 
     def update(self, entity: Entity) -> str:
         pass

@@ -131,17 +131,19 @@ class Entity(ABC):
         """
         for key in self.__dict__:
             if issubclass(self.__dict__[key].__class__, Entity):
-                yield key + '_id_', Entity._serialize_field(self.__dict__[key])
+                yield key + '_id_', Entity.serialize_field(self.__dict__[key])
             else:
-                yield key, Entity._serialize_field(self.__dict__[key])
+                yield key, Entity.serialize_field(self.__dict__[key])
 
     @staticmethod
-    def _serialize_field(field_: Field):
+    def serialize_field(field_: Field):
         """
 
         :param field_:
         :return:
         """
+        print(field_.__class__)
+        print(issubclass(field_.__class__, Entity))
         if issubclass(field_.__class__, Entity):
             return field_.id_
         if issubclass(field_.__class__, Enum):
@@ -166,7 +168,7 @@ class Entity(ABC):
         fields
         :return: Serialized values to save in database
         """
-        field_serializer = field_serializer or Entity._serialize_field
+        field_serializer = field_serializer or Entity.serialize_field
         return [field_serializer(self.__getattribute__(field_.name))
                 for field_ in fields(self)
                 if field_.metadata.get("database", True)]

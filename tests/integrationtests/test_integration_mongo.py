@@ -4,7 +4,7 @@ from datetime import date
 from pytest import fixture, mark
 
 from dao.mongo_dao import MongoDAO
-from entity import Entity
+from nova_api.entity import Entity
 
 
 @dataclass
@@ -34,6 +34,7 @@ class PaymentDAO(MongoDAO):
         super(PaymentDAO, self).__init__(return_class=Payment, prefix='',
                                          **kwargs)
 
+
 class TestIntegrationMongo:
     @mark.parametrize("dao, ent", [
         (UserDAO, User(
@@ -50,13 +51,16 @@ class TestIntegrationMongo:
         )),
     ])
     def test_create_row(self, dao, ent):
-        dao = dao(host="localhost", user="root", password="root",
-                  database="default")
+        print(dao.__name__)
+        print(ent)
+        dao = dao()
         dao.create(ent)
-        created_ent = dao.get(ent.id_)
+        _, created_ents = dao.get_all()
+
         # dao.database.query("DELETE FROM {table}".format(table=dao.table))
+        dao.database.drop_collection(dao.collection)
         dao.close()
-        assert created_ent == ent
+        assert created_ents[0] == ent
 
     @fixture
     def user_dao(self):
