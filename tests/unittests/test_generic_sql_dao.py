@@ -5,11 +5,11 @@ from time import sleep
 from mock import call
 from pytest import fixture, mark, raises
 
-from nova_api.entity import Entity
 from nova_api.dao.generic_sql_dao import GenericSQLDAO
+from nova_api.entity import Entity
 from nova_api.exceptions import DuplicateEntityException, \
-    NoRowsAffectedException, NotEntityException
-from nova_api.dao import generic_sql_dao
+    InvalidIDException, InvalidIDTypeException, NoRowsAffectedException, \
+    NotEntityException
 
 
 # pylint: disable=R0201
@@ -106,7 +106,7 @@ class TestGenericSQLDAO:
 
     @fixture
     def entity(self):
-        return TestEntity(id_="12345678901234567890123456789012")
+        return TestEntity(id_="a59d80c8c5694e08a25b625a745d24e0")
 
     def test_create_table(self, generic_dao, mysql_mock):
         generic_dao.create_table_if_not_exists()
@@ -253,7 +253,7 @@ class TestGenericSQLDAO:
                                       "birthday": "test_entity_birthday"}
 
     def test_get(self, generic_dao, mysql_mock):
-        id_ = "12345678901234567890123456789012"
+        id_ = "a59d80c8c5694e08a25b625a745d24e0"
 
         db = mysql_mock.return_value
         db.get_results.return_value = [[id_,
@@ -268,7 +268,7 @@ class TestGenericSQLDAO:
             "SELECT id, creation_datetime, last_modified_datetime,"
             " name, birthday "
             "FROM test_table WHERE id = %s LIMIT %s OFFSET %s;",
-            ['12345678901234567890123456789012', 1, 0]
+            ['a59d80c8c5694e08a25b625a745d24e0', 1, 0]
         )
         assert entity == TestEntity(id_,
                                     datetime(2020, 7, 26, 12, 00, 00),
@@ -277,7 +277,7 @@ class TestGenericSQLDAO:
     def test_get_child(self, mysql_mock):
         generic_dao = GenericSQLDAO(return_class=TestEntityWithChild,
                                     prefix='')
-        id_ = "12345678901234567890123456789012"
+        id_ = "a022f42cfd2b40338bbb54a2894cba9f"
 
         db = mysql_mock.return_value
         db.get_results.return_value = [[id_,
@@ -294,7 +294,7 @@ class TestGenericSQLDAO:
             " name, birthday, child_id_ "
             "FROM test_entity_with_childs WHERE id_ = %s "
             "LIMIT %s OFFSET %s;",
-            ['12345678901234567890123456789012', 1, 0]
+            ['a022f42cfd2b40338bbb54a2894cba9f', 1, 0]
         )
         assert entity == TestEntityWithChild(
             id_,
@@ -303,7 +303,7 @@ class TestGenericSQLDAO:
             child=TestEntity(id_))
 
     def test_get_no_results(self, generic_dao, mysql_mock):
-        id_ = "12345678901234567890123456789012"
+        id_ = "a59d80c8c5694e08a25b625a745d24e0"
 
         db = mysql_mock.return_value
         db.get_results.return_value = None
@@ -314,13 +314,13 @@ class TestGenericSQLDAO:
             "SELECT id, creation_datetime, last_modified_datetime,"
             " name, birthday "
             "FROM test_table WHERE id = %s LIMIT %s OFFSET %s;",
-            ['12345678901234567890123456789012', 1, 0]
+            ['a59d80c8c5694e08a25b625a745d24e0', 1, 0]
         )
         assert entity is None
 
     @mark.parametrize("id_, error_type", [
-        ("123", ValueError),
-        (123, TypeError)
+        ("123", InvalidIDException),
+        (123, InvalidIDTypeException)
     ])
     def test_get_invalid_id(self, generic_dao, id_, error_type):
         with raises(error_type):
@@ -328,12 +328,12 @@ class TestGenericSQLDAO:
 
     def test_get_all(self, generic_dao, mysql_mock):
         db = mysql_mock.return_value
-        db.get_results.return_value = [["12345678901234567890123456789012",
+        db.get_results.return_value = [["a59d80c8c5694e08a25b625a745d24e0",
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         "Anom",
                                         None],
-                                       ["12345678901234567890123456789010",
+                                       ["a022f42cfd2b40338bbb54a2894cba9f",
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         "Testando",
@@ -358,12 +358,12 @@ class TestGenericSQLDAO:
             'SELECT count(id) FROM test_table;'
         )
 
-        assert res == [TestEntity("12345678901234567890123456789012",
+        assert res == [TestEntity("a59d80c8c5694e08a25b625a745d24e0",
                                   datetime(2020, 7, 26, 12, 00, 00),
                                   datetime(2020, 7, 26, 12, 00, 00),
                                   "Anom",
                                   None),
-                       TestEntity("12345678901234567890123456789010",
+                       TestEntity("a022f42cfd2b40338bbb54a2894cba9f",
                                   datetime(2020, 7, 26, 12, 00, 00),
                                   datetime(2020, 7, 26, 12, 00, 00),
                                   "Testando",
@@ -415,7 +415,7 @@ class TestGenericSQLDAO:
             return None
 
         db = mysql_mock.return_value
-        db.get_results.return_value = [["12345678901234567890123456789012",
+        db.get_results.return_value = [["a022f42cfd2b40338bbb54a2894cba9f",
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         "Anom",
@@ -424,7 +424,7 @@ class TestGenericSQLDAO:
         generic_dao.remove(entity)
         assert mysql_mock.query.called_with(
             'DELETE FROM test_table WHERE id = %s;',
-            ['12345678901234567890123456789012']
+            ['a022f42cfd2b40338bbb54a2894cba9f']
         )
 
     def test_remove_with_filters(self, generic_dao, mysql_mock, entity):
@@ -434,7 +434,7 @@ class TestGenericSQLDAO:
             return None
 
         db = mysql_mock.return_value
-        db.get_results.return_value = [["12345678901234567890123456789012",
+        db.get_results.return_value = [["a022f42cfd2b40338bbb54a2894cba9f",
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         "Anom",
@@ -443,7 +443,7 @@ class TestGenericSQLDAO:
         generic_dao.remove(entity, filters={"name": ["LIKE", "M%"]})
         assert mysql_mock.query.called_with(
             'DELETE FROM test_table WHERE id = %s;',
-            ["12345678901234567890123456789012"]
+            ["a022f42cfd2b40338bbb54a2894cba9f"]
         )
 
     def test_remove_only_filters(self, generic_dao, mysql_mock, entity):
@@ -480,7 +480,7 @@ class TestGenericSQLDAO:
 
 
         db = mysql_mock.return_value
-        db.get_results.return_value = [["12345678901234567890123456789012",
+        db.get_results.return_value = [["a022f42cfd2b40338bbb54a2894cba9f",
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         "Anom",
@@ -497,7 +497,7 @@ class TestGenericSQLDAO:
 
     def test_remove_not_entity(self, generic_dao, mysql_mock):
         with raises(RuntimeError):
-            generic_dao.remove("12345678901234567890123456789012")
+            generic_dao.remove("a022f42cfd2b40338bbb54a2894cba9f")
 
     @mark.parametrize("param", [12, '123', (123,), [123,], object()])
     def test_remove_filters_not_dict(self, generic_dao, param):
@@ -553,7 +553,7 @@ class TestGenericSQLDAO:
 
     def test_create_not_entity(self, generic_dao, mysql_mock):
         with raises(NotEntityException):
-            generic_dao.create("12345678901234567890123456789012")
+            generic_dao.create("a022f42cfd2b40338bbb54a2894cba9f")
 
     def test_create_no_rows_affected(self, generic_dao, mysql_mock, entity):
         db = mysql_mock.return_value
@@ -563,7 +563,7 @@ class TestGenericSQLDAO:
 
     def test_update_not_entity(self, generic_dao, mysql_mock):
         with raises(TypeError):
-            generic_dao.update("12345678901234567890123456789012")
+            generic_dao.update("a022f42cfd2b40338bbb54a2894cba9f")
 
     def test_update_entity_not_exists(self, generic_dao, mysql_mock, entity):
         db = mysql_mock.return_value
@@ -617,16 +617,16 @@ class TestGenericSQLDAO:
 
     def test_generate_filters(self, generic_dao):
         filters = generic_dao.generate_filters(filters={
-            "id_": "12345678901234567890123456789012",
+            "id_": "a022f42cfd2b40338bbb54a2894cba9f",
             "creation_datetime": [">", "2020-1-1"]})
         assert filters == ("WHERE id = %s AND creation_datetime > %s",
-                           ["12345678901234567890123456789012", "2020-1-1"])
+                           ["a022f42cfd2b40338bbb54a2894cba9f", "2020-1-1"])
 
     def test_generate_filter(self, generic_dao):
         filters = generic_dao.generate_filters(filters={
-            "id_": "12345678901234567890123456789012"})
+            "id_": "a022f42cfd2b40338bbb54a2894cba9f"})
         assert filters == ("WHERE id = %s",
-                           ["12345678901234567890123456789012"])
+                           ["a022f42cfd2b40338bbb54a2894cba9f"])
 
     def test_generate_filters_none(self, generic_dao):
         with raises(ValueError):

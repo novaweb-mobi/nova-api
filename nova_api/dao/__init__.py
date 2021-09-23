@@ -1,16 +1,27 @@
 import dataclasses
 import logging
+import re
 from abc import ABC, abstractmethod
 from re import sub
 from typing import List, Optional, Type
 
-from nova_api.exceptions import DuplicateEntityException, NotEntityException
 from nova_api.entity import Entity
+from nova_api.exceptions import DuplicateEntityException, \
+    InvalidIDException, InvalidIDTypeException, NotEntityException
 
 
 def camel_to_snake(name):
     name = sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+
+
+uuidv4regex = re.compile(
+    r'^[a-f0-9]{8}[a-f0-9]{4}4[a-f0-9]{3}[89ab][a-f0-9]{3}[a-f0-9]{12}'
+    r'\Z', re.I)
+
+
+def is_valid_uuidv4(id_):
+    return uuidv4regex.match(id_)
 
 
 class GenericDAO(ABC):
@@ -46,7 +57,16 @@ class GenericDAO(ABC):
 
     @abstractmethod
     def get(self, id_: str) -> Optional[Entity]:
-        raise NotImplementedError()
+        if not isinstance(id_, str):
+            self.logger.error("ID was not passed as a str to get. "
+                              "Value received: %s", str(id_))
+            raise InvalidIDTypeException(debug=f"Received ID was {id_}")
+        if not is_valid_uuidv4(id_):
+            self.logger.error("ID is not a valid str in get. "
+                              "Should be an uuid4."
+                              "Value received: %s", str(id_))
+            raise InvalidIDException(debug=f"Received ID was {id_}")
+        return None
 
     @abstractmethod
     def get_all(self, length: int = 20, offset: int = 0,

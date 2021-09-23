@@ -37,6 +37,16 @@ class NotEntityException(NovaAPIException):
     message = "Argument is not an Entity"
 
 
+class InvalidIDTypeException(NovaAPIException):
+    status_code = 400
+    message = "ID type is not string"
+
+
+class InvalidIDException(NovaAPIException):
+    status_code = 400
+    message = "ID is not a valid UUID v4"
+
+
 class DuplicateEntityException(NovaAPIException):
     status_code = 409
     message = "Entity already exists in database"

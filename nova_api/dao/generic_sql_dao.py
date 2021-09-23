@@ -1,11 +1,10 @@
 import dataclasses
-import logging
 from datetime import datetime
 from typing import List, Optional, Type
 
-from nova_api.entity import Entity
-from nova_api.exceptions import NoRowsAffectedException, NotEntityException
 from nova_api.dao import GenericDAO, camel_to_snake
+from nova_api.entity import Entity
+from nova_api.exceptions import NoRowsAffectedException
 from nova_api.persistence import PersistenceHelper
 from nova_api.persistence.mysql_helper import MySQLHelper
 
@@ -46,22 +45,15 @@ class GenericSQLDAO(GenericDAO):
         Recovers and entity with `id_` from the database. The id_ must be the \
         nova_api generated id_ which is a 32-char uuid v4.
 
-        :raises TypeError: If the UUID is not a string
-        :raises ValueError: If the UUID is not a valid UUID.
+        :raises InvalidIDTypeException: If the UUID is not a string
+        :raises InvalidIDException: If the UUID is not a valid UUID v4 \
+        without '-'.
 
         :param id_: The UUID of the instance to recover
         :return: None if no instance is found or a `return_class` instance \
         if found
         """
-        if not isinstance(id_, str):
-            self.logger.error("ID was not passed as a str to get. "
-                              "Value received: %s", id_)
-            raise TypeError("UUID must be a 32-char string!")
-        if len(id_) != 32:
-            self.logger.error("ID is not a valid str in get. "
-                              "Should be an uuid."
-                              "Value received: %s", id_)
-            raise ValueError("UUID must be a 32-char string!")
+        super().get(id_)
 
         self.logger.debug("Get called with valid id %s", id_)
         _, results = self.get_all(1, 0, {"id_": id_})

@@ -1,12 +1,12 @@
-from abc import ABC
 from dataclasses import dataclass
 from typing import List
 
-from pytest import raises, mark
+from pytest import mark, raises
 
-from nova_api.entity import Entity
 from nova_api.dao import GenericDAO
-from nova_api.exceptions import DuplicateEntityException, NotEntityException
+from nova_api.entity import Entity
+from nova_api.exceptions import DuplicateEntityException, \
+    InvalidIDException, InvalidIDTypeException, NotEntityException
 
 
 @dataclass
@@ -55,10 +55,29 @@ class TestGenericDAO:
         with raises(TypeError):
             MySecondDAO()
 
-    def test_get(self):
+    @mark.parametrize("id_", [
+        1,
+        True,
+        [],
+        {},
+        1.0
+    ])
+    def test_get_should_raise_invalid_type(self, id_):
         dao = MyDAO()
-        with raises(NotImplementedError):
-            dao.get("test_id")
+        with raises(InvalidIDTypeException):
+            dao.get(id_)
+
+    @mark.parametrize("id_", [
+        "12345678901234567890123456789012",
+        'a0fa7c92-1c73-11ec-b226-24ee9a65a1ee',
+        "ID",
+        "44444444444444444444444444444444",
+        '671b63e1-64a7-4c50-8788-a3bb34da87f3'  # We expect UUID's without -
+    ])
+    def test_get_should_raise_invalid_uuid(self, id_):
+        dao = MyDAO()
+        with raises(InvalidIDException):
+            dao.get(id_)
 
     def test_get_all(self):
         dao = MyDAO()
