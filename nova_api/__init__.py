@@ -185,12 +185,12 @@ def use_dao(dao_class: GenericDAO,
             except NovaAPIException as nova_api_exception:
                 response_data = {"error_code": nova_api_exception.error_code}
                 if DEBUG:
-                    response_data["debug"]=nova_api_exception.debug
+                    response_data["debug"] = nova_api_exception.debug
                 return error_response(
                     status_code=nova_api_exception.status_code,
                     message=nova_api_exception.message,
                     data=response_data)
-            except Exception as exception: # pylint: disable=W0703
+            except Exception as exception:  # pylint: disable=W0703
                 logger.error(
                     "Unable to generate api response due to an error.",
                     exc_info=True)

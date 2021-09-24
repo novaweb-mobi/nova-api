@@ -26,17 +26,19 @@ class GenericSQLDAO(GenericDAO):
 
         self.logger.debug("Started %s with database type as %s, table as %s, "
                           "fields as %s, return_class as %s and prefix as %s",
-                          self.__class__.__name__, database_type, table,
+                          self.__class__.__name__, database_type.__name__,
+                          table,
                           fields,
-                          return_class, prefix)
+                          return_class.__name__,
+                          prefix)
 
         self.database = database_instance
 
         if self.database is None:
-            self.logger.info("Database connection starting. Extra args: %s. ",
-                             kwargs)
+            self.logger.debug("Database connection starting. Extra args: %s. ",
+                              str(kwargs))
             self.database = self.database_type(**kwargs)
-            self.logger.info("Connected to database.")
+            self.logger.debug("Connected to database.")
 
         self.table = table or camel_to_snake(return_class.__name__) + 's'
 
@@ -65,7 +67,7 @@ class GenericSQLDAO(GenericDAO):
 
         self.logger.debug("Found instance with id %s. Result: %s",
                           id_,
-                          results[0])
+                          str(results[0]))
         return results[0]
 
     def get_all(self, length: int = 20, offset: int = 0,
@@ -91,7 +93,7 @@ class GenericSQLDAO(GenericDAO):
         :return:
         """
         self.logger.debug("Getting all with filters %s limit %s and offset %s",
-                          filters, length, offset)
+                          str(filters), length, offset)
 
         filters_, query_params = ('', list()) \
             if not filters \
@@ -105,14 +107,14 @@ class GenericSQLDAO(GenericDAO):
 
         self.logger.debug("Running query in database %s with params %s",
                           query,
-                          [*query_params, length, offset])
+                          str([*query_params, length, offset]))
         self.database.query(query, [*query_params, length, offset])
         results = self.database.get_results()
 
         if results is None:
             self.logger.info("No results found for query %s, %s in get_all. "
-                             "Returning none", query, [*query_params,
-                                                       length, offset])
+                             "Returning none", query, str([*query_params,
+                                                           length, offset]))
             return 0, []
 
         return_list = [self.return_class(*result) for result in results]
@@ -124,7 +126,7 @@ class GenericSQLDAO(GenericDAO):
         self.database.query(query_total)
         total = self.database.get_results()[0][0]
         self.logger.debug("Results are %s and the total in the database is %s",
-                          return_list,
+                          str(return_list),
                           total)
 
         return total, return_list
@@ -318,13 +320,13 @@ class GenericSQLDAO(GenericDAO):
                     default = "NOT NULL"
 
             fields_.append(self.database.COLUMN.format(field=field_name,
-                                              type=type_,
-                                              default=default))
+                                                       type=type_,
+                                                       default=default))
         fields_ = ', '.join(fields_)
         primary_keys = ', '.join(primary_keys)
         query = self.database.CREATE_QUERY.format(table=self.table,
-                                         fields=fields_,
-                                         primary_keys=primary_keys)
+                                                  fields=fields_,
+                                                  primary_keys=primary_keys)
         self.logger.info("Creating table with query: %s", query)
         self.database.query(query)
         self.logger.info("Table created")

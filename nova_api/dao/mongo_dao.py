@@ -16,9 +16,9 @@ class MongoDAO(GenericDAO):
                  collection: str = None,
                  return_class: Type[Entity] = Entity,
                  prefix: str = None,
-                 host: str = environ.get('DB_URL', ''),
-                 user: str = environ.get('DB_USER', ''),
-                 password: str = environ.get('DB_PASSWORD', ''),
+                 host: str = environ.get('DB_URL', 'localhost'),
+                 user: str = environ.get('DB_USER', 'root'),
+                 password: str = environ.get('DB_PASSWORD', 'root'),
                  database_instance=None, **kwargs) -> None:
         super().__init__(fields, return_class, prefix)
         self.fields["id_"] = "_id"
@@ -40,7 +40,17 @@ class MongoDAO(GenericDAO):
         self.cursor = self.database[self.collection]
 
     def get(self, id_: str) -> Optional[Entity]:
-        pass
+        super().get(id_)
+
+        self.logger.debug("Get called with valid id %s", id_)
+        result = self.cursor.find_one({"_id": id_})
+        result_object = self.create_entity_from_result(result)
+
+        self.logger.debug("Found instance with id %s. Result: %s",
+                          id_,
+                          str(result_object))
+
+        return result_object
 
     def get_all(self, length: int = 20, offset: int = 0,
                 filters=None) -> (int, List[Entity]):
@@ -53,9 +63,7 @@ class MongoDAO(GenericDAO):
 
         results = []
         for result in result_cur:
-            for prop, field in self.fields.items():
-                result[prop] = result.pop(field)
-            results.append(self.return_class(**result))
+            results.append(self.create_entity_from_result(result))
 
         if not results:
             self.logger.info("No results found in get_all. Returning none")
@@ -64,6 +72,13 @@ class MongoDAO(GenericDAO):
         amount = self.cursor.count_documents({})
 
         return amount, results
+
+    def create_entity_from_result(self, result):
+        if not result:
+            return None
+        for prop, field in self.fields.items():
+            result[prop] = result.pop(field)
+        return self.return_class(**result)
 
     def remove(self, entity: Entity) -> None:
         pass

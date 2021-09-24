@@ -3,10 +3,11 @@ from dataclasses import dataclass
 from datetime import date
 from unittest.mock import call
 
-from pytest import fixture, mark
+from pytest import fixture, mark, raises
 
 from dao.mongo_dao import MongoDAO
 from entity import Entity
+from nova_api.exceptions import DuplicateEntityException
 
 
 @dataclass
@@ -36,13 +37,13 @@ class TestMongoDAO:
     @staticmethod
     def test_should_use_default_values(mongo_mock):
         dao = MongoDAO()
-        mongo_mock.assert_called_with(host='localhost')
+        mongo_mock.assert_called_with(host='mongodb://root:root@localhost')
         assert dao.client == mongo_mock.return_value
 
     @staticmethod
     def test_should_use_host(mongo_mock):
         dao = MongoDAO(host="test.url")
-        mongo_mock.assert_called_with(host='test.url')
+        mongo_mock.assert_called_with(host='mongodb://root:root@test.url')
         assert dao.client == mongo_mock.return_value
 
     @staticmethod
@@ -97,17 +98,31 @@ class TestMongoDAO:
 
     @staticmethod
     def test_should_call_insert_one_if_create_valid(dao, test_entity):
+        dao.cursor.find_one.return_value = None
         dao.create(test_entity)
         print(dao.database["test_entitys"].insert_one.mock_calls)
         dao.database["test_entitys"].insert_one.assert_has_calls(
             [call({
-                '_id': '12345678901234567890123456789012',
+                '_id': '671b63e164a74c508788a3bb34da87f3',
                 'test_entity_creation_datetime': test_entity.creation_datetime,
                 'test_entity_last_modified_datetime':
                     test_entity.last_modified_datetime,
                 'test_entity_name': 'Test',
                 'test_entity_birthday': test_entity.birthday})],
             any_order=True)
+
+    @staticmethod
+    def test_should_raise_duplicate_if_entity_exists(dao, test_entity):
+        dao.cursor.find_one.return_value = {
+                '_id': '671b63e164a74c508788a3bb34da87f3',
+                'test_entity_creation_datetime': test_entity.creation_datetime,
+                'test_entity_last_modified_datetime':
+                    test_entity.last_modified_datetime,
+                'test_entity_name': 'Another Ent',
+                'test_entity_birthday': test_entity.birthday}
+        with raises(DuplicateEntityException):
+            dao.create(test_entity)
+        dao.database["test_entitys"].insert_one.assert_not_called()
 
     @staticmethod
     def test_get_all_should_call_find(dao):
@@ -172,6 +187,31 @@ class TestMongoDAO:
             test_entity])
 
     @staticmethod
+    def test_get_should_call_find_one_with_id_filter(dao):
+        dao.cursor.find_one.return_value = None
+        res = dao.get('671b63e164a74c508788a3bb34da87f3')
+
+        dao.cursor.find_one.assert_called_with(
+            {"_id": "671b63e164a74c508788a3bb34da87f3"})
+        assert res is None
+
+    @staticmethod
+    def test_get_should_return_entity(dao, test_entity):
+        dao.cursor.find_one.return_value = {
+                '_id': '671b63e164a74c508788a3bb34da87f3',
+                'test_entity_creation_datetime': test_entity.creation_datetime,
+                'test_entity_last_modified_datetime':
+                    test_entity.last_modified_datetime,
+                'test_entity_name': 'Test',
+                'test_entity_birthday': test_entity.birthday}
+
+        res = dao.get('671b63e164a74c508788a3bb34da87f3')
+
+        dao.cursor.find_one.assert_called_with(
+            {"_id": "671b63e164a74c508788a3bb34da87f3"})
+        assert res == test_entity
+
+    @staticmethod
     @fixture
     def dao(mongo_mock):
         return MongoDAO(return_class=TestEntity)
@@ -185,7 +225,7 @@ class TestMongoDAO:
     @staticmethod
     @fixture
     def test_entity():
-        return TestEntity(id_="12345678901234567890123456789012",
+        return TestEntity(id_="671b63e164a74c508788a3bb34da87f3",
                           creation_datetime=datetime.datetime(1, 1, 1),
                           last_modified_datetime=datetime.datetime(1, 1, 1),
                           name="Test",
