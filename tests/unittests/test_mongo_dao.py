@@ -212,6 +212,11 @@ class TestMongoDAO:
         assert res == test_entity
 
     @staticmethod
+    def test_close(dao, mongo_mock):
+        dao.close()
+        mongo_mock.return_value.close.assert_called()
+
+    @staticmethod
     @fixture
     def dao(mongo_mock):
         return MongoDAO(return_class=TestEntity)

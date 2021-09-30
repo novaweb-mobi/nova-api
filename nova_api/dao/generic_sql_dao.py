@@ -26,7 +26,7 @@ class GenericSQLDAO(GenericDAO):
 
         self.logger.debug("Started %s with database type as %s, table as %s, "
                           "fields as %s, return_class as %s and prefix as %s",
-                          self.__class__.__name__, database_type.__name__,
+                          self.__class__.__name__, str(database_type),
                           table,
                           fields,
                           return_class.__name__,

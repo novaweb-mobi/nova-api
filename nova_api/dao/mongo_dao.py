@@ -105,4 +105,4 @@ class MongoDAO(GenericDAO):
         pass
 
     def close(self):
-        pass
+        self.client.close()

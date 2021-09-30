@@ -42,23 +42,23 @@ class TestGenericSQLDAOPostgres:
                                             'PostgreSQLHelper')
         props = postgres_mock.return_value
         props.ALLOWED_COMPARATORS = ['=', '<=>', '<>', '!=',
-                                                       '>', '>=', '<=', 'LIKE']
+                                     '>', '>=', '<=', 'LIKE']
         props.CREATE_QUERY = "CREATE TABLE IF NOT EXISTS " \
-                                               "{table} ({fields}, " \
-                                               "PRIMARY KEY({primary_keys}));"
+                             "{table} ({fields}, " \
+                             "PRIMARY KEY({primary_keys}));"
         props.COLUMN = "{field} {type} {default}"
         props.SELECT_QUERY = "SELECT {fields} FROM " \
-                                               "{table} {filters} LIMIT %s" \
-                                               " OFFSET %s;"
+                             "{table} {filters} LIMIT %s" \
+                             " OFFSET %s;"
         props.FILTERS = "WHERE {filters}"
         props.FILTER = "{column} {comparator} %s"
         props.DELETE_QUERY = "DELETE FROM {table} {filters};"
         props.INSERT_QUERY = "INSERT INTO {table} " \
-                                               "({fields}) VALUES ({values});"
+                             "({fields}) VALUES ({values});"
         props.UPDATE_QUERY = "UPDATE {table} SET {fields} " \
-                                               "WHERE {column} = %s;"
+                             "WHERE {column} = %s;"
         props.QUERY_TOTAL_COLUMN = "SELECT count({column}" \
-                                                     ") FROM {table};"
+                                   ") FROM {table};"
 
         def predict(cls):
             TYPE_MAPPING = {
@@ -166,7 +166,8 @@ class TestGenericSQLDAOPostgres:
                     "name": "name",
                     "birthday": "birthday"},
             return_class=TestEntity)
-        assert postgres_mock.mock_calls == [call()]
+
+        postgres_mock.assert_has_calls([call()])
         assert generic_dao.database == postgres_mock.return_value
         assert generic_dao.table == "test_entitys"
         assert generic_dao.fields == {"id_": "id",
@@ -187,7 +188,8 @@ class TestGenericSQLDAOPostgres:
                     "birthday": "birthday"},
             return_class=TestEntity,
             pooled=False, host="changed")
-        assert postgres_mock.mock_calls == [call(host="changed", pooled=False)]
+
+        postgres_mock.assert_has_calls([call(host="changed", pooled=False)])
         assert generic_dao.database == postgres_mock.return_value
         assert generic_dao.table == "test_entitys"
         assert generic_dao.fields == {"id_": "id",
@@ -207,7 +209,8 @@ class TestGenericSQLDAOPostgres:
                     "name": "name",
                     "birthday": "birthday"},
             return_class=TestEntity, pooled=True)
-        assert postgres_mock.mock_calls == [call(pooled=True)]
+
+        postgres_mock.assert_has_calls([call(pooled=True)])
         assert generic_dao.database == postgres_mock.return_value
         assert generic_dao.table == "test_entitys"
         assert generic_dao.fields == {"id_": "id",
@@ -228,8 +231,10 @@ class TestGenericSQLDAOPostgres:
                     "birthday": "birthday"},
             return_class=TestEntity, pooled=True,
             database_args={"ssl_ca": "file"})
-        assert postgres_mock.mock_calls == [
+
+        postgres_mock.assert_has_calls([
             call(pooled=True, database_args={"ssl_ca": "file"})]
+        )
         assert generic_dao.database == postgres_mock.return_value
         assert generic_dao.table == "test_entitys"
         assert generic_dao.fields == {"id_": "id",
@@ -276,12 +281,12 @@ class TestGenericSQLDAOPostgres:
 
         entity = generic_dao.get(id_=id_)
 
-        assert postgres_mock.mock_calls[1] == call().query(
+        postgres_mock.assert_has_calls(any_order=True, calls=[call().query(
             "SELECT id, creation_datetime, last_modified_datetime,"
             " name, birthday "
             "FROM test_table WHERE id = %s LIMIT %s OFFSET %s;",
             ['a022f42cfd2b40338bbb54a2894cba9f', 1, 0]
-        )
+        )])
         assert entity == TestEntity(id_,
                                     datetime(2020, 7, 26, 12, 00, 00),
                                     datetime(2020, 7, 26, 12, 00, 00))
@@ -302,13 +307,14 @@ class TestGenericSQLDAOPostgres:
 
         entity = generic_dao.get(id_=id_)
 
-        assert postgres_mock.mock_calls[1] == call().query(
+        postgres_mock.assert_has_calls(any_order=True, calls=[call().query(
             "SELECT id_, creation_datetime, last_modified_datetime,"
             " name, birthday, child_id_ "
             "FROM test_entity_with_childs WHERE id_ = %s "
             "LIMIT %s OFFSET %s;",
             ['a022f42cfd2b40338bbb54a2894cba9f', 1, 0]
-        )
+        )])
+
         assert entity == TestEntityWithChild(
             id_,
             datetime(2020, 7, 26, 12, 00, 00),
@@ -323,12 +329,12 @@ class TestGenericSQLDAOPostgres:
 
         entity = generic_dao.get(id_=id_)
 
-        assert postgres_mock.mock_calls[1] == call().query(
+        postgres_mock.assert_has_calls(any_order=True, calls=[call().query(
             "SELECT id, creation_datetime, last_modified_datetime,"
             " name, birthday "
             "FROM test_table WHERE id = %s LIMIT %s OFFSET %s;",
             ['a022f42cfd2b40338bbb54a2894cba9f', 1, 0]
-        )
+        )])
         assert entity is None
 
     @mark.parametrize("id_, error_type", [
@@ -357,19 +363,18 @@ class TestGenericSQLDAOPostgres:
                                                        "2020-01-01 00:00:00"],
                                                   "id_": ['LIKE', "123%"],
                                                   "name": "Anom"})
-        assert postgres_mock.mock_calls[1] == call().query(
-            "SELECT id, creation_datetime, last_modified_datetime,"
-            " name, birthday "
-            "FROM test_table WHERE creation_datetime > %s "
-            "AND id LIKE %s "
-            "AND name = %s "
-            "LIMIT %s OFFSET %s;",
-            ["2020-01-01 00:00:00", '123%', 'Anom', 20, 0]
-        )
-
-        assert postgres_mock.mock_calls[3] == call().query(
-            'SELECT count(id) FROM test_table;'
-        )
+        postgres_mock.assert_has_calls(any_order=True, calls=[
+            call().query(
+                "SELECT id, creation_datetime, last_modified_datetime,"
+                " name, birthday "
+                "FROM test_table WHERE creation_datetime > %s "
+                "AND id LIKE %s "
+                "AND name = %s "
+                "LIMIT %s OFFSET %s;",
+                ["2020-01-01 00:00:00", '123%', 'Anom', 20, 0]
+            ), call().query(
+                'SELECT count(id) FROM test_table;'
+            )])
 
         assert res == [TestEntity("a022f42cfd2b40338bbb54a2894cba9f",
                                   datetime(2020, 7, 26, 12, 00, 00),
@@ -391,7 +396,7 @@ class TestGenericSQLDAOPostgres:
                                                        "2020-01-01 00:00:00"],
                                                   "id_": ['LIKE', "123%"],
                                                   "name": "Anom"})
-        assert postgres_mock.mock_calls[1] == call().query(
+        postgres_mock.assert_has_calls(any_order=True, calls=[call().query(
             "SELECT id, creation_datetime, last_modified_datetime,"
             " name, birthday "
             "FROM test_table WHERE creation_datetime > %s "
@@ -399,19 +404,19 @@ class TestGenericSQLDAOPostgres:
             "AND name = %s "
             "LIMIT %s OFFSET %s;",
             ["2020-01-01 00:00:00", '123%', 'Anom', 20, 0]
-        )
+        )])
 
         assert total == 0 and res == []
 
     def test_get_all_no_filter(self, generic_dao, postgres_mock):
         generic_dao.get_all()
-        assert postgres_mock.mock_calls[1] == call().query(
+        postgres_mock.assert_has_calls(any_order=True, calls=[call().query(
             "SELECT id, creation_datetime, last_modified_datetime,"
             " name, birthday "
             "FROM test_table  "
             "LIMIT %s OFFSET %s;",
             [20, 0]
-        )
+        )])
 
     def test_get_all_unallowed_operator(self, generic_dao):
         with raises(ValueError):
@@ -491,7 +496,6 @@ class TestGenericSQLDAOPostgres:
                 return 0, 0
             return None
 
-
         db = postgres_mock.return_value
         db.get_results.return_value = [["a022f42cfd2b40338bbb54a2894cba9f",
                                         datetime(2020, 7, 26, 12, 00, 00),
@@ -512,7 +516,7 @@ class TestGenericSQLDAOPostgres:
         with raises(RuntimeError):
             generic_dao.remove("a022f42cfd2b40338bbb54a2894cba9f")
 
-    @mark.parametrize("param", [12, '123', (123,), [123,], object()])
+    @mark.parametrize("param", [12, '123', (123,), [123, ], object()])
     def test_remove_filters_not_dict(self, generic_dao, param):
         with raises(RuntimeError):
             generic_dao.remove(filters=param)
@@ -530,10 +534,10 @@ class TestGenericSQLDAOPostgres:
 
         id_ = generic_dao.create(entity)
 
-        assert postgres_mock.mock_calls[3] == call().query(
+        postgres_mock.assert_has_calls(any_order=True, calls=[call().query(
             'INSERT INTO test_table (id, creation_datetime,'
             ' last_modified_datetime, name, birthday) '
-            'VALUES (%s, %s, %s, %s, %s);', list(dict(entity).values()))
+            'VALUES (%s, %s, %s, %s, %s);', list(dict(entity).values()))])
         assert id_ == entity.id_
 
     def test_create_with_child(self, generic_dao_with_child,
@@ -552,10 +556,10 @@ class TestGenericSQLDAOPostgres:
 
         id_ = generic_dao_with_child.create(entity)
 
-        assert postgres_mock.mock_calls[3] == call().query(
+        postgres_mock.assert_has_calls(any_order=True, calls=[call().query(
             'INSERT INTO test_table (id_, creation_datetime,'
             ' last_modified_datetime, name, birthday, child_id_) '
-            'VALUES (%s, %s, %s, %s, %s, %s);', entity.get_db_values())
+            'VALUES (%s, %s, %s, %s, %s, %s);', entity.get_db_values())])
         assert id_ == entity.id_
 
     def test_create_exist(self, generic_dao, postgres_mock, entity):
@@ -578,7 +582,8 @@ class TestGenericSQLDAOPostgres:
         with raises(TypeError):
             generic_dao.update("a022f42cfd2b40338bbb54a2894cba9f")
 
-    def test_update_entity_not_exists(self, generic_dao, postgres_mock, entity):
+    def test_update_entity_not_exists(self, generic_dao, postgres_mock,
+                                      entity):
         db = postgres_mock.return_value
         db.get_results.return_value = None
         with raises(AssertionError):
@@ -592,11 +597,11 @@ class TestGenericSQLDAOPostgres:
         entity.name = "MyTestName"
         sleep(1)
         generic_dao.update(entity)
-        assert postgres_mock.mock_calls[5] == call().query(
+        postgres_mock.assert_has_calls(any_order=True, calls=[call().query(
             'UPDATE test_table SET id=%s, creation_datetime=%s, '
             'last_modified_datetime=%s, name=%s, birthday=%s '
             'WHERE id = %s;', list(dict(entity).values()) + [entity.id_]
-        )
+        )])
         assert entity.creation_datetime < entity.last_modified_datetime
 
     def test_update_with_child(self, generic_dao_with_child,
@@ -609,11 +614,11 @@ class TestGenericSQLDAOPostgres:
         entity.name = "MyTestName"
         sleep(1)
         generic_dao_with_child.update(entity)
-        assert postgres_mock.mock_calls[5] == call().query(
+        postgres_mock.assert_has_calls(any_order=True, calls=[call().query(
             'UPDATE test_table SET id_=%s, creation_datetime=%s, '
             'last_modified_datetime=%s, name=%s, birthday=%s, child_id_=%s '
             'WHERE id_ = %s;', entity.get_db_values() + [entity.id_]
-        )
+        )])
         assert entity.creation_datetime < entity.last_modified_datetime
 
     def test_update_no_rows_affected(self, generic_dao, postgres_mock, entity):
