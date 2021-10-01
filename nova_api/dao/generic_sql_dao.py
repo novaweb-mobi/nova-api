@@ -95,7 +95,7 @@ class GenericSQLDAO(GenericDAO):
         self.logger.debug("Getting all with filters %s limit %s and offset %s",
                           str(filters), length, offset)
 
-        filters_, query_params = ('', list()) \
+        filters_, query_params = ('', []) \
             if not filters \
             else self.generate_filters(filters)
 
@@ -154,8 +154,8 @@ class GenericSQLDAO(GenericDAO):
                               " and no filters where specified! "
                               "Value received: %s", entity)
             raise RuntimeError(
-                "Entity must be a {type} object or filters must be "
-                "specified!".format(type=self.return_class.__name__))
+                f"Entity must be a {self.return_class.__name__} object or "
+                "filters must be specified!")
 
         filters_ = None
         query_params = None
@@ -174,9 +174,8 @@ class GenericSQLDAO(GenericDAO):
                 self.logger.error("Entity was not found in database to remove."
                                   " Value received: %s", entity)
                 raise AssertionError(
-                    "{entity} uuid doesn't exists in database!".format(
-                        entity=self.return_class.__name__
-                    )
+                    f"{self.return_class.__name__} uuid "
+                    "doesn't exists in database!"
                 )
 
             filters_, query_params = self.generate_filters({"id_": entity.id_})
@@ -195,7 +194,8 @@ class GenericSQLDAO(GenericDAO):
                               "remove!")
             raise NoRowsAffectedException()
 
-        self.logger.info(f"{row_count} entities removed from database.")
+        self.logger.info("{row_count} entities removed from database.",
+                         row_count=row_count)
 
         return row_count
 
@@ -210,6 +210,7 @@ class GenericSQLDAO(GenericDAO):
         :raise DuplicateEntityException: Raised if an entity with
         the same ID exists in the database already.
         """
+
         super().create(entity)
 
         ent_values = entity.get_db_values()
@@ -245,9 +246,7 @@ class GenericSQLDAO(GenericDAO):
             self.logger.error("Entity was not passed as an instance to update."
                               " Value received: %s", entity)
             raise TypeError(
-                "Entity must be a {return_class} object!".format(
-                    return_class=self.return_class
-                )
+                f"Entity must be a {self.return_class} object!"
             )
 
         if self.get(entity.id_) is None:
@@ -289,8 +288,8 @@ class GenericSQLDAO(GenericDAO):
 
         :return: None
         """
-        fields_ = list()
-        primary_keys = list()
+        fields_ = []
+        primary_keys = []
 
         self.logger.info("Starting create table processing.")
         for field in dataclasses.fields(self.return_class):
@@ -312,7 +311,7 @@ class GenericSQLDAO(GenericDAO):
 
             if field.metadata.get("primary_key"):
                 self.logger.debug("'%s' added as primary key", field_name)
-                primary_keys.append('{key}'.format(key=field_name))
+                primary_keys.append(str(field_name))
                 if default == "NULL":
                     self.logger.warning("Had to change '%s' default because "
                                         "it is primary key and set to NULL.",
@@ -376,10 +375,8 @@ class GenericSQLDAO(GenericDAO):
                                   property_,
                                   self.return_class.__name__)
                 raise ValueError(
-                    "Property {prop} not available in {entity}.".format(
-                        prop=property_,
-                        entity=self.return_class.__name__
-                    )
+                    f"Property {property_} not available "
+                    f"in {self.return_class.__name__}."
                 )
             if isinstance(value, list) \
                     and value[0] not in self.database.ALLOWED_COMPARATORS:
@@ -388,10 +385,8 @@ class GenericSQLDAO(GenericDAO):
                                   value[0],
                                   self.return_class.__name__)
                 raise ValueError(
-                    "Comparator {comparator} not allowed for {entity}"
-                        .format(comparator=value[0],
-                                entity=self.return_class.__name__
-                                )
+                    f"Comparator {value[0]} not allowed "
+                    f"for {self.return_class.__name__}"
                 )
 
         filters_for_query = [

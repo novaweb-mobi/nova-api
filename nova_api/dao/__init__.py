@@ -1,8 +1,7 @@
 import dataclasses
 import logging
-import re
 from abc import ABC, abstractmethod
-from re import sub
+from re import sub, compile, I
 from typing import List, Optional, Type
 
 from nova_api.entity import Entity
@@ -15,9 +14,9 @@ def camel_to_snake(name):
     return sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
 
 
-uuidv4regex = re.compile(
+uuidv4regex = compile(
     r'^[a-f0-9]{8}[a-f0-9]{4}4[a-f0-9]{3}[89ab][a-f0-9]{3}[a-f0-9]{12}'
-    r'\Z', re.I)
+    r'\Z', I)
 
 
 def is_valid_uuidv4(id_):
