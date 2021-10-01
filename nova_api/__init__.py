@@ -173,8 +173,9 @@ def use_dao(dao_class: Type[GenericDAO],
                         dao = dao_class(**dao_parameters)
                         break
                     except ConnectionError as con_error:
-                        print("Connection failed, will retry "
-                              f"{attempted_retries} times")
+                        logger.debug("Connection failed, will retry "
+                                     "{attempted_retries} times",
+                                     attempted_retries=attempted_retries)
                         time.sleep(retry_delay)
                         if attempted_retries == 1:
                             raise con_error
@@ -334,7 +335,8 @@ def create_api_files(entity, dao_class, version,
         logger.debug(
             "API documentation already exists. Skipping generation...")
     else:
-        with open(f"{entity_lower}_api.yml", 'w+', encoding='utf-8') as api_documentation:
+        with open(f"{entity_lower}_api.yml", 'w+',
+                  encoding='utf-8') as api_documentation:
             logger.info("Writing api documentation for entity %s...",
                         entity_lower)
             api_documentation.write(baseapi.API_SWAGGER.format(
