@@ -139,12 +139,12 @@ class Entity(ABC):
         """
         for key, value in self.__dict__.items():
             if isinstance(value, Entity):
-                yield key + '_id_', Entity._serialize_field(value)
+                yield key + '_id_', Entity.serialize_field(value)
             else:
-                yield key, Entity._serialize_field(value)
+                yield key, Entity.serialize_field(value)
 
     @staticmethod
-    def _serialize_field(field_value):
+    def serialize_field(field_value):
         """
 
         :param field_value: Value of the field to be serialized
