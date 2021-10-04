@@ -37,6 +37,11 @@ class NotEntityException(NovaAPIException):
     message = "Argument is not an Entity"
 
 
+class InvalidFiltersException(NovaAPIException):
+    status_code = 400
+    message = "Filters are not valid"
+
+
 class InvalidIDTypeException(NovaAPIException):
     status_code = 400
     message = "ID type is not string"

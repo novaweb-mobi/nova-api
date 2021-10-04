@@ -8,7 +8,8 @@ from pytest import fixture, mark, raises
 from nova_api.dao.generic_sql_dao import GenericSQLDAO
 from nova_api.entity import Entity
 from nova_api.exceptions import DuplicateEntityException, \
-    InvalidIDException, InvalidIDTypeException, NoRowsAffectedException, \
+    InvalidFiltersException, InvalidIDException, InvalidIDTypeException, \
+    NoRowsAffectedException, \
     NotEntityException
 
 
@@ -496,12 +497,12 @@ class TestGenericSQLDAO:
             generic_dao.remove(entity)
 
     def test_remove_not_entity(self, generic_dao, mysql_mock):
-        with raises(RuntimeError):
+        with raises(NotEntityException):
             generic_dao.remove("a022f42cfd2b40338bbb54a2894cba9f")
 
     @mark.parametrize("param", [12, '123', (123,), [123,], object()])
     def test_remove_filters_not_dict(self, generic_dao, param):
-        with raises(RuntimeError):
+        with raises(InvalidFiltersException):
             generic_dao.remove(filters=param)
 
     def test_create(self, generic_dao, mysql_mock, entity):

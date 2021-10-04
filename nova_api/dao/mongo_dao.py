@@ -21,7 +21,7 @@ class MongoDAO(GenericDAO):
                  password: str = environ.get('DB_PASSWORD', 'root'),
                  database_instance=None, **kwargs) -> None:
         super().__init__(fields, return_class, prefix)
-        self.fields["id_"] = "_id"
+        # self.fields["id_"] = "_id"
 
         self.client = database_instance
         if user:
@@ -43,7 +43,7 @@ class MongoDAO(GenericDAO):
         super().get(id_)
 
         self.logger.debug("Get called with valid id %s", id_)
-        result = self.cursor.find_one({"_id": id_})
+        result = self.cursor.find_one({self.fields['id_']: id_})
         result_object = self.create_entity_from_result(result)
 
         self.logger.debug("Found instance with id %s. Result: %s",
@@ -80,15 +80,17 @@ class MongoDAO(GenericDAO):
             result[prop] = result.pop(field)
         return self.return_class(**result)
 
-    def remove(self, entity: Entity) -> None:
-        pass
+    def remove(self, entity: Entity = None, filters: dict = None) -> int:
+        super().remove(entity, filters)
 
     def create(self, entity: Entity) -> str:
         super().create(entity)
 
-        db_values = self.prepare_db_dict(entity)
-        print(db_values)
-        self.cursor.insert_one(db_values)
+        self.cursor.insert_one(
+            self.prepare_db_dict(entity)
+        )
+
+        return entity.id_
 
     def prepare_db_dict(self, entity):
         values = entity.get_db_values(MongoDAO.custom_serializer)

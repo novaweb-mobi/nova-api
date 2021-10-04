@@ -6,7 +6,8 @@ from pytest import mark, raises
 from nova_api.dao import GenericDAO
 from nova_api.entity import Entity
 from nova_api.exceptions import DuplicateEntityException, \
-    InvalidIDException, InvalidIDTypeException, NotEntityException
+    InvalidFiltersException, InvalidIDException, InvalidIDTypeException, \
+    NotEntityException
 
 
 @dataclass
@@ -19,27 +20,27 @@ class MyDAO(GenericDAO):
         super().__init__(return_class=TestEntity, **kwargs)
 
     def get(self, id_):
-        super(MyDAO, self).get(id_)
+        super().get(id_)
 
     def get_all(self, length: int = 20, offset: int = 0,
                 filters: dict = None) -> (int, List[Entity]):
-        super(MyDAO, self).get_all(length, offset, filters)
+        super().get_all(length, offset, filters)
 
-    def remove(self, entity: Entity) -> None:
-        super(MyDAO, self).remove(entity)
+    def remove(self, entity: Entity = None, filters: dict = None) -> int:
+        return super().remove(entity, filters)
 
     def create(self, entity: Entity) -> str:
-        return super(MyDAO, self).create(entity)
+        return super().create(entity)
 
     def update(self, entity: Entity) -> str:
-        super(MyDAO, self).update(entity)
+        super().update(entity)
 
     @classmethod
     def predict_db_type(cls, cls_to_predict):
-        super(MyDAO, cls).predict_db_type(cls_to_predict)
+        super().predict_db_type(cls_to_predict)
 
     def close(self):
-        super(MyDAO, self).close()
+        super().close()
 
 
 class MySecondDAO(GenericDAO):
@@ -86,8 +87,21 @@ class TestGenericDAO:
 
     def test_remove(self):
         dao = MyDAO()
-        with raises(NotImplementedError):
+        with raises(NotEntityException):
             dao.remove(None)
+
+    @staticmethod
+    @mark.parametrize("filters", [
+        "",
+        1,
+        True,
+        1.0,
+        []
+    ])
+    def test_remove_filters_not_dict(filters):
+        dao = MyDAO()
+        with raises(InvalidFiltersException):
+            dao.remove(filters=filters)
 
     @staticmethod
     @mark.parametrize("arg", [

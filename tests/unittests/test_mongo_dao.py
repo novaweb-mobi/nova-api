@@ -7,7 +7,8 @@ from pytest import fixture, mark, raises
 
 from dao.mongo_dao import MongoDAO
 from entity import Entity
-from nova_api.exceptions import DuplicateEntityException
+from nova_api.exceptions import DuplicateEntityException, \
+    InvalidFiltersException, NotEntityException
 
 
 @dataclass
@@ -89,7 +90,7 @@ class TestMongoDAO:
     @staticmethod
     def test_should_set_fields_from_return_class(dao):
         assert dao.fields == {
-            "id_": "_id",
+            "id_": "test_entity_id_",
             "creation_datetime": "test_entity_creation_datetime",
             "last_modified_datetime": "test_entity_last_modified_datetime",
             "name": "test_entity_name",
@@ -103,7 +104,7 @@ class TestMongoDAO:
         print(dao.database["test_entitys"].insert_one.mock_calls)
         dao.database["test_entitys"].insert_one.assert_has_calls(
             [call({
-                '_id': '671b63e164a74c508788a3bb34da87f3',
+                'test_entity_id_': '671b63e164a74c508788a3bb34da87f3',
                 'test_entity_creation_datetime': test_entity.creation_datetime,
                 'test_entity_last_modified_datetime':
                     test_entity.last_modified_datetime,
@@ -112,16 +113,35 @@ class TestMongoDAO:
             any_order=True)
 
     @staticmethod
+    def test_should_return_id_if_ok(test_entity, dao):
+        dao.cursor.find_one.return_value = None
+        assert dao.create(test_entity) == test_entity.id_
+
+    @staticmethod
     def test_should_raise_duplicate_if_entity_exists(dao, test_entity):
         dao.cursor.find_one.return_value = {
-                '_id': '671b63e164a74c508788a3bb34da87f3',
-                'test_entity_creation_datetime': test_entity.creation_datetime,
-                'test_entity_last_modified_datetime':
-                    test_entity.last_modified_datetime,
-                'test_entity_name': 'Another Ent',
-                'test_entity_birthday': test_entity.birthday}
+            'test_entity_id_': '671b63e164a74c508788a3bb34da87f3',
+            'test_entity_creation_datetime': test_entity.creation_datetime,
+            'test_entity_last_modified_datetime':
+                test_entity.last_modified_datetime,
+            'test_entity_name': 'Another Ent',
+            'test_entity_birthday': test_entity.birthday}
         with raises(DuplicateEntityException):
             dao.create(test_entity)
+        dao.database["test_entitys"].insert_one.assert_not_called()
+
+    @staticmethod
+    @mark.parametrize("ent", [
+        datetime.datetime(1, 1, 1),
+        1,
+        1.0,
+        True,
+        [],
+        {}
+    ])
+    def test_should_raise_not_ent_if_not_entity(dao, ent):
+        with raises(NotEntityException):
+            dao.create(ent)
         dao.database["test_entitys"].insert_one.assert_not_called()
 
     @staticmethod
@@ -192,29 +212,41 @@ class TestMongoDAO:
         res = dao.get('671b63e164a74c508788a3bb34da87f3')
 
         dao.cursor.find_one.assert_called_with(
-            {"_id": "671b63e164a74c508788a3bb34da87f3"})
+            {"test_entity_id_": "671b63e164a74c508788a3bb34da87f3"})
         assert res is None
 
     @staticmethod
     def test_get_should_return_entity(dao, test_entity):
         dao.cursor.find_one.return_value = {
-                '_id': '671b63e164a74c508788a3bb34da87f3',
-                'test_entity_creation_datetime': test_entity.creation_datetime,
-                'test_entity_last_modified_datetime':
-                    test_entity.last_modified_datetime,
-                'test_entity_name': 'Test',
-                'test_entity_birthday': test_entity.birthday}
+            'test_entity_id_': '671b63e164a74c508788a3bb34da87f3',
+            'test_entity_creation_datetime': test_entity.creation_datetime,
+            'test_entity_last_modified_datetime':
+                test_entity.last_modified_datetime,
+            'test_entity_name': 'Test',
+            'test_entity_birthday': test_entity.birthday}
 
         res = dao.get('671b63e164a74c508788a3bb34da87f3')
 
         dao.cursor.find_one.assert_called_with(
-            {"_id": "671b63e164a74c508788a3bb34da87f3"})
+            {"test_entity_id_": "671b63e164a74c508788a3bb34da87f3"})
         assert res == test_entity
 
     @staticmethod
     def test_close(dao, mongo_mock):
         dao.close()
         mongo_mock.return_value.close.assert_called()
+
+    @staticmethod
+    def test_delete_with_no_arguments_should_raise_no_ent(dao, mongo_mock):
+        with raises(NotEntityException):
+            dao.remove(None)
+        dao.cursor.delete_one.assert_not_called()
+
+    @staticmethod
+    def test_delete_with_invalid_filters_should_raise(dao, mongo_mock):
+        with raises(InvalidFiltersException):
+            dao.remove(filters=[])
+        dao.cursor.delete_one.assert_not_called()
 
     @staticmethod
     @fixture

@@ -1,12 +1,13 @@
 import dataclasses
 import logging
 from abc import ABC, abstractmethod
-from re import sub, compile, I
+from re import I, compile, sub
 from typing import List, Optional, Type
 
 from nova_api.entity import Entity
 from nova_api.exceptions import DuplicateEntityException, \
-    InvalidIDException, InvalidIDTypeException, NotEntityException
+    InvalidFiltersException, InvalidIDException, InvalidIDTypeException, \
+    NotEntityException
 
 
 def camel_to_snake(name):
@@ -73,8 +74,23 @@ class GenericDAO(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def remove(self, entity: Entity) -> None:
-        raise NotImplementedError()
+    def remove(self, entity: Entity = None, filters: dict = None) -> int:
+        if not isinstance(entity, self.return_class) and filters is None:
+            self.logger.error("Entity was not passed as an instance to remove"
+                              " and no filters where specified! "
+                              "Value received: %s", entity)
+            raise NotEntityException(
+                debug=f"Entity must be a {self.return_class.__name__} object "
+                      f"or filters must be specified!")
+
+        if filters is not None and not isinstance(filters, dict):
+            self.logger.error(
+                "Filters were not passed as an dict to remove!"
+                " Value received: %s", filters)
+            raise InvalidFiltersException(
+                debug=f"Filters were {str(filters)}")
+
+        return 0
 
     @abstractmethod
     def create(self, entity: Entity) -> str:

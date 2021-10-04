@@ -149,24 +149,12 @@ class GenericSQLDAO(GenericDAO):
         specified by `generate_filters`
         :return: Number of affected rows.
         """
-        if not isinstance(entity, self.return_class) and filters is None:
-            self.logger.error("Entity was not passed as an instance to remove"
-                              " and no filters where specified! "
-                              "Value received: %s", entity)
-            raise RuntimeError(
-                f"Entity must be a {self.return_class.__name__} object or "
-                "filters must be specified!")
+        super().remove(entity, filters)
 
         filters_ = None
         query_params = None
 
         if filters is not None:
-            if not isinstance(filters, dict):
-                self.logger.error(
-                    "Filters were not passed as an dict to remove!"
-                    " Value received: %s", filters)
-                raise RuntimeError("Filters must be a dict!")
-
             filters_, query_params = self.generate_filters(filters)
 
         elif entity is not None:
