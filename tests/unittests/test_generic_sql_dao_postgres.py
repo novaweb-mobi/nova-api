@@ -8,7 +8,8 @@ from pytest import fixture, mark, raises
 from nova_api.dao.generic_sql_dao import GenericSQLDAO
 from nova_api.entity import Entity
 from nova_api.exceptions import DuplicateEntityException, \
-    InvalidFiltersException, InvalidIDException, InvalidIDTypeException, \
+    EntityNotFoundException, InvalidFiltersException, InvalidIDException, \
+    InvalidIDTypeException, \
     NoRowsAffectedException, \
     NotEntityException
 # pylint: disable=R0201
@@ -510,7 +511,7 @@ class TestGenericSQLDAOPostgres:
     def test_remove_not_exist(self, generic_dao, postgres_mock, entity):
         db = postgres_mock.return_value
         db.get_results.return_value = None
-        with raises(AssertionError):
+        with raises(EntityNotFoundException):
             generic_dao.remove(entity)
 
     def test_remove_not_entity(self, generic_dao, postgres_mock):

@@ -4,8 +4,10 @@ from time import sleep
 
 from pytest import fixture, mark, raises
 
-from nova_api.entity import Entity
 from nova_api.dao.generic_sql_dao import GenericSQLDAO
+from nova_api.entity import Entity
+from nova_api.exceptions import DuplicateEntityException, \
+    EntityNotFoundException
 from nova_api.persistence.postgresql_helper import PostgreSQLHelper
 
 
@@ -53,7 +55,10 @@ class PaymentDAO(GenericSQLDAO):
 class TestIntegrationPostgreSQL:
     @fixture
     def user_dao(self, pool):
-        return UserDAO(pooled=pool)
+        user_dao = UserDAO(pooled=pool)
+        user_dao.create_table_if_not_exists()
+
+        return user_dao
 
     @fixture
     def payment_dao(self, pool):
@@ -62,7 +67,7 @@ class TestIntegrationPostgreSQL:
     @fixture
     def user(self):
         return User(
-            id_="12345678901234567890123456789012",
+            id_="150596d218f14b0a8f6c8c12dd9eb23a",
             first_name="John",
             last_name="Doe",
             email="john.doe@email.com"
@@ -71,9 +76,9 @@ class TestIntegrationPostgreSQL:
     @fixture
     def payment(self):
         return Payment(
-            id_="00000000000000000000000000000000",
+            id_="77f3777929e1417c96c747c312f4325f",
             value=10,
-            payer=User(id_="12345678901234567890123456789012"),
+            payer=User(id_="150596d218f14b0a8f6c8c12dd9eb23a"),
             receiver=User(id_="12345678901234567890123456789013")
         )
 
@@ -96,18 +101,17 @@ class TestIntegrationPostgreSQL:
         dao.close()
         assert table in results
 
-
     @mark.parametrize("dao, ent", [
         (UserDAO, User(
-            id_="12345678901234567890123456789012",
+            id_="150596d218f14b0a8f6c8c12dd9eb23a",
             first_name="John",
             last_name="Doe",
             email="john.doe@email.com"
         )),
         (PaymentDAO, Payment(
-            id_="00000000000000000000000000000000",
+            id_="77f3777929e1417c96c747c312f4325f",
             value=10,
-            payer=User(id_="12345678901234567890123456789012"),
+            payer=User(id_="150596d218f14b0a8f6c8c12dd9eb23a"),
             receiver=User(id_="12345678901234567890123456789013")
         )),
     ])
@@ -122,15 +126,15 @@ class TestIntegrationPostgreSQL:
 
     @mark.parametrize("dao, ent", [
         (UserDAO, User(
-            id_="12345678901234567890123456789012",
+            id_="150596d218f14b0a8f6c8c12dd9eb23a",
             first_name="John",
             last_name="Doe",
             email="john.doe@email.com"
         )),
         (PaymentDAO, Payment(
-            id_="00000000000000000000000000000000",
+            id_="77f3777929e1417c96c747c312f4325f",
             value=10,
-            payer=User(id_="12345678901234567890123456789012"),
+            payer=User(id_="150596d218f14b0a8f6c8c12dd9eb23a"),
             receiver=User(id_="12345678901234567890123456789013")
         )),
     ])
@@ -139,15 +143,15 @@ class TestIntegrationPostgreSQL:
         dao.create_table_if_not_exists()
         try:
             dao.create(ent)
-        except AssertionError:
+        except DuplicateEntityException:
             pass
         assert dao.get(ent.id_) == ent
-        with raises(AssertionError):
+        with raises(DuplicateEntityException):
             dao.create(ent)
         dao.close()
 
     def test_update_user(self, user_dao, user):
-        user_dao.create_table_if_not_exists()
+
         try:
             user_dao.create(user)
         except Exception:
@@ -177,31 +181,29 @@ class TestIntegrationPostgreSQL:
         assert updated_payment.last_modified_datetime > last_modified_old
 
     @mark.parametrize("dao, ent", [
-        (UserDAO, User(id_="12345678901234567890123456789012")),
-        (PaymentDAO, Payment(id_="00000000000000000000000000000000")),
+        (UserDAO, User(id_="150596d218f14b0a8f6c8c12dd9eb23a")),
+        (PaymentDAO, Payment(id_="77f3777929e1417c96c747c312f4325f")),
     ])
     def test_delete(self, dao, ent, pool):
         dao = dao(pooled=pool)
         dao.create_table_if_not_exists()
         try:
             dao.create(ent)
-        except Exception:
+        except DuplicateEntityException:
             assert dao.get(ent.id_) is not None
         dao.remove(ent)
-        res_ent = dao.get(ent.id_)
+        assert dao.get(ent.id_) is None
         dao.close()
-        assert res_ent is None
 
     def test_get_not_existent(self, user_dao):
-        user_dao.create_table_if_not_exists()
-        res = user_dao.get("12345678901234567890123456789023")
+
+        assert user_dao.get("4b918d8a2add4857ae2a5b29f58f32df") is None
         user_dao.close()
-        assert res is None
 
     def test_update_not_existent(self, user_dao):
         try:
-            user_dao.create_table_if_not_exists()
-            user = User(id_="12345678901234567890123456789023")
+
+            user = User(id_="4b918d8a2add4857ae2a5b29f58f32df")
             with raises(AssertionError):
                 user_dao.update(user)
         finally:
@@ -209,15 +211,27 @@ class TestIntegrationPostgreSQL:
 
     def test_delete_not_existent(self, user_dao):
         try:
-            user_dao.create_table_if_not_exists()
-            user = User(id_="12345678901234567890123456789023")
-            with raises(AssertionError):
+
+            user = User(id_="4b918d8a2add4857ae2a5b29f58f32df")
+            with raises(EntityNotFoundException):
                 user_dao.remove(user)
         finally:
             user_dao.close()
 
+    def test_delete_filters(self, user_dao):
+        u1 = User(first_name="John", last_name="Doe")
+        u2 = User(first_name="John", last_name="Jorge")
+
+        user_dao.create(u1)
+        user_dao.create(u2)
+
+        assert user_dao.get_all()[0] == 2
+        assert user_dao.remove(filters={"first_name": "John"}) == 2
+        assert user_dao.get_all()[0] == 0
+        user_dao.close()
+
     def test_filter_date(self, user_dao):
-        user_dao.create_table_if_not_exists()
+
         u1 = User(birthday=date(1998, 12, 21))
         u2 = User(birthday=date(2005, 11, 21), first_name="Jose")
         user_dao.create(u1)
@@ -230,14 +244,15 @@ class TestIntegrationPostgreSQL:
         assert len(results) == 1
 
     def test_filter_name(self, user_dao):
-        user_dao.create_table_if_not_exists()
+
         u1 = User(birthday=date(1998, 12, 21))
         u2 = User(birthday=date(2005, 11, 21), first_name="Jose")
         user_dao.create(u1)
         user_dao.create(u2)
         results = user_dao.get_all(
             filters={"first_name": ["LIKE", "J%"]})[1]
+
+        assert len(results) == 1
         user_dao.remove(u1)
         user_dao.remove(u2)
         user_dao.close()
-        assert len(results) == 1

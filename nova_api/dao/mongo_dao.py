@@ -21,7 +21,6 @@ class MongoDAO(GenericDAO):
                  password: str = environ.get('DB_PASSWORD', 'root'),
                  database_instance=None, **kwargs) -> None:
         super().__init__(fields, return_class, prefix)
-        # self.fields["id_"] = "_id"
 
         self.client = database_instance
         if user:
@@ -59,7 +58,8 @@ class MongoDAO(GenericDAO):
         self.logger.debug("Getting all with filters %s limit %s and offset %s",
                           filters, length, offset)
 
-        result_cur = self.cursor.find(filters, limit=length, skip=offset)
+        result_cur = self.cursor.find(self.prepare_filters(filters),
+                                      limit=length, skip=offset)
 
         results = []
         for result in result_cur:
@@ -73,15 +73,35 @@ class MongoDAO(GenericDAO):
 
         return amount, results
 
+    def prepare_filters(self, filters: dict) -> dict:
+        prepared_filters = {}
+
+        for key, value in filters.items():
+            if key in self.fields:
+                prepared_filters[self.fields[key]] = value
+
+        return prepared_filters
+
     def create_entity_from_result(self, result):
         if not result:
             return None
+
+        entity = {}
         for prop, field in self.fields.items():
-            result[prop] = result.pop(field)
-        return self.return_class(**result)
+            entity[prop] = result.pop(field, None)
+
+        return self.return_class(**entity)
 
     def remove(self, entity: Entity = None, filters: dict = None) -> int:
         super().remove(entity, filters)
+
+        if filters is not None:
+            return self.cursor.delete_many(
+                self.prepare_filters(filters)
+            ).deleted_count
+        elif entity is not None:
+            self.cursor.delete_one({self.fields["id_"]: entity.id_})
+            return 1
 
     def create(self, entity: Entity) -> str:
         super().create(entity)

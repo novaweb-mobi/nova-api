@@ -156,16 +156,7 @@ class GenericSQLDAO(GenericDAO):
 
         if filters is not None:
             filters_, query_params = self.generate_filters(filters)
-
         elif entity is not None:
-            if self.get(entity.id_) is None:
-                self.logger.error("Entity was not found in database to remove."
-                                  " Value received: %s", entity)
-                raise AssertionError(
-                    f"{self.return_class.__name__} uuid "
-                    "doesn't exists in database!"
-                )
-
             filters_, query_params = self.generate_filters({"id_": entity.id_})
 
         query = self.database.DELETE_QUERY.format(

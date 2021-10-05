@@ -6,7 +6,8 @@ from typing import List, Optional, Type
 
 from nova_api.entity import Entity
 from nova_api.exceptions import DuplicateEntityException, \
-    InvalidFiltersException, InvalidIDException, InvalidIDTypeException, \
+    EntityNotFoundException, InvalidFiltersException, InvalidIDException, \
+    InvalidIDTypeException, \
     NotEntityException
 
 
@@ -89,6 +90,11 @@ class GenericDAO(ABC):
                 " Value received: %s", filters)
             raise InvalidFiltersException(
                 debug=f"Filters were {str(filters)}")
+
+        if entity is not None and self.get(entity.id_) is None:
+            self.logger.error("Entity was not found in database to remove."
+                              " Value received: %s", entity)
+            raise EntityNotFoundException(debug=f"Entity id_ is {entity.id_}")
 
         return 0
 

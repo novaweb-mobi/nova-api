@@ -3,12 +3,13 @@ from dataclasses import dataclass
 from datetime import date
 from unittest.mock import call
 
+from bson.objectid import ObjectId
 from pytest import fixture, mark, raises
 
 from dao.mongo_dao import MongoDAO
 from entity import Entity
 from nova_api.exceptions import DuplicateEntityException, \
-    InvalidFiltersException, NotEntityException
+    EntityNotFoundException, InvalidFiltersException, NotEntityException
 
 
 @dataclass
@@ -182,8 +183,9 @@ class TestMongoDAO:
 
     @staticmethod
     def test_get_all_with_result_should_return_elements(dao, test_entity):
-        dao.cursor.find.return_value = Cursor([
-            dao.prepare_db_dict(test_entity)])
+        db_dict = dao.prepare_db_dict(test_entity)
+        db_dict.update({"_id": ObjectId()})
+        dao.cursor.find.return_value = Cursor([db_dict])
         dao.cursor.count_documents.return_value = 1
 
         res = dao.get_all()
@@ -195,12 +197,14 @@ class TestMongoDAO:
 
     @staticmethod
     def test_get_all_with_filter_should_use_filter(dao, test_entity):
-        dao.cursor.find.return_value = Cursor([
-            dao.prepare_db_dict(test_entity)])
+        db_dict = dao.prepare_db_dict(test_entity)
+        db_dict.update({"_id": ObjectId()})
+        dao.cursor.find.return_value = Cursor([db_dict])
         dao.cursor.count_documents.return_value = 1
 
         res = dao.get_all(filters={"name": "Test"})
-        dao.cursor.find.assert_called_with({"name": "Test"}, limit=20, skip=0)
+        dao.cursor.find.assert_called_with({"test_entity_name": "Test"},
+                                           limit=20, skip=0)
         dao.cursor.count_documents.assert_called_with({})
 
         assert res == (1, [
@@ -247,6 +251,42 @@ class TestMongoDAO:
         with raises(InvalidFiltersException):
             dao.remove(filters=[])
         dao.cursor.delete_one.assert_not_called()
+
+    @staticmethod
+    def test_delete_entity_not_in_database_should_raise(dao, mongo_mock,
+                                                        test_entity):
+        dao.cursor.find_one.return_value = None
+        with raises(EntityNotFoundException):
+            dao.remove(test_entity)
+        dao.cursor.delete_one.assert_not_called()
+
+    @staticmethod
+    def test_delete_entity_should_delete(dao, mongo_mock,
+                                         test_entity):
+        dao.cursor.find_one.return_value = {
+            'test_entity_id_': '671b63e164a74c508788a3bb34da87f3',
+            'test_entity_creation_datetime': test_entity.creation_datetime,
+            'test_entity_last_modified_datetime':
+                test_entity.last_modified_datetime,
+            'test_entity_name': 'Test',
+            'test_entity_birthday': test_entity.birthday
+        }
+
+        assert dao.remove(test_entity) == 1
+
+        dao.cursor.delete_one.assert_called_with(
+            {"test_entity_id_": test_entity.id_}
+        )
+
+    @staticmethod
+    def test_delete_filters_should_delete(dao, mongo_mock,
+                                          test_entity):
+        dao.cursor.delete_many.return_value.deleted_count = 3
+        assert dao.remove(filters={"name": "Test"}) == 3
+
+        dao.cursor.delete_many.assert_called_with(
+            {"test_entity_name": "Test"}
+        )
 
     @staticmethod
     @fixture

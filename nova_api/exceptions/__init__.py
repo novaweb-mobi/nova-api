@@ -57,5 +57,9 @@ class DuplicateEntityException(NovaAPIException):
     message = "Entity already exists in database"
 
 
+class EntityNotFoundException(NovaAPIException):
+    status_code = 404
+    message = "The requested entity was not found in database"
+
 class NoRowsAffectedException(IOError):
     pass
