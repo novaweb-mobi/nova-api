@@ -1,21 +1,13 @@
 import datetime
-from dataclasses import dataclass
-from datetime import date
 from unittest.mock import call
 
 from bson.objectid import ObjectId
 from pytest import fixture, mark, raises
 
 from dao.mongo_dao import MongoDAO
-from entity import Entity
 from nova_api.exceptions import DuplicateEntityException, \
     EntityNotFoundException, InvalidFiltersException, NotEntityException
-
-
-@dataclass
-class TestEntity(Entity):
-    name: str = "Anom"
-    birthday: date = None
+from tests.unittests import TestEntity, TestEntity2
 
 
 class TestMongoDAO:
@@ -121,6 +113,7 @@ class TestMongoDAO:
     @staticmethod
     def test_should_raise_duplicate_if_entity_exists(dao, test_entity):
         dao.cursor.find_one.return_value = {
+            "_id": ObjectId(),
             'test_entity_id_': '671b63e164a74c508788a3bb34da87f3',
             'test_entity_creation_datetime': test_entity.creation_datetime,
             'test_entity_last_modified_datetime':
@@ -138,7 +131,8 @@ class TestMongoDAO:
         1.0,
         True,
         [],
-        {}
+        {},
+        TestEntity2
     ])
     def test_should_raise_not_ent_if_not_entity(dao, ent):
         with raises(NotEntityException):
@@ -222,6 +216,7 @@ class TestMongoDAO:
     @staticmethod
     def test_get_should_return_entity(dao, test_entity):
         dao.cursor.find_one.return_value = {
+            "_id": ObjectId(),
             'test_entity_id_': '671b63e164a74c508788a3bb34da87f3',
             'test_entity_creation_datetime': test_entity.creation_datetime,
             'test_entity_last_modified_datetime':
@@ -264,6 +259,7 @@ class TestMongoDAO:
     def test_delete_entity_should_delete(dao, mongo_mock,
                                          test_entity):
         dao.cursor.find_one.return_value = {
+            "_id": ObjectId(),
             'test_entity_id_': '671b63e164a74c508788a3bb34da87f3',
             'test_entity_creation_datetime': test_entity.creation_datetime,
             'test_entity_last_modified_datetime':
@@ -286,6 +282,64 @@ class TestMongoDAO:
 
         dao.cursor.delete_many.assert_called_with(
             {"test_entity_name": "Test"}
+        )
+
+    @staticmethod
+    @mark.parametrize("ent", [
+        datetime.datetime(1, 1, 1),
+        1,
+        1.0,
+        True,
+        [],
+        {},
+        TestEntity2
+    ])
+    def test_should_raise_not_ent_if_not_entity_update(dao, ent):
+        with raises(NotEntityException):
+            dao.update(ent)
+        dao.database["test_entitys"].update_one.assert_not_called()
+
+    @staticmethod
+    def test_update_entity_not_in_database_should_raise(dao, mongo_mock,
+                                                        test_entity):
+        dao.cursor.find_one.return_value = None
+        with raises(EntityNotFoundException):
+            dao.update(test_entity)
+        dao.cursor.update_one.assert_not_called()
+
+    @staticmethod
+    def test_update_entity_should_update(dao, mongo_mock,
+                                         test_entity):
+        dao.cursor.find_one.side_effect = [{
+            "_id": ObjectId(),
+            'test_entity_id_': '671b63e164a74c508788a3bb34da87f3',
+            'test_entity_creation_datetime': test_entity.creation_datetime,
+            'test_entity_last_modified_datetime':
+                test_entity.last_modified_datetime,
+            'test_entity_name': 'Test',
+            'test_entity_birthday': test_entity.birthday
+        }, {
+            "_id": ObjectId(),
+            'test_entity_id_': '671b63e164a74c508788a3bb34da87f3',
+            'test_entity_creation_datetime': test_entity.creation_datetime,
+            'test_entity_last_modified_datetime':
+                test_entity.last_modified_datetime,
+            'test_entity_name': 'Test',
+            'test_entity_birthday': test_entity.birthday
+        }]
+        old_last_modified = test_entity.last_modified_datetime
+
+        test_entity.name = "Update test"
+
+        assert dao.update(test_entity) == test_entity.id_
+        assert test_entity.last_modified_datetime != old_last_modified
+
+        dao.cursor.update_one.assert_called_with(
+            {'test_entity_id_': '671b63e164a74c508788a3bb34da87f3'},
+            {"$set": {"test_entity_name": "Update test",
+                      "test_entity_last_modified_datetime":
+                          test_entity.last_modified_datetime
+                      }}
         )
 
     @staticmethod

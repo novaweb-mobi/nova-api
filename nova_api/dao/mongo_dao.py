@@ -126,7 +126,22 @@ class MongoDAO(GenericDAO):
         return Entity.serialize_field(field_)
 
     def update(self, entity: Entity) -> str:
-        pass
+        super().update(entity)
+        old_ent = self.get(entity.id_)
+        entity.last_modified_datetime = datetime.now()
+
+        old_entity = self.prepare_db_dict(old_ent)
+        new_entity = self.prepare_db_dict(entity)
+
+        query = {}
+        for field in self.fields.values():
+            if old_entity.get(field, None) != new_entity.get(field, None):
+                query.update({field: new_entity.get(field, None)})
+
+        self.cursor.update_one({self.fields["id_"]: entity.id_},
+                               {"$set": query})
+
+        return entity.id_
 
     def close(self):
         self.client.close()
