@@ -11,6 +11,9 @@ from nova_api.entity import Entity
 
 
 class MongoDAO(GenericDAO):
+    """Mongo implementation for the GenericDAO interface
+    """
+    # pylint: disable=R0913
     def __init__(self, database=environ.get('DB_NAME', 'default'),
                  fields: dict = None,
                  collection: str = None,

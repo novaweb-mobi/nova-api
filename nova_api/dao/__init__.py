@@ -30,7 +30,13 @@ uuidv4regex = compile(
     r'\Z', I)
 
 
-def is_valid_uuidv4(id_):
+def is_valid_uuidv4(id_: str) -> bool:
+    """
+    Checks that the id_ is indeed a UUIDv4 valid string without dashes.
+
+    :param id_: The ID to validate.
+    :return: True if id_ is an UUIDv4, False otherwise.
+    """
     return uuidv4regex.match(id_)
 
 

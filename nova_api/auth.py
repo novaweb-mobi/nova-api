@@ -1,5 +1,5 @@
 import logging
-from inspect import Parameter, signature
+from inspect import Parameter, Signature, signature
 
 from flask import abort
 from jose import JWTError, jwt
@@ -98,7 +98,14 @@ def validate_jwt_claims(add_token_info: bool = False, claims=None):
     return make_call
 
 
-def _check_and_update_signature(func_sig):
+def _check_and_update_signature(func_sig: Signature):
+    """
+    Checks that the function signature includes token_info parameter \
+    and includes it if not.
+
+    :param func_sig: Original signature of the function.
+    :return: Signature of the function with the token_info parameter.
+    """
     new_sig = func_sig
     if not func_sig.parameters.get('token_info', None):
         token_info_param = Parameter('token_info',
@@ -110,6 +117,13 @@ def _check_and_update_signature(func_sig):
 
 
 def _check_claims(token_info: dict, claims: dict) -> bool:
+    """
+    Checks that token_info is a dict of claims and that contains the \
+    claims in the claims dict.
+    :param token_info: Claims of the received token.
+    :param claims: Claims to check on the received token.
+    :return: True if claims are valid and False otherwise.
+    """
     if not token_info or not isinstance(token_info, dict):
         logger.error("Token info not received in validate_jwt_claims!")
         return False
