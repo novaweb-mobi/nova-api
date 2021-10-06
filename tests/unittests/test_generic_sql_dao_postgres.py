@@ -1,4 +1,3 @@
-from dataclasses import dataclass, field
 from datetime import date, datetime
 from time import sleep
 
@@ -6,7 +5,6 @@ from mock import call
 from pytest import fixture, mark, raises
 
 from nova_api.dao.generic_sql_dao import GenericSQLDAO
-from nova_api.entity import Entity
 from nova_api.exceptions import DuplicateEntityException, \
     EntityNotFoundException, InvalidFiltersException, InvalidIDException, \
     InvalidIDTypeException, \
@@ -14,27 +12,8 @@ from nova_api.exceptions import DuplicateEntityException, \
     NotEntityException
 # pylint: disable=R0201
 from nova_api.persistence import postgresql_helper
-
-
-@dataclass
-class TestEntity(Entity):
-    name: str = "Anom"
-    birthday: date = None
-
-
-@dataclass
-class TestEntity2(Entity):
-    name: str = field(default=None, metadata={"default": "NULL",
-                                              "primary_key": True})
-    birthday: date = None
-
-
-@dataclass
-class TestEntityWithChild(Entity):
-    name: str = "Anom"
-    birthday: date = None
-    child: TestEntity = None
-    not_to_database: str = field(default='', metadata={"database": False})
+from tests.unittests import TEST_DATE, TestEntity, TestEntity2, \
+    TestEntityWithChild
 
 
 class TestGenericSQLDAOPostgres:
@@ -279,7 +258,7 @@ class TestGenericSQLDAOPostgres:
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         "Anom",
-                                        None]]
+                                        date(1, 1, 1)]]
 
         entity = generic_dao.get(id_=id_)
 
@@ -304,7 +283,7 @@ class TestGenericSQLDAOPostgres:
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         "Anom",
-                                        None,
+                                        date(1, 1, 1),
                                         id_]]
 
         entity = generic_dao.get(id_=id_)
@@ -362,7 +341,7 @@ class TestGenericSQLDAOPostgres:
 
         total, res = generic_dao.get_all(filters={"creation_datetime":
                                                       ['>',
-                                                       "2020-01-01 00:00:00"],
+                                                       TEST_DATE],
                                                   "id_": ['LIKE', "123%"],
                                                   "name": "Anom"})
         postgres_mock.assert_has_calls(any_order=True, calls=[
@@ -373,7 +352,7 @@ class TestGenericSQLDAOPostgres:
                 "AND id LIKE %s "
                 "AND name = %s "
                 "LIMIT %s OFFSET %s;",
-                ["2020-01-01 00:00:00", '123%', 'Anom', 20, 0]
+                [TEST_DATE, '123%', 'Anom', 20, 0]
             ), call().query(
                 'SELECT count(id) FROM test_table;'
             )])

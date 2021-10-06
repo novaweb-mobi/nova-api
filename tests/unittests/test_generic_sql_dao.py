@@ -1,4 +1,3 @@
-from dataclasses import dataclass, field
 from datetime import date, datetime
 from time import sleep
 
@@ -6,35 +5,13 @@ from mock import call
 from pytest import fixture, mark, raises
 
 from nova_api.dao.generic_sql_dao import GenericSQLDAO
-from nova_api.entity import Entity
 from nova_api.exceptions import DuplicateEntityException, \
     EntityNotFoundException, InvalidFiltersException, InvalidIDException, \
     InvalidIDTypeException, \
     NoRowsAffectedException, \
     NotEntityException
-
-
-# pylint: disable=R0201
-
-@dataclass
-class TestEntity(Entity):
-    name: str = "Anom"
-    birthday: date = None
-
-
-@dataclass
-class TestEntity2(Entity):
-    name: str = field(default=None, metadata={"default": "NULL",
-                                              "primary_key": True})
-    birthday: date = None
-
-
-@dataclass
-class TestEntityWithChild(Entity):
-    name: str = "Anom"
-    birthday: date = None
-    child: TestEntity = None
-    not_to_database: str = field(default='', metadata={"database": False})
+from tests.unittests import TEST_DATE, TestEntity, TestEntity2, \
+    TestEntityWithChild
 
 
 class TestGenericSQLDAO:
@@ -43,23 +20,23 @@ class TestGenericSQLDAO:
         mysql_mock = mocker.patch('nova_api.dao.generic_sql_dao.MySQLHelper')
         props = mysql_mock.return_value
         props.ALLOWED_COMPARATORS = ['=', '<=>', '<>', '!=',
-                                                       '>', '>=', '<=', 'LIKE']
+                                     '>', '>=', '<=', 'LIKE']
         props.CREATE_QUERY = "CREATE TABLE IF NOT EXISTS " \
-                                               "{table} ({fields}, " \
-                                               "PRIMARY KEY({primary_keys}));"
+                             "{table} ({fields}, " \
+                             "PRIMARY KEY({primary_keys}));"
         props.COLUMN = "{field} {type} {default}"
         props.SELECT_QUERY = "SELECT {fields} FROM " \
-                                               "{table} {filters} LIMIT %s" \
-                                               " OFFSET %s;"
+                             "{table} {filters} LIMIT %s" \
+                             " OFFSET %s;"
         props.FILTERS = "WHERE {filters}"
         props.FILTER = "{column} {comparator} %s"
         props.DELETE_QUERY = "DELETE FROM {table} {filters};"
         props.INSERT_QUERY = "INSERT INTO {table} " \
-                                               "({fields}) VALUES ({values});"
+                             "({fields}) VALUES ({values});"
         props.UPDATE_QUERY = "UPDATE {table} SET {fields} " \
-                                               "WHERE {column} = %s;"
+                             "WHERE {column} = %s;"
         props.QUERY_TOTAL_COLUMN = "SELECT count({column}" \
-                                                     ") FROM {table};"
+                                   ") FROM {table};"
 
         def predict(cls):
             TYPE_MAPPING = {
@@ -71,6 +48,7 @@ class TestGenericSQLDAO:
                 "date": "DATE"
             }
             return TYPE_MAPPING.get(cls.__name__)
+
         props.predict_db_type.side_effect = predict
         return mysql_mock
 
@@ -262,7 +240,7 @@ class TestGenericSQLDAO:
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         "Anom",
-                                        None]]
+                                        date(1, 1, 1)]]
 
         entity = generic_dao.get(id_=id_)
 
@@ -286,7 +264,7 @@ class TestGenericSQLDAO:
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         datetime(2020, 7, 26, 12, 00, 00),
                                         "Anom",
-                                        None,
+                                        date(1, 1, 1),
                                         id_]]
 
         entity = generic_dao.get(id_=id_)
@@ -343,7 +321,7 @@ class TestGenericSQLDAO:
 
         total, res = generic_dao.get_all(filters={"creation_datetime":
                                                       ['>',
-                                                       "2020-01-01 00:00:00"],
+                                                       TEST_DATE],
                                                   "id_": ['LIKE', "123%"],
                                                   "name": "Anom"})
         assert mysql_mock.mock_calls[1] == call().query(
@@ -353,7 +331,7 @@ class TestGenericSQLDAO:
             "AND id LIKE %s "
             "AND name = %s "
             "LIMIT %s OFFSET %s;",
-            ["2020-01-01 00:00:00", '123%', 'Anom', 20, 0]
+            [TEST_DATE, '123%', 'Anom', 20, 0]
         )
 
         assert mysql_mock.mock_calls[3] == call().query(
@@ -480,7 +458,6 @@ class TestGenericSQLDAO:
                 return 0, 0
             return None
 
-
         db = mysql_mock.return_value
         db.get_results.return_value = [["a022f42cfd2b40338bbb54a2894cba9f",
                                         datetime(2020, 7, 26, 12, 00, 00),
@@ -501,7 +478,7 @@ class TestGenericSQLDAO:
         with raises(NotEntityException):
             generic_dao.remove("a022f42cfd2b40338bbb54a2894cba9f")
 
-    @mark.parametrize("param", [12, '123', (123,), [123,], object()])
+    @mark.parametrize("param", [12, '123', (123,), [123, ], object()])
     def test_remove_filters_not_dict(self, generic_dao, param):
         with raises(InvalidFiltersException):
             generic_dao.remove(filters=param)
