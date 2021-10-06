@@ -4,11 +4,10 @@ from datetime import date, datetime
 import psycopg2
 from mock import Mock, call
 from psycopg2._psycopg import DatabaseError, Error, InterfaceError
-
 from pytest import fixture, mark, raises
 
-from nova_api.persistence.postgresql_helper import PostgreSQLHelper
 from nova_api.entity import Entity
+from nova_api.persistence.postgresql_helper import PostgreSQLHelper
 
 
 @dataclass
@@ -147,7 +146,7 @@ class TestPostgreSQLHelper:
         ([], None),
         ([[1, 2, 3]], [[1, 2, 3]])
     ])
-    def test_get_results(self, postgresql_mock, cursor_mock,
+    def test_get_results(self, postgresql_mock: Mock, cursor_mock,
                          results, returned, db_):
         cursor_mock.fetchall.return_value = results
         assert db_.get_results() == returned
@@ -161,7 +160,7 @@ class TestPostgreSQLHelper:
             call.connect().cursor().close(),
             call.connect().close()
         ]
-        assert postgresql_mock.mock_calls == calls
+        assert postgresql_mock.assert_has_calls(calls)
 
     def test_close_pooled(self, pool_mock, db_pooled, cursor_mock):
         db_pooled.close()

@@ -133,6 +133,7 @@ jobs:
       if: ${{ steps.files-changed.outputs.result == 'true' }}
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api:$(pwd)/tests
+        export DB_NAME=TEST
         mkdir xunit-reports
         mkdir coverage-reports
         pytest --junitxml=xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:coverage-reports/coverage-python.xml  tests/unittests
