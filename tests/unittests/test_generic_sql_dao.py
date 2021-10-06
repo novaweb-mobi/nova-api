@@ -564,13 +564,13 @@ class TestGenericSQLDAO:
             generic_dao.create(entity)
 
     def test_update_not_entity(self, generic_dao, mysql_mock):
-        with raises(TypeError):
+        with raises(NotEntityException):
             generic_dao.update("a022f42cfd2b40338bbb54a2894cba9f")
 
     def test_update_entity_not_exists(self, generic_dao, mysql_mock, entity):
         db = mysql_mock.return_value
         db.get_results.return_value = None
-        with raises(AssertionError):
+        with raises(EntityNotFoundException):
             generic_dao.update(entity)
 
     def test_update(self, generic_dao, mysql_mock, entity):
@@ -618,23 +618,23 @@ class TestGenericSQLDAO:
         assert db.mock_calls == [call.close()]
 
     def test_generate_filters(self, generic_dao):
-        filters = generic_dao.generate_filters(filters={
+        filters = generic_dao._generate_filters(filters={
             "id_": "a022f42cfd2b40338bbb54a2894cba9f",
             "creation_datetime": [">", "2020-1-1"]})
         assert filters == ("WHERE id = %s AND creation_datetime > %s",
                            ["a022f42cfd2b40338bbb54a2894cba9f", "2020-1-1"])
 
     def test_generate_filter(self, generic_dao):
-        filters = generic_dao.generate_filters(filters={
+        filters = generic_dao._generate_filters(filters={
             "id_": "a022f42cfd2b40338bbb54a2894cba9f"})
         assert filters == ("WHERE id = %s",
                            ["a022f42cfd2b40338bbb54a2894cba9f"])
 
     def test_generate_filters_none(self, generic_dao):
         with raises(ValueError):
-            generic_dao.generate_filters(None)
+            generic_dao._generate_filters(None)
 
     @mark.parametrize("param", [1, "test", 1.0, [1, 'test'], (1, 2)])
     def test_generate_filters_not_dict(self, generic_dao, param):
         with raises(TypeError):
-            generic_dao.generate_filters(param)
+            generic_dao._generate_filters(param)

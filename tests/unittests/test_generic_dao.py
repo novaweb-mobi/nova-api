@@ -6,13 +6,19 @@ from pytest import mark, raises
 from nova_api.dao import GenericDAO
 from nova_api.entity import Entity
 from nova_api.exceptions import DuplicateEntityException, \
-    InvalidFiltersException, InvalidIDException, InvalidIDTypeException, \
+    EntityNotFoundException, InvalidFiltersException, InvalidIDException, \
+    InvalidIDTypeException, \
     NotEntityException
 
 
 @dataclass
 class TestEntity(Entity):
     name: str = ""
+
+
+@dataclass
+class TestEntity2(Entity):
+    first_name: str = ""
 
 
 class MyDAO(GenericDAO):
@@ -34,6 +40,36 @@ class MyDAO(GenericDAO):
 
     def update(self, entity: Entity) -> str:
         super().update(entity)
+
+    @classmethod
+    def predict_db_type(cls, cls_to_predict):
+        super().predict_db_type(cls_to_predict)
+
+    def close(self):
+        super().close()
+
+
+class MyDAOWithEntries(GenericDAO):
+    def __init__(self, **kwargs):
+        super().__init__(return_class=TestEntity, **kwargs)
+
+    def get(self, id_):
+        super().get(id_)
+        return TestEntity(id_=id_)
+
+    def get_all(self, length: int = 20, offset: int = 0,
+                filters: dict = None) -> (int, List[Entity]):
+        super().get_all(length, offset, filters)
+        return 1, [TestEntity()]
+
+    def remove(self, entity: Entity = None, filters: dict = None) -> int:
+        return super().remove(entity, filters)
+
+    def create(self, entity: Entity) -> str:
+        return super().create(entity)
+
+    def update(self, entity: Entity) -> str:
+        return super().update(entity)
 
     @classmethod
     def predict_db_type(cls, cls_to_predict):
@@ -85,10 +121,30 @@ class TestGenericDAO:
         with raises(NotImplementedError):
             dao.get_all()
 
-    def test_remove(self):
+    @mark.parametrize("arg", [
+        1,
+        None,
+        TestEntity2(),
+        1.0,
+        True
+    ])
+    def test_remove_raise_not_ent_if_not_ent(self, arg):
         dao = MyDAO()
         with raises(NotEntityException):
-            dao.remove(None)
+            dao.remove(arg)
+
+    def test_remove_not_found_should_raise_ent_not_found(self):
+        dao = MyDAO()
+        with raises(EntityNotFoundException):
+            dao.remove(TestEntity())
+
+    def test_remove_should_return_0(self):
+        dao = MyDAOWithEntries()
+        assert dao.remove(TestEntity()) == 0
+
+    def test_remove_should_return_0_with_filters(self):
+        dao = MyDAOWithEntries()
+        assert dao.remove(filters={"name": "ToRemove"}) == 0
 
     @staticmethod
     @mark.parametrize("filters", [
@@ -108,9 +164,10 @@ class TestGenericDAO:
         "",
         1,
         True,
-        1.0
+        1.0,
+        TestEntity2()
     ])
-    def test_should_raise_NotEntityException_if_create_not_entity(arg):
+    def test_should_raise_not_ent_exc_if_create_not_entity(arg):
         dao = MyDAO()
         with raises(NotEntityException):
             dao.create(arg)
@@ -130,10 +187,26 @@ class TestGenericDAO:
         dao = MyDAO()
         assert dao.create(existing_ent) == existing_ent.id_
 
-    def test_update(self):
+    @mark.parametrize("arg", [
+        1,
+        None,
+        TestEntity2(),
+        1.0,
+        True
+    ])
+    def test_update_not_entity_should_raise_not_ent(self, arg):
         dao = MyDAO()
-        with raises(NotImplementedError):
-            dao.update(None)
+        with raises(NotEntityException):
+            dao.update(arg)
+
+    def test_update_not_found_should_raise_ent_not_found(self):
+        dao = MyDAO()
+        with raises(EntityNotFoundException):
+            dao.update(TestEntity())
+
+    def test_update_should_return_empty(self):
+        dao = MyDAOWithEntries()
+        assert dao.update(TestEntity()) == ""
 
     def test_close(self):
         dao = MyDAO()

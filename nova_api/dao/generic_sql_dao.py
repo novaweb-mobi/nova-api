@@ -12,7 +12,7 @@ from nova_api.persistence.mysql_helper import MySQLHelper
 class GenericSQLDAO(GenericDAO):
     # pylint: disable=R0913
     def __init__(self, database_type: Type[PersistenceHelper] = None,
-                 database_instance=None,
+                 database_instance: PersistenceHelper = None,
                  table: str = None,
                  fields: dict = None,
                  return_class: Type[Entity] = Entity,
@@ -26,11 +26,12 @@ class GenericSQLDAO(GenericDAO):
 
         self.logger.debug("Started %s with database type as %s, table as %s, "
                           "fields as %s, return_class as %s and prefix as %s",
-                          self.__class__.__name__, str(database_type),
-                          table,
-                          fields,
+                          self.__class__.__name__,
+                          str(database_type),
+                          str(table),
+                          str(fields),
                           return_class.__name__,
-                          prefix)
+                          str(prefix))
 
         self.database = database_instance
 
@@ -97,7 +98,7 @@ class GenericSQLDAO(GenericDAO):
 
         filters_, query_params = ('', []) \
             if not filters \
-            else self.generate_filters(filters)
+            else self._generate_filters(filters)
 
         query = self.database.SELECT_QUERY.format(
             fields=', '.join(self.fields.values()),
@@ -146,7 +147,7 @@ class GenericSQLDAO(GenericDAO):
 
         :param entity: `return_class` instance to delete.
         :param filters: Filters to apply to delete query in dict format as
-        specified by `generate_filters`
+        specified by `_generate_filters`
         :return: Number of affected rows.
         """
         super().remove(entity, filters)
@@ -155,9 +156,10 @@ class GenericSQLDAO(GenericDAO):
         query_params = None
 
         if filters is not None:
-            filters_, query_params = self.generate_filters(filters)
+            filters_, query_params = self._generate_filters(filters)
         elif entity is not None:
-            filters_, query_params = self.generate_filters({"id_": entity.id_})
+            filters_, query_params = self._generate_filters(
+                {"id_": entity.id_})
 
         query = self.database.DELETE_QUERY.format(
             table=self.table,
@@ -173,8 +175,8 @@ class GenericSQLDAO(GenericDAO):
                               "remove!")
             raise NoRowsAffectedException()
 
-        self.logger.info("{row_count} entities removed from database.",
-                         row_count=row_count)
+        self.logger.info("%s entities removed from database.",
+                         row_count)
 
         return row_count
 
@@ -221,17 +223,7 @@ class GenericSQLDAO(GenericDAO):
         the database.
         :return: The id_ of the updated entity.
         """
-        if not isinstance(entity, self.return_class):
-            self.logger.error("Entity was not passed as an instance to update."
-                              " Value received: %s", entity)
-            raise TypeError(
-                f"Entity must be a {self.return_class} object!"
-            )
-
-        if self.get(entity.id_) is None:
-            self.logger.error("Entity was not found in database to update."
-                              " Value received: %s", entity)
-            raise AssertionError("Entity uuid doesn't exists in database!")
+        super().update(entity)
 
         entity.last_modified_datetime = datetime.now()
 
@@ -309,12 +301,12 @@ class GenericSQLDAO(GenericDAO):
         self.database.query(query)
         self.logger.info("Table created")
 
-    def generate_filters(self, filters: dict) -> (str, List[str]):
+    def _generate_filters(self, filters: dict) -> (str, List[str]):
         """
         Converts a dict of filters to apply to a query to a SQL query format.
 
         Example:
-            >>> dao.generate_filters(
+            >>> dao._generate_filters(
             ...     filters={"id_": "12345678901234567890123456789012",
             ...              "creation_datetime": [">", "2020-1-1"]})
             ("WHERE id_ = %s AND creation_datetime > %s", \

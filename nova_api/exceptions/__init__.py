@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -33,33 +33,40 @@ class NovaAPIException(Exception):
 
 
 class NotEntityException(NovaAPIException):
-    status_code = 400
-    message = "Argument is not an Entity"
+    status_code: int = field(default=400, init=False)
+    message: str = field(default="Argument is not an Entity", init=False)
 
 
 class InvalidFiltersException(NovaAPIException):
-    status_code = 400
-    message = "Filters are not valid"
+    status_code: int = field(default=400, init=False)
+    message: str = field(default="Filters are not valid", init=False)
 
 
 class InvalidIDTypeException(NovaAPIException):
-    status_code = 400
-    message = "ID type is not string"
+    status_code: int = field(default=400, init=False)
+    message: str = field(default="ID type is not string", init=False)
 
 
 class InvalidIDException(NovaAPIException):
-    status_code = 400
-    message = "ID is not a valid UUID v4"
+    status_code: int = field(default=400, init=False)
+    message: str = field(default="ID is not a valid UUID v4", init=False)
 
 
 class DuplicateEntityException(NovaAPIException):
-    status_code = 409
-    message = "Entity already exists in database"
+    status_code: int = field(default=409, init=False)
+    message: str = field(default="Entity already exists in database",
+                         init=False)
 
 
 class EntityNotFoundException(NovaAPIException):
-    status_code = 404
-    message = "The requested entity was not found in database"
+    status_code: int = field(default=404, init=False)
+    message: str = field(default="The requested entity was not "
+                                 "found in database", init=False)
 
-class NoRowsAffectedException(IOError):
-    pass
+
+@dataclass
+class NoRowsAffectedException(NovaAPIException):
+    status_code: int = field(default=304, init=False)
+    message: str = field(default="No rows were affected by the "
+                                 "desired operation", init=False)
+    error_code: int = field(default=304, init=False)

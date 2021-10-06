@@ -58,7 +58,7 @@ class MongoDAO(GenericDAO):
         self.logger.debug("Getting all with filters %s limit %s and offset %s",
                           filters, length, offset)
 
-        result_cur = self.cursor.find(self.prepare_filters(filters),
+        result_cur = self.cursor.find(self._generate_filters(filters),
                                       limit=length, skip=offset)
 
         results = []
@@ -73,7 +73,7 @@ class MongoDAO(GenericDAO):
 
         return amount, results
 
-    def prepare_filters(self, filters: dict) -> dict:
+    def _generate_filters(self, filters: dict) -> dict:
         prepared_filters = {}
 
         for key, value in filters.items():
@@ -97,7 +97,7 @@ class MongoDAO(GenericDAO):
 
         if filters is not None:
             return self.cursor.delete_many(
-                self.prepare_filters(filters)
+                self._generate_filters(filters)
             ).deleted_count
         elif entity is not None:
             self.cursor.delete_one({self.fields["id_"]: entity.id_})
