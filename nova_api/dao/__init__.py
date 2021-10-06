@@ -1,6 +1,7 @@
 import dataclasses
 import logging
 from abc import ABC, abstractmethod
+# pylint: disable=W0622
 from re import I, compile, sub
 from typing import List, Optional, Type
 
@@ -70,7 +71,6 @@ class GenericDAO(ABC):
                               "Should be a valid uuid4."
                               "Value received: %s", str(id_))
             raise InvalidIDException(debug=f"Received ID was {id_}")
-        return None
 
     @abstractmethod
     def get_all(self, length: int = 20, offset: int = 0,

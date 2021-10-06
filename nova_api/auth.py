@@ -1,9 +1,9 @@
 import logging
-from inspect import signature, Parameter
+from inspect import Parameter, signature
 
-from makefun import wraps, add_signature_parameters
 from flask import abort
-from jose import jwt, JWTError
+from jose import JWTError, jwt
+from makefun import add_signature_parameters, wraps
 from werkzeug.exceptions import HTTPException
 
 from nova_api import JWT_SECRET
@@ -25,7 +25,7 @@ def decode_jwt_token(token: str) -> dict:
     unauthorized if invalid
     """
     try:
-        logger.info(f"Decoding Token {token}")
+        logger.info("Decoding Token %s", token)
         return jwt.decode(
             token, JWT_SECRET, algorithms=['HS256'],
             options={'verify_aud': False, 'verify_iss': False,
@@ -47,7 +47,7 @@ def unauthorize(*args, **kwargs) -> HTTPException:
     return abort(401, "Unauthorized")
 
 
-def validate_jwt_claims(add_token_info: bool = False, claims={}):
+def validate_jwt_claims(add_token_info: bool = False, claims=None):
     """Decorator to authenticate and authorize access to API endpoint
 
     Checks if the received claims are present in token_info and if they match \
@@ -71,6 +71,8 @@ def validate_jwt_claims(add_token_info: bool = False, claims={}):
     :return: Decorated function if token contains correct claims or \
     unauthorize.
     """
+    if claims is None:
+        claims = {}
 
     def make_call(function):
         func_sig = signature(function)
@@ -92,9 +94,12 @@ def validate_jwt_claims(add_token_info: bool = False, claims={}):
 
             for claim_name, claim_value in claims.items():
                 if token_info.get(claim_name, None) != claim_value:
-                    logger.error(f"Token claim {claim_name} wih value "
-                                 f"{claim_value} doesn't match expected "
-                                 f"value!")
+                    logger.error("Token claim %s wih value "
+                                 "%s doesn't match expected "
+                                 "value %s!",
+                                 claim_name,
+                                 token_info.get(claim_name, None),
+                                 claim_value)
                     return unauthorize()
 
             logger.info(

@@ -95,13 +95,16 @@ class MongoDAO(GenericDAO):
     def remove(self, entity: Entity = None, filters: dict = None) -> int:
         super().remove(entity, filters)
 
+        count = 0
         if filters is not None:
-            return self.cursor.delete_many(
+            count = self.cursor.delete_many(
                 self._generate_filters(filters)
             ).deleted_count
         elif entity is not None:
             self.cursor.delete_one({self.fields["id_"]: entity.id_})
-            return 1
+            count = 1
+
+        return count
 
     def create(self, entity: Entity) -> str:
         super().create(entity)
@@ -114,12 +117,11 @@ class MongoDAO(GenericDAO):
 
     def prepare_db_dict(self, entity):
         values = entity.get_db_values(MongoDAO.custom_serializer)
-        return {key: value
-                for key, value in zip(self.fields.values(), values)}
+        return dict(zip(self.fields.values(), values))
 
     @staticmethod
     def custom_serializer(field_):
-        if isinstance(field_, datetime) or isinstance(field_, date):
+        if isinstance(field_, (date, datetime)):
             return field_
         return Entity.serialize_field(field_)
 
