@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Optional
 
 
 @dataclass
@@ -24,7 +25,7 @@ class NovaAPIException(Exception):
         """
     status_code: int = 500
     message: str = "Error"
-    error_code: int = None
+    error_code: Optional[int] = None
     debug: str = "No debug information"
 
     def __post_init__(self):

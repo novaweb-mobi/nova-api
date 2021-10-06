@@ -11,6 +11,7 @@ from nova_api import JWT_SECRET
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=R1710
 def decode_jwt_token(token: str) -> dict:
     """Function to decode JWT token.
 
@@ -75,40 +76,51 @@ def validate_jwt_claims(add_token_info: bool = False, claims=None):
         claims = {}
 
     def make_call(function):
-        func_sig = signature(function)
-        new_sig = func_sig
-        if not func_sig.parameters.get('token_info', None):
-            token_info_param = Parameter('token_info',
-                                         kind=Parameter.KEYWORD_ONLY,
-                                         default=None)
-            new_sig = add_signature_parameters(func_sig,
-                                               last=[token_info_param])
+        new_func_sig = _check_and_update_signature(signature(function))
 
-        @wraps(function, new_sig=new_sig)
+        @wraps(function, new_sig=new_func_sig)
         def wrapper(*args, **kwargs):
             token_info = kwargs.get('token_info', None)
 
-            if not token_info:
-                logger.error("Token info not received in validate_jwt_claims!")
+            if not _check_claims(token_info, claims):
                 return unauthorize()
 
-            for claim_name, claim_value in claims.items():
-                if token_info.get(claim_name, None) != claim_value:
-                    logger.error("Token claim %s wih value "
-                                 "%s doesn't match expected "
-                                 "value %s!",
-                                 claim_name,
-                                 token_info.get(claim_name, None),
-                                 claim_value)
-                    return unauthorize()
-
-            logger.info(
-                "Validated claims on call to %s with token %s and claims: %s",
-                function, token_info, kwargs)
+            logger.info("Validated claims on call to %s "
+                        "with token %s and claims: %s",
+                        function, token_info, kwargs)
             if not add_token_info:
                 kwargs.pop("token_info")
+
             return function(*args, **kwargs)
 
         return wrapper
 
     return make_call
+
+
+def _check_and_update_signature(func_sig):
+    new_sig = func_sig
+    if not func_sig.parameters.get('token_info', None):
+        token_info_param = Parameter('token_info',
+                                     kind=Parameter.KEYWORD_ONLY,
+                                     default=None)
+        new_sig = add_signature_parameters(func_sig,
+                                           last=[token_info_param])
+    return new_sig
+
+
+def _check_claims(token_info: dict, claims: dict) -> bool:
+    if not token_info or not isinstance(token_info, dict):
+        logger.error("Token info not received in validate_jwt_claims!")
+        return False
+
+    for claim_name, claim_value in claims.items():
+        if token_info.get(claim_name, None) != claim_value:
+            logger.error("Token claim %s wih value "
+                         "%s doesn't match expected "
+                         "value %s!",
+                         claim_name,
+                         token_info.get(claim_name, None),
+                         claim_value)
+            return False
+    return True

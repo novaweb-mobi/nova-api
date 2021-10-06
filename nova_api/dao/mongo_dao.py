@@ -19,7 +19,7 @@ class MongoDAO(GenericDAO):
                  host: str = environ.get('DB_URL', 'localhost'),
                  user: str = environ.get('DB_USER', 'root'),
                  password: str = environ.get('DB_PASSWORD', 'root'),
-                 database_instance=None, **kwargs) -> None:
+                 database_instance=None) -> None:
         super().__init__(fields, return_class, prefix)
 
         self.client = database_instance
