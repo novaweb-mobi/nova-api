@@ -209,6 +209,7 @@ jobs:
       - name: (Unit)Test with pytest
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api:$(pwd)/tests
+          export DB_NAME=TEST
           mkdir -p xunit-reports
           mkdir -p coverage-reports
           mkdir -p reports
@@ -223,7 +224,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          DB_NAME: TEST
         with:
           args: >
             -Dsonar.python.coverage.reportPaths=coverage-reports/coverage.xml
