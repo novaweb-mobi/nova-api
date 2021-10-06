@@ -82,9 +82,9 @@ class TestPostgreSQLHelper:
 
     def test_init_pooled_extra_args_pghelper(self, pool_mock):
         helper = PostgreSQLHelper(host='127.0.0.1', user='test',
-                                password='12345', database='test_db',
-                                pooled=True,
-                                database_args={"ssl_ca": "file"})
+                                  password='12345', database='test_db',
+                                  pooled=True,
+                                  database_args={"ssl_ca": "file"})
         assert pool_mock.mock_calls == [
             call.get_instance(host='127.0.0.1', user='test',
                               password='12345', database='test_db',
@@ -151,7 +151,7 @@ class TestPostgreSQLHelper:
         cursor_mock.fetchall.return_value = results
         assert db_.get_results() == returned
 
-    def test_close(self, postgresql_mock, db_, cursor_mock):
+    def test_close(self, postgresql_mock: Mock, db_, cursor_mock):
         db_.close()
         calls = [
             call.connect(host='localhost', user='root',
@@ -160,7 +160,7 @@ class TestPostgreSQLHelper:
             call.connect().cursor().close(),
             call.connect().close()
         ]
-        assert postgresql_mock.assert_has_calls(calls)
+        postgresql_mock.assert_has_calls(calls, any_order=False)
 
     def test_close_pooled(self, pool_mock, db_pooled, cursor_mock):
         db_pooled.close()
