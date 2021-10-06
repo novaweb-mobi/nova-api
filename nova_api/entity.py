@@ -109,9 +109,9 @@ class Entity(ABC):
                             field_.metadata.get("date_format",
                                                 "%Y-%m-%d")
                         ).date())
-                elif issubclass(field_.type, date) \
+                elif field_.type == date \
                         and \
-                        type(field_value) != field_.type:
+                        isinstance(field_value, datetime):
                     logger.debug(received_log,
                                  type(field_value),
                                  field_.type)

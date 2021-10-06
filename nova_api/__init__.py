@@ -6,7 +6,7 @@ import sys
 import time
 from dataclasses import Field, fields
 from functools import wraps
-from typing import Type
+from typing import Optional, Type
 
 from flask import jsonify, make_response
 from flask.wrappers import Response
@@ -303,7 +303,7 @@ def is_valid_auth_schema(auth: str) -> bool:
     return auth in AUTHENTICATION_SCHEMAS
 
 
-def get_auth_schema_yml(schema: int = None) -> str:
+def get_auth_schema_yml(schema: int = None) -> Optional[str]:
     """Returns the yml definition for the selected schema.
 
     :param schema: The identifier of the authorization schema.

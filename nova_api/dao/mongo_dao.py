@@ -24,8 +24,8 @@ class MongoDAO(GenericDAO):
 
         self.client = database_instance
         if user:
-            self.uri = "mongodb://%s:%s@%s" % (
-                quote_plus(user), quote_plus(password), host)
+            self.uri = \
+                f"mongodb://{quote_plus(user)}:{quote_plus(password)}@{host}"
         else:
             self.uri = host
 
