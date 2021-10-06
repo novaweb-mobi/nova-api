@@ -314,7 +314,7 @@ def get_auth_schema_yml(schema: int = None) -> Optional[str]:
     return baseapi.SECURITY_DEFINITIONS[schema]
 
 
-def create_api_files(entity: Entity, dao_class: GenericDAO, version: int, *,
+def create_api_files(entity: Entity, dao_class: GenericDAO, version: str, *,
                      overwrite: bool = False, auth_schema: int = None) -> None:
     """Write api files for the entity informed with the dao_class informed.
 
