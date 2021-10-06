@@ -35,6 +35,12 @@ class TestMongoDAO:
         assert dao.client == mongo_mock.return_value
 
     @staticmethod
+    def test_no_user_should_use_host(mongo_mock):
+        dao = MongoDAO(host="test", user=None)
+        mongo_mock.assert_called_with(host='test')
+        assert dao.client == mongo_mock.return_value
+
+    @staticmethod
     def test_should_use_host(mongo_mock):
         dao = MongoDAO(host="test.url")
         mongo_mock.assert_called_with(host='mongodb://root:root@test.url')
