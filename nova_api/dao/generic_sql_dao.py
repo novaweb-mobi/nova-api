@@ -88,10 +88,15 @@ class GenericSQLDAO(GenericDAO):
             ...                      "name":"John"})
             (2, [ent1, ent2])
 
-        :param length:
-        :param offset:
-        :param filters:
-        :return:
+        :param length: Amount of items to select
+        :param offset: Amount of items to skip
+        :param filters: Dictionary with filters to apply. \
+        It may be simply the entity key and the value, to use \
+        == as a comparator, but you may also specify a list, \
+        with the first value as a comparator and the second as \
+        a reference value.
+        :return: Tuple with the amount of items in the database \
+        and the list of matches, respectively
         """
         self.logger.debug("Getting all with filters %s limit %s and offset %s",
                           str(filters), length, offset)
@@ -137,11 +142,16 @@ class GenericSQLDAO(GenericDAO):
         """
         Removes entities from database. May be called either with an instance
         of return_class or a dict of filters. *If both are passed, the instance
-        will be removed and the filters won't be considered.*
+        will be removed and the filters won't be considered.*Invalid filters \
+        won't be considered.
 
-        :raises RuntimeError: If `entity` is not a `return_class` instance \
-        and filters are None or if filters is not None and is not a dict.
-        :raises AssertionError: If the entity is not found in the database.
+        :raises NotEntityException: If `entity` is not a `return_class` \
+        instance and filters are None.
+        :raises EntityNotFoundException: If the entity is not found in the \
+        database.
+        :raises InvalidFiltersException: If filters is not None and is not \
+        a dict.
+
         :raises NoRowsAffectedException: If no rows are affected by the \
         delete query.
 
@@ -155,11 +165,11 @@ class GenericSQLDAO(GenericDAO):
         filters_ = None
         query_params = None
 
-        if filters is not None:
-            filters_, query_params = self._generate_filters(filters)
-        elif entity is not None:
+        if entity is not None:
             filters_, query_params = self._generate_filters(
                 {"id_": entity.id_})
+        elif filters is not None:
+            filters_, query_params = self._generate_filters(filters)
 
         query = self.database.DELETE_QUERY.format(
             table=self.table,
@@ -182,16 +192,16 @@ class GenericSQLDAO(GenericDAO):
 
     def create(self, entity: Entity) -> str:
         """
-        Creates a new row in the databse with data from `entity`.
+        Creates a new row in the database with data from `entity`.
+
+        :raises NotEntityException: Raised if the entity argument
+        is not of the return_class of this DAO
+        :raises DuplicateEntityException: Raised if an entity with
+        the same ID exists in the database already.
 
         :param entity: The instance to save in the database.
         :return: The entity uuid.
-        :raise NotEntityException: Raised if the entity argument
-        is not of the return_class of this DAO
-        :raise DuplicateEntityException: Raised if an entity with
-        the same ID exists in the database already.
         """
-
         super().create(entity)
 
         ent_values = entity.get_db_values()
@@ -218,6 +228,11 @@ class GenericSQLDAO(GenericDAO):
     def update(self, entity: Entity) -> str:
         """
         Updates an entity on the database.
+
+        :raises NotEntityException: If `entity` is not a `return_class` \
+        instance.
+        :raises EntityNotFoundException: If the entity is not found in the \
+        database.
 
         :param entity: The entity with updated values to update on \
         the database.

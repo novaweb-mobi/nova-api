@@ -55,13 +55,33 @@ class GenericDAO(ABC):
                               self.__class__.__name__,
                               str(self.fields))
 
-    def _generate_field_database_name(self, arg: dataclasses.Field):
+    def _generate_field_database_name(self, arg: dataclasses.Field) -> str:
+        """
+        Generates the database field_name from the prefix, the field name \
+        and a suffix, if necessary. The suffix is added if the field is \
+        an entity and only the id_ should be saved.
+
+        :param arg: The Field to generate the database name for.
+        :return: The field database name.
+        """
         return self.prefix \
                + arg.name \
                + ('' if not issubclass(arg.type, Entity) else "_id_")
 
     @abstractmethod
     def get(self, id_: str) -> Optional[Entity]:
+        """
+        Recovers and entity with `id_` from the database. The id_ must be the \
+        nova_api generated id_ which is a 32-char uuid v4.
+
+        :raises InvalidIDTypeException: If the UUID is not a string
+        :raises InvalidIDException: If the UUID is not a valid UUID v4 \
+        without '-'.
+
+        :param id_: The UUID of the instance to recover
+        :return: None if no instance is found or a `return_class` instance \
+        if found
+        """
         if not isinstance(id_, str):
             self.logger.error("ID was not passed as a str to get. "
                               "Value received: %s", str(id_))
@@ -75,10 +95,56 @@ class GenericDAO(ABC):
     @abstractmethod
     def get_all(self, length: int = 20, offset: int = 0,
                 filters: dict = None) -> (int, List[Entity]):
+        """
+        Recovers all instances that match the given filters up to the length \
+        specified starting from the offset given.
+
+        The filters should be given as a dictionary, available keys are the \
+        `return_class` attributes. The values may be only the desired value \
+        or a list with the comparator in the first position and the value in \
+        the second.
+
+        Example:
+            >>> dao.get_all(length=50, offset=0,
+            ...             filters={"birthday":[">", "1/1/1998"],
+            ...                      "name":"John"})
+            (2, [ent1, ent2])
+
+        :param length: Amount of items to select
+        :param offset: Amount of items to skip
+        :param filters: Dictionary with filters to apply. \
+        It may be simply the entity key and the value, to use \
+        == as a comparator, but you may also specify a list, \
+        with the first value as a comparator and the second as \
+        a reference value.
+        :return: Tuple with the amount of items in the database \
+        and the list of matches, respectively
+        """
         raise NotImplementedError()
 
     @abstractmethod
     def remove(self, entity: Entity = None, filters: dict = None) -> int:
+        """
+        Removes entities from database. May be called either with an instance
+        of return_class or a dict of filters. *If both are passed, the instance
+        will be removed and the filters won't be considered.*Invalid filters \
+        won't be considered.
+
+        :raises NotEntityException: If `entity` is not a `return_class` \
+        instance and filters are None.
+        :raises EntityNotFoundException: If the entity is not found in the \
+        database.
+        :raises InvalidFiltersException: If filters is not None and is not \
+        a dict.
+
+        :raises NoRowsAffectedException: If no rows are affected by the \
+        delete query.
+
+        :param entity: `return_class` instance to delete.
+        :param filters: Filters to apply to delete query in dict format as
+        specified by `_generate_filters`
+        :return: Number of affected rows.
+        """
         if not isinstance(entity, self.return_class) and filters is None:
             self.logger.info(
                 "Entity was not passed as an instance to remove"
@@ -106,14 +172,15 @@ class GenericDAO(ABC):
     @abstractmethod
     def create(self, entity: Entity) -> str:
         """
-            Creates a new entry in the databse with data from `entity`.
+        Creates a new row in the database with data from `entity`.
 
-            :param entity: The instance to save in the database.
-            :return: The entity uuid.
-            :raise NotEntityException: Raised if the entity argument
-            is not of the return_class of this DAO
-            :raise DuplicateEntityException: Raised if an entity with
-            the same ID exists in the database already.
+        :raises NotEntityException: Raised if the entity argument
+        is not of the return_class of this DAO
+        :raises DuplicateEntityException: Raised if an entity with
+        the same ID exists in the database already.
+
+        :param entity: The instance to save in the database.
+        :return: The entity uuid.
         """
         if not isinstance(entity, self.return_class):
             self.logger.error("Entity was not passed as an instance to create."
@@ -135,6 +202,18 @@ class GenericDAO(ABC):
 
     @abstractmethod
     def update(self, entity: Entity) -> str:
+        """
+        Updates an entity on the database.
+
+        :raises NotEntityException: If `entity` is not a `return_class` \
+        instance.
+        :raises EntityNotFoundException: If the entity is not found in the \
+        database.
+
+        :param entity: The entity with updated values to update on \
+        the database.
+        :return: The id_ of the updated entity.
+        """
         if not isinstance(entity, self.return_class):
             self.logger.error("Entity was not passed as an instance to update."
                               " Value received: %s", str(entity))
@@ -152,4 +231,9 @@ class GenericDAO(ABC):
 
     @abstractmethod
     def close(self):
+        """
+        Closes the connection to the database
+
+        :return: None
+        """
         raise NotImplementedError()

@@ -1,6 +1,6 @@
 from datetime import date, datetime, time
 from os import environ
-from typing import List, Optional, Type
+from typing import Any, List, Optional, Type
 from urllib.parse import quote_plus
 
 from pymongo import MongoClient
@@ -39,11 +39,23 @@ class MongoDAO(GenericDAO):
         self.cursor = self.database[self.collection]
 
     def get(self, id_: str) -> Optional[Entity]:
+        """
+        Recovers and entity with `id_` from the database. The id_ must be the \
+        nova_api generated id_ which is a 32-char uuid v4.
+
+        :raises InvalidIDTypeException: If the UUID is not a string
+        :raises InvalidIDException: If the UUID is not a valid UUID v4 \
+        without '-'.
+
+        :param id_: The UUID of the instance to recover
+        :return: None if no instance is found or a `return_class` instance \
+        if found
+        """
         super().get(id_)
 
         self.logger.debug("Get called with valid id %s", id_)
         result = self.cursor.find_one({self.fields['id_']: id_})
-        result_object = self.create_entity_from_result(result)
+        result_object = self._create_entity_from_result(result)
 
         self.logger.debug("Found instance with id %s. Result: %s",
                           id_,
@@ -51,8 +63,54 @@ class MongoDAO(GenericDAO):
 
         return result_object
 
+    def _create_entity_from_result(self, result: dict) -> Optional[Entity]:
+        """
+        Instantiates a `return_class` instance from the dict returned \
+        from Mongo. Returns None if no dict
+
+        :param result: Dictionary returned from Mongo
+        :return: A `return_class` instance
+        """
+        if not result:
+            return None
+
+        entity = {}
+        for prop, field in self.fields.items():
+            entity[prop] = result.pop(field, None)
+
+        return self.return_class(**entity)
+
     def get_all(self, length: int = 20, offset: int = 0,
                 filters=None) -> (int, List[Entity]):
+        """
+                Recovers all instances that match the given filters up to
+                the length \
+                specified starting from the offset given.
+
+                The filters should be given as a dictionary, available keys
+                are the \
+                `return_class` attributes. The values may be only the
+                desired value \
+                or a list with the comparator in the first position and the
+                value in \
+                the second.
+
+                Example:
+                    >>> dao.get_all(length=50, offset=0,
+                    ...             filters={"birthday":[">", "1/1/1998"],
+                    ...                      "name":"John"})
+                    (2, [ent1, ent2])
+
+                :param length: Amount of items to select
+                :param offset: Amount of items to skip
+                :param filters: Dictionary with filters to apply. \
+                It may be simply the entity key and the value, to use \
+                == as a comparator, but you may also specify a list, \
+                with the first value as a comparator and the second as \
+                a reference value.
+                :return: Tuple with the amount of items in the database \
+                and the list of matches, respectively
+                """
         if filters is None:
             filters = {}
         self.logger.debug("Getting all with filters %s limit %s and offset %s",
@@ -63,7 +121,7 @@ class MongoDAO(GenericDAO):
 
         results = []
         for result in result_cur:
-            results.append(self.create_entity_from_result(result))
+            results.append(self._create_entity_from_result(result))
 
         if not results:
             self.logger.info("No results found in get_all. Returning none")
@@ -74,6 +132,13 @@ class MongoDAO(GenericDAO):
         return amount, results
 
     def _generate_filters(self, filters: dict) -> dict:
+        """
+        Converts the filters dict to the database field notation \
+        and removes unknown fields included in filters.
+
+        :param filters: The filters dict from get_all
+        :return: The filters dict to use when querying MongoDB
+        """
         prepared_filters = {}
 
         for key, value in filters.items():
@@ -82,45 +147,82 @@ class MongoDAO(GenericDAO):
 
         return prepared_filters
 
-    def create_entity_from_result(self, result):
-        if not result:
-            return None
-
-        entity = {}
-        for prop, field in self.fields.items():
-            entity[prop] = result.pop(field, None)
-
-        return self.return_class(**entity)
-
     def remove(self, entity: Entity = None, filters: dict = None) -> int:
+        """
+        Removes entities from database. May be called either with an instance
+        of return_class or a dict of filters. *If both are passed, the instance
+        will be removed and the filters won't be considered.*Invalid filters \
+        won't be considered.
+
+        :raises NotEntityException: If `entity` is not a `return_class` \
+        instance and filters are None.
+        :raises EntityNotFoundException: If the entity is not found in the \
+        database.
+        :raises InvalidFiltersException: If filters is not None and is not \
+        a dict.
+
+        :raises NoRowsAffectedException: If no rows are affected by the \
+        delete query.
+
+        :param entity: `return_class` instance to delete.
+        :param filters: Filters to apply to delete query in dict format as
+        specified by `_generate_filters`
+        :return: Number of affected rows.
+        """
         super().remove(entity, filters)
 
         count = 0
-        if filters is not None:
+        if entity is not None:
+            self.cursor.delete_one({self.fields["id_"]: entity.id_})
+            count = 1
+        elif filters is not None:
             count = self.cursor.delete_many(
                 self._generate_filters(filters)
             ).deleted_count
-        elif entity is not None:
-            self.cursor.delete_one({self.fields["id_"]: entity.id_})
-            count = 1
 
         return count
 
     def create(self, entity: Entity) -> str:
+        """
+        Creates a new row in the database with data from `entity`.
+
+        :raises NotEntityException: Raised if the entity argument
+        is not of the return_class of this DAO
+        :raises DuplicateEntityException: Raised if an entity with
+        the same ID exists in the database already.
+
+        :param entity: The instance to save in the database.
+        :return: The entity uuid.
+        """
         super().create(entity)
 
         self.cursor.insert_one(
-            self.prepare_db_dict(entity)
+            self._prepare_db_dict(entity)
         )
 
         return entity.id_
 
-    def prepare_db_dict(self, entity):
-        values = entity.get_db_values(MongoDAO.custom_serializer)
+    def _prepare_db_dict(self, entity: Entity) -> dict:
+        """
+        Return the entity as a document(dict) to be inserted
+        in MongoDB
+
+        :param entity: `return_class instance to serialize`
+        :return: The entity as a document(dict)
+        """
+        values = entity.get_db_values(MongoDAO._custom_serializer)
         return dict(zip(self.fields.values(), values))
 
     @staticmethod
-    def custom_serializer(field_):
+    def _custom_serializer(field_: Any) -> Any:
+        """
+        Serializes field for MongoDB insertion. This is used to \
+        override the default serialization for datetime/data fields \
+        in Entity.
+
+        :param field_: The field to be serialized
+        :return: The serialized field
+        """
         if isinstance(field_, datetime):
             return field_
         if isinstance(field_, date):
@@ -128,12 +230,24 @@ class MongoDAO(GenericDAO):
         return Entity.serialize_field(field_)
 
     def update(self, entity: Entity) -> str:
+        """
+        Updates an entity on the database.
+
+        :raises NotEntityException: If `entity` is not a `return_class` \
+        instance.
+        :raises EntityNotFoundException: If the entity is not found in the \
+        database.
+
+        :param entity: The entity with updated values to update on \
+        the database.
+        :return: The id_ of the updated entity.
+        """
         super().update(entity)
         old_ent = self.get(entity.id_)
         entity.last_modified_datetime = datetime.now()
 
-        old_entity = self.prepare_db_dict(old_ent)
-        new_entity = self.prepare_db_dict(entity)
+        old_entity = self._prepare_db_dict(old_ent)
+        new_entity = self._prepare_db_dict(entity)
 
         query = {}
         for field in self.fields.values():
@@ -146,4 +260,9 @@ class MongoDAO(GenericDAO):
         return entity.id_
 
     def close(self):
+        """
+        Closes the connection to the database
+
+        :return: None
+        """
         self.client.close()

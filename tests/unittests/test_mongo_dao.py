@@ -178,7 +178,7 @@ class TestMongoDAO:
 
     @staticmethod
     def test_get_all_with_result_should_return_elements(dao, test_entity):
-        db_dict = dao.prepare_db_dict(test_entity)
+        db_dict = dao._prepare_db_dict(test_entity)
         db_dict.update({"_id": ObjectId()})
         dao.cursor.find.return_value = Cursor([db_dict])
         dao.cursor.count_documents.return_value = 1
@@ -192,7 +192,7 @@ class TestMongoDAO:
 
     @staticmethod
     def test_get_all_with_filter_should_use_filter(dao, test_entity):
-        db_dict = dao.prepare_db_dict(test_entity)
+        db_dict = dao._prepare_db_dict(test_entity)
         db_dict.update({"_id": ObjectId()})
         dao.cursor.find.return_value = Cursor([db_dict])
         dao.cursor.count_documents.return_value = 1
