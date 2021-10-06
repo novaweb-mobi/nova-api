@@ -142,7 +142,6 @@ class TestIntegrationMySQL:
         dao.close()
 
     def test_update_user(self, user_dao, user):
-
         try:
             user_dao.create(user)
         except Exception:

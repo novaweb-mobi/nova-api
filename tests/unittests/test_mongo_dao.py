@@ -102,7 +102,8 @@ class TestMongoDAO:
                 'test_entity_last_modified_datetime':
                     test_entity.last_modified_datetime,
                 'test_entity_name': 'Test',
-                'test_entity_birthday': test_entity.birthday})],
+                'test_entity_birthday': datetime.datetime.combine(test_entity.birthday,
+                                                         datetime.time())})],
             any_order=True)
 
     @staticmethod

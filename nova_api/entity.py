@@ -74,7 +74,7 @@ class Entity(ABC):
         for field_ in fields(self):
             try:
                 field_value = self.__getattribute__(field_.name)
-                if issubclass(field_.type, Entity) \
+                if issubclass(field_.type, (Entity, Enum)) \
                         and \
                         not isinstance(field_value, field_.type):
                     # pylint: disable=W0511
@@ -109,20 +109,21 @@ class Entity(ABC):
                             field_.metadata.get("date_format",
                                                 "%Y-%m-%d")
                         ).date())
+                elif issubclass(field_.type, date) \
+                        and \
+                        type(field_value) != field_.type:
+                    logger.debug(received_log,
+                                 type(field_value),
+                                 field_.type)
+                    self.__setattr__(
+                        field_.name,
+                        field_value.date())
                 elif issubclass(field_.type, str) \
                         and field_value is not None:
                     logger.debug("Stripping string field")
                     self.__setattr__(
                         field_.name,
                         str(field_value).strip())
-                elif issubclass(field_.type, Enum) \
-                        and \
-                        not isinstance(field_value, field_.type):
-                    logger.debug(received_log,
-                                 type(field_value),
-                                 field_.type)
-                    self.__setattr__(field_.name,
-                                     field_.type(field_value))
             except TypeError:
                 logger.debug("Unable to check field %s type",
                              field_.name, exc_info=True)

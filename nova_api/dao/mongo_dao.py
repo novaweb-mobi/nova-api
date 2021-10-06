@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, time
 from os import environ
 from typing import List, Optional, Type
 from urllib.parse import quote_plus
@@ -121,8 +121,10 @@ class MongoDAO(GenericDAO):
 
     @staticmethod
     def custom_serializer(field_):
-        if isinstance(field_, (date, datetime)):
+        if isinstance(field_, datetime):
             return field_
+        if isinstance(field_, date):
+            return datetime.combine(field_, time())
         return Entity.serialize_field(field_)
 
     def update(self, entity: Entity) -> str:

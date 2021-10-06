@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import date
+from time import sleep
 
 from pytest import fixture, mark, raises
 
@@ -123,6 +124,36 @@ class TestIntegrationMongo:
     def test_get_not_existent(self, user_dao):
         assert user_dao.get("4b918d8a2add4857ae2a5b29f58f32df") is None
         user_dao.close()
+
+    def test_update_user(self, user_dao, user):
+        try:
+            user_dao.create(user)
+        except Exception:
+            assert user_dao.get(user.id_) is not None
+        last_modified_old = user.last_modified_datetime
+        sleep(1)
+        user.birthday = date(1998, 12, 21)
+        user_dao.update(user)
+        updated_user = user_dao.get(user.id_)
+        assert updated_user.birthday == date(1998, 12, 21)
+        assert updated_user.last_modified_datetime > last_modified_old
+        user_dao.remove(user)
+        user_dao.close()
+
+    def test_update_payment(self, payment_dao, payment):
+        try:
+            payment_dao.create(payment)
+        except Exception:
+            assert payment_dao.get(payment.id_) is not None
+        last_modified_old = payment.last_modified_datetime
+        sleep(1)
+        payment.value = 5
+        payment_dao.update(payment)
+        updated_payment = payment_dao.get(payment.id_)
+        assert updated_payment.value == 5
+        assert updated_payment.last_modified_datetime > last_modified_old
+        payment_dao.remove(payment)
+        payment_dao.close()
 
     @fixture
     def user_dao(self):

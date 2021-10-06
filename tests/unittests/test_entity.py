@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
-
-from datetime import datetime, date
+from datetime import date, datetime
 from enum import Enum
 from typing import List
 
@@ -84,6 +83,11 @@ class TestEntity:
     def test_datetime_generation(self, entity):
         assert isinstance(entity.creation_datetime, datetime) \
                and isinstance(entity.last_modified_datetime, datetime)
+
+    def test_received_datetime_should_turn_date(self):
+        ent = EntityForTestWithDateFormat(my_date=datetime(1, 1, 1, 12, 1))
+        assert type(ent.my_date) != datetime
+        assert ent.my_date == date(1, 1, 1)
 
     def test_to_dict(self, entity):
         entity_dict = dict(entity)
