@@ -204,7 +204,7 @@ class TestIntegrationPostgreSQL:
         try:
 
             user = User(id_="4b918d8a2add4857ae2a5b29f58f32df")
-            with raises(AssertionError):
+            with raises(EntityNotFoundException):
                 user_dao.update(user)
         finally:
             user_dao.close()

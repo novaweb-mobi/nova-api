@@ -155,6 +155,14 @@ class TestIntegrationMongo:
         payment_dao.remove(payment)
         payment_dao.close()
 
+    def test_update_not_existent(self, user_dao):
+        try:
+            user = User(id_="4b918d8a2add4857ae2a5b29f58f32df")
+            with raises(EntityNotFoundException):
+                user_dao.update(user)
+        finally:
+            user_dao.close()
+
     @fixture
     def user_dao(self):
         return UserDAO()
