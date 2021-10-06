@@ -8,10 +8,15 @@ from nova_api.dao.generic_sql_dao import GenericSQLDAO
 from nova_api.exceptions import DuplicateEntityException, \
     EntityNotFoundException, InvalidFiltersException, InvalidIDException, \
     InvalidIDTypeException, \
-    NoRowsAffectedException, \
-    NotEntityException
+    NoRowsAffectedException, NotEntityException
 from tests.unittests import TEST_DATE, TestEntity, TestEntity2, \
     TestEntityWithChild
+
+
+class TestEntityDAO(GenericSQLDAO):
+    def __init__(self, database_type=None, **kwargs):
+        super(TestEntityDAO, self).__init__(database_type=database_type,
+                                            return_class=TestEntity, **kwargs)
 
 
 class TestGenericSQLDAO:
@@ -148,6 +153,32 @@ class TestGenericSQLDAO:
                                           "last_modified_datetime",
                                       "name": "name",
                                       "birthday": "birthday"}
+        assert generic_dao.return_class == TestEntity
+
+    def test_init_change_database(self, mysql_mock):
+        generic_dao = GenericSQLDAO(
+            fields={"id_": "id",
+                    "creation_datetime": "creation_datetime",
+                    "last_modified_datetime": "last_modified_datetime",
+                    "name": "name",
+                    "birthday": "birthday"},
+            database="test_db_change",
+            return_class=TestEntity)
+        assert mysql_mock.mock_calls == [call(database="test_db_change")]
+        assert generic_dao.database == mysql_mock.return_value
+        assert generic_dao.table == "test_entitys"
+        assert generic_dao.fields == {"id_": "id",
+                                      "creation_datetime": "creation_datetime",
+                                      "last_modified_datetime":
+                                          "last_modified_datetime",
+                                      "name": "name",
+                                      "birthday": "birthday"}
+        assert generic_dao.return_class == TestEntity
+
+    def test_init_change_database_inherited(self, mysql_mock):
+        generic_dao = TestEntityDAO(database="test_db_change")
+        assert mysql_mock.mock_calls == [call(database="test_db_change")]
+        assert generic_dao.database == mysql_mock.return_value
         assert generic_dao.return_class == TestEntity
 
     def test_init_extra_params(self, mysql_mock):

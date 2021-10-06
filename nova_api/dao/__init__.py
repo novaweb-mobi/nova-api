@@ -1,3 +1,5 @@
+"""Module for Data Access Objects implementation"""
+
 import dataclasses
 import logging
 from abc import ABC, abstractmethod
@@ -12,7 +14,13 @@ from nova_api.exceptions import DuplicateEntityException, \
     NotEntityException
 
 
-def camel_to_snake(name):
+def camel_to_snake(name: str):
+    """Converts a camel case name to snake case.
+
+    :param name: String in camel case to be converted
+    :return: String in snake case
+    """
+    assert isinstance(name, str)
     name = sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
 
@@ -27,6 +35,9 @@ def is_valid_uuidv4(id_):
 
 
 class GenericDAO(ABC):
+    """ Interface class for the implementation of Data Access Objects.
+    """
+
     @abstractmethod
     def __init__(self,
                  fields: dict = None,
@@ -110,15 +121,14 @@ class GenericDAO(ABC):
             ...                      "name":"John"})
             (2, [ent1, ent2])
 
-        :param length: Amount of items to select
-        :param offset: Amount of items to skip
-        :param filters: Dictionary with filters to apply. \
-        It may be simply the entity key and the value, to use \
-        == as a comparator, but you may also specify a list, \
-        with the first value as a comparator and the second as \
-        a reference value.
-        :return: Tuple with the amount of items in the database \
-        and the list of matches, respectively
+        :param length: The number of items to select
+        :param offset: The number of items to skip before starting to select
+        :param filters: A dict with the filters to use. The key must be a \
+        valid attribute in the entity and the value may either be an specific \
+        value or a list with two elements: an operator and a value,
+        respectively.
+        :return: A tuple with the totol number of entities in the database \
+        and a list of the matched results.
         """
         raise NotImplementedError()
 
