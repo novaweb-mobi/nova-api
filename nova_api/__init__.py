@@ -336,7 +336,8 @@ def create_api_files(entity_class: Type[Entity], dao_class: Type[GenericDAO],
     if python_api_exists(entity_lower) and not overwrite:
         logger.debug("API already exists. Skipping generation...")
     else:
-        write_api_implementation(get_python_api_filename(entity_lower), dao_class, entity_class)
+        write_api_implementation(get_python_api_filename(entity_lower),
+                                 dao_class, entity_class)
 
     if version == '':
         version = '1'
