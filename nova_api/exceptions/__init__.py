@@ -36,32 +36,38 @@ class NovaAPIException(Exception):
             self.error_code = self.status_code
 
 
+@dataclass
 class NotEntityException(NovaAPIException):
     status_code: int = field(default=400, init=False)
     message: str = field(default="Argument is not an Entity", init=False)
 
 
+@dataclass
 class InvalidFiltersException(NovaAPIException):
     status_code: int = field(default=400, init=False)
     message: str = field(default="Filters are not valid", init=False)
 
 
+@dataclass
 class InvalidIDTypeException(NovaAPIException):
     status_code: int = field(default=400, init=False)
     message: str = field(default="ID type is not string", init=False)
 
 
+@dataclass
 class InvalidIDException(NovaAPIException):
     status_code: int = field(default=400, init=False)
     message: str = field(default="ID is not a valid UUID v4", init=False)
 
 
+@dataclass
 class DuplicateEntityException(NovaAPIException):
     status_code: int = field(default=409, init=False)
     message: str = field(default="Entity already exists in database",
                          init=False)
 
 
+@dataclass
 class EntityNotFoundException(NovaAPIException):
     status_code: int = field(default=404, init=False)
     message: str = field(default="The requested entity was not "

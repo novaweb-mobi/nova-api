@@ -23,7 +23,7 @@ Next, start with the necessary imports on the file: ::
 
 The dataclasses module allows us to declare the attributes of our
 entity in a simpler way and also creates some methods for us like
-`__init__`, `compare` and `__str__`. The Entity module from NovaAPI
+`__init__`, `compare` and `__repr__`. The Entity module from NovaAPI
 allows us to easily serialize and deserialize our entity when sending
 an API response or dealing with the database.
 

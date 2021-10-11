@@ -86,7 +86,7 @@ class TestEntity:
 
     def test_received_datetime_should_turn_date(self):
         ent = EntityForTestWithDateFormat(my_date=datetime(1, 1, 1, 12, 1))
-        assert type(ent.my_date) != datetime
+        assert not isinstance(ent.my_date, datetime)
         assert ent.my_date == date(1, 1, 1)
 
     def test_to_dict(self, entity):
