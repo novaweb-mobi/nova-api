@@ -162,6 +162,7 @@ paths:
             properties:
               message:
                 type: string
+                default: "OK"
               data:
                 type: object
                 properties:
