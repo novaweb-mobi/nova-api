@@ -1,8 +1,8 @@
 from inspect import signature
 
 from jose import jwt
-from werkzeug.exceptions import Unauthorized
 from pytest import mark, raises
+from werkzeug.exceptions import Unauthorized
 
 import nova_api
 from nova_api import auth
@@ -101,6 +101,17 @@ class TestAuth:
         token_info.update({"iss": "errado"})
         with raises(Unauthorized):
             test_function(token_info=token_info)
+
+    def test_ok_if_claims_empty(self):
+        token_info = {"iss": "novaweb.teste",
+                      "sub": "tester2@novaweb",
+                      "custom_claim": "testing"}
+
+        @auth.validate_jwt_claims(add_token_info=False)
+        def test_function():
+            return True
+
+        assert test_function(token_info=token_info)
 
     def test_unauthorize(self):
         with raises(Unauthorized):

@@ -133,6 +133,7 @@ jobs:
       if: ${{ steps.files-changed.outputs.result == 'true' }}
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api:$(pwd)/tests
+        export DB_NAME=TEST
         mkdir xunit-reports
         mkdir coverage-reports
         pytest --junitxml=xunit-reports/xunit-result-nova_api.xml --cov=nova_api --cov-report xml:coverage-reports/coverage-python.xml  tests/unittests
@@ -169,6 +170,22 @@ jobs:
         >&2 echo 'PostgreSQL is available'
         pytest --junitxml=xunit-reports/xunit-result-nova_api-integration-postgres.xml tests/integrationtests/test_integration_postgres.py
 
+    - name: Integration Test with MongoDB
+      if: ${{ steps.files-changed.outputs.result == 'true' }}
+      run: |
+        export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api
+        function mongo_ready(){
+          export DB_URL=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tests_mongo_1)
+
+          python tests/check_mongo.py
+        }
+        until mongo_ready; do
+          >&2 echo 'Waiting for mongo database to become available...'
+          sleep 2
+        done
+        >&2 echo 'MongoDB is available'
+        pytest --junitxml=xunit-reports/xunit-result-nova_api-integration-mongo.xml tests/integrationtests/test_integration_mongo.py
+
   sonar:
     needs: test
     runs-on: ubuntu-latest
@@ -192,6 +209,7 @@ jobs:
       - name: (Unit)Test with pytest
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api:$(pwd)/tests
+          export DB_NAME=TEST
           mkdir -p xunit-reports
           mkdir -p coverage-reports
           mkdir -p reports

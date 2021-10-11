@@ -3,11 +3,11 @@ from datetime import date, datetime
 
 import mysql.connector
 from mock import call
-from mysql.connector import InterfaceError, DatabaseError, Error
+from mysql.connector import DatabaseError, Error, InterfaceError
 from pytest import fixture, mark, raises
 
-from nova_api.persistence.mysql_helper import MySQLHelper
 from nova_api.entity import Entity
+from nova_api.persistence.mysql_helper import MySQLHelper
 
 
 @dataclass
@@ -46,6 +46,15 @@ class TestMySQLHelper:
         assert mysql_mock.mock_calls == [
             call.connect(host='127.0.0.1', user='test',
                          password='12345', database='test_db'),
+            call.connect().cursor()
+        ]
+
+    def test_init_database_none(self, mysql_mock):
+        MySQLHelper(host='127.0.0.1', user='test',
+                    password='12345', database=None, pooled=False)
+        assert mysql_mock.mock_calls == [
+            call.connect(host='127.0.0.1', user='test',
+                         password='12345', database='default'),
             call.connect().cursor()
         ]
 
@@ -132,7 +141,7 @@ class TestMySQLHelper:
         db_.close()
         calls = [
             call.connect(host='localhost', user='root',
-                         password='root', database='default'),
+                         password='root', database='TEST'),
             call.connect().cursor(),
             call.connect().cursor().close(),
             call.connect().close()

@@ -1,9 +1,9 @@
 import logging
-from inspect import signature, Parameter
+from inspect import Parameter, Signature, signature
 
-from makefun import wraps, add_signature_parameters
 from flask import abort
-from jose import jwt, JWTError
+from jose import JWTError, jwt
+from makefun import add_signature_parameters, wraps
 from werkzeug.exceptions import HTTPException
 
 from nova_api import JWT_SECRET
@@ -11,6 +11,7 @@ from nova_api import JWT_SECRET
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=R1710
 def decode_jwt_token(token: str) -> dict:
     """Function to decode JWT token.
 
@@ -25,7 +26,7 @@ def decode_jwt_token(token: str) -> dict:
     unauthorized if invalid
     """
     try:
-        logger.info(f"Decoding Token {token}")
+        logger.info("Decoding Token %s", token)
         return jwt.decode(
             token, JWT_SECRET, algorithms=['HS256'],
             options={'verify_aud': False, 'verify_iss': False,
@@ -47,7 +48,7 @@ def unauthorize(*args, **kwargs) -> HTTPException:
     return abort(401, "Unauthorized")
 
 
-def validate_jwt_claims(add_token_info: bool = False, claims={}):
+def validate_jwt_claims(add_token_info: bool = False, claims=None):
     """Decorator to authenticate and authorize access to API endpoint
 
     Checks if the received claims are present in token_info and if they match \
@@ -58,7 +59,7 @@ def validate_jwt_claims(add_token_info: bool = False, claims={}):
         In the following example, if the `token_info` doesn't have the iss \
         claim with value "novaweb", `my_endpoint` won't be called. ::
 
-            @validate_jwt_claims(claims = {iss="novaweb"})
+            @validate_jwt_claims(claims = {"iss":"novaweb"})
             def my_endpoint():
                 ...
 
@@ -71,39 +72,69 @@ def validate_jwt_claims(add_token_info: bool = False, claims={}):
     :return: Decorated function if token contains correct claims or \
     unauthorize.
     """
+    if claims is None:
+        claims = {}
 
     def make_call(function):
-        func_sig = signature(function)
-        new_sig = func_sig
-        if not func_sig.parameters.get('token_info', None):
-            token_info_param = Parameter('token_info',
-                                         kind=Parameter.KEYWORD_ONLY,
-                                         default=None)
-            new_sig = add_signature_parameters(func_sig,
-                                               last=[token_info_param])
+        new_func_sig = _check_and_update_signature(signature(function))
 
-        @wraps(function, new_sig=new_sig)
+        @wraps(function, new_sig=new_func_sig)
         def wrapper(*args, **kwargs):
             token_info = kwargs.get('token_info', None)
 
-            if not token_info:
-                logger.error("Token info not received in validate_jwt_claims!")
+            if not _check_claims(token_info, claims):
                 return unauthorize()
 
-            for claim_name, claim_value in claims.items():
-                if token_info.get(claim_name, None) != claim_value:
-                    logger.error(f"Token claim {claim_name} wih value "
-                                 f"{claim_value} doesn't match expected "
-                                 f"value!")
-                    return unauthorize()
-
-            logger.info(
-                "Validated claims on call to %s with token %s and claims: %s",
-                function, token_info, kwargs)
+            logger.info("Validated claims on call to %s "
+                        "with token %s and claims: %s",
+                        function, token_info, kwargs)
             if not add_token_info:
                 kwargs.pop("token_info")
+
             return function(*args, **kwargs)
 
         return wrapper
 
     return make_call
+
+
+def _check_and_update_signature(func_sig: Signature):
+    """
+    Checks that the function signature includes token_info parameter \
+    and includes it if not.
+
+    :param func_sig: Original signature of the function.
+    :return: Signature of the function with the token_info parameter.
+    """
+    new_sig = func_sig
+    if not func_sig.parameters.get('token_info', None):
+        token_info_param = Parameter('token_info',
+                                     kind=Parameter.KEYWORD_ONLY,
+                                     default=None)
+        new_sig = add_signature_parameters(func_sig,
+                                           last=[token_info_param])
+    return new_sig
+
+
+def _check_claims(token_info: dict, claims: dict) -> bool:
+    """
+    Checks that token_info is a dict of claims and that contains the \
+    claims in the claims dict.
+    :param token_info: Claims of the received token.
+    :param claims: Claims to check on the received token.
+    :return: True if claims are valid and False otherwise.
+    """
+    if not token_info or not isinstance(token_info, dict):
+        logger.error("Token info not received in validate_jwt_claims!")
+        return False
+
+    for claim_name, claim_value in claims.items():
+        if token_info.get(claim_name, None) != claim_value:
+            logger.error("Token claim %s wih value "
+                         "%s doesn't match expected "
+                         "value %s!",
+                         claim_name,
+                         token_info.get(claim_name, None),
+                         claim_value)
+            return False
+    return True

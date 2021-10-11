@@ -4,11 +4,10 @@ from datetime import date, datetime
 import psycopg2
 from mock import Mock, call
 from psycopg2._psycopg import DatabaseError, Error, InterfaceError
-
 from pytest import fixture, mark, raises
 
-from nova_api.persistence.postgresql_helper import PostgreSQLHelper
 from nova_api.entity import Entity
+from nova_api.persistence.postgresql_helper import PostgreSQLHelper
 
 
 @dataclass
@@ -83,9 +82,9 @@ class TestPostgreSQLHelper:
 
     def test_init_pooled_extra_args_pghelper(self, pool_mock):
         helper = PostgreSQLHelper(host='127.0.0.1', user='test',
-                                password='12345', database='test_db',
-                                pooled=True,
-                                database_args={"ssl_ca": "file"})
+                                  password='12345', database='test_db',
+                                  pooled=True,
+                                  database_args={"ssl_ca": "file"})
         assert pool_mock.mock_calls == [
             call.get_instance(host='127.0.0.1', user='test',
                               password='12345', database='test_db',
@@ -147,21 +146,21 @@ class TestPostgreSQLHelper:
         ([], None),
         ([[1, 2, 3]], [[1, 2, 3]])
     ])
-    def test_get_results(self, postgresql_mock, cursor_mock,
+    def test_get_results(self, postgresql_mock: Mock, cursor_mock,
                          results, returned, db_):
         cursor_mock.fetchall.return_value = results
         assert db_.get_results() == returned
 
-    def test_close(self, postgresql_mock, db_, cursor_mock):
+    def test_close(self, postgresql_mock: Mock, db_, cursor_mock):
         db_.close()
         calls = [
             call.connect(host='localhost', user='root',
-                         password='root', database='default'),
+                         password='root', database='TEST'),
             call.connect().cursor(),
             call.connect().cursor().close(),
             call.connect().close()
         ]
-        assert postgresql_mock.mock_calls == calls
+        postgresql_mock.assert_has_calls(calls, any_order=False)
 
     def test_close_pooled(self, pool_mock, db_pooled, cursor_mock):
         db_pooled.close()

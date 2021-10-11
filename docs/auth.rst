@@ -1,8 +1,8 @@
 Authentication/Authorization module
-===================================
+***********************************
 
 Quick Start
-***********
+===========
 
 As of this version, NovaAPI supports authentication and authorization with JWT tokens. To use JWT tokens, it
 is necessary necessary to set the environment variable `JWT_SECRET` with the key used to validate the JWS
@@ -12,6 +12,9 @@ If you are using the file generation functionalities, you may call it with `auth
 automatically add the JWT validation to all endpoints except health check. This
 default configuration will only validate exp(expiry timestamp), iat(issued at) and
 nbf(not before).
+
+You may also use the cli interface `generate_nova_api` with the option `-a JWT` to include authentication in
+the generated API files.
 
 If you are not using the file generation, you may add the following security definition to the end of your
 api configuration file (for swagger 2.0). ::
@@ -51,7 +54,7 @@ using the `iss` claim. As of this moment, there is no support for lists of possi
 
     from nova_api.auth import validade_jwt_claims
 
-    @validate_jwt_claims(iss="novaweb")
+    @validate_jwt_claims(claims={"iss":"novaweb"})
     def read():
         ...
 
@@ -71,7 +74,7 @@ a keyword argument or `**kwargs` ::
 
     from nova_api.auth import validade_jwt_claims
 
-    @validate_jwt_claims(iss="novaweb", add_token_info=True)
+    @validate_jwt_claims(claims={"iss":"novaweb"}, add_token_info=True)
     def read(token_info: dict = None):
         # Now we can check other claims here
         if token_info.get("my_claim") == "my_value":
@@ -79,7 +82,7 @@ a keyword argument or `**kwargs` ::
         ...
 
 Module Documentation
-********************
+====================
 
 .. automodule:: nova_api.auth
     :members:

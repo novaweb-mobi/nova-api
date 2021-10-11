@@ -1,4 +1,8 @@
-from dataclasses import dataclass
+"""
+Custom exceptions for NovaAPI
+"""
+from dataclasses import dataclass, field
+from typing import Optional
 
 
 @dataclass
@@ -24,7 +28,7 @@ class NovaAPIException(Exception):
         """
     status_code: int = 500
     message: str = "Error"
-    error_code: int = None
+    error_code: Optional[int] = None
     debug: str = "No debug information"
 
     def __post_init__(self):
@@ -32,5 +36,47 @@ class NovaAPIException(Exception):
             self.error_code = self.status_code
 
 
-class NoRowsAffectedException(IOError):
-    pass
+@dataclass
+class NotEntityException(NovaAPIException):
+    status_code: int = field(default=400, init=False)
+    message: str = field(default="Argument is not an Entity", init=False)
+
+
+@dataclass
+class InvalidFiltersException(NovaAPIException):
+    status_code: int = field(default=400, init=False)
+    message: str = field(default="Filters are not valid", init=False)
+
+
+@dataclass
+class InvalidIDTypeException(NovaAPIException):
+    status_code: int = field(default=400, init=False)
+    message: str = field(default="ID type is not string", init=False)
+
+
+@dataclass
+class InvalidIDException(NovaAPIException):
+    status_code: int = field(default=400, init=False)
+    message: str = field(default="ID is not a valid UUID v4", init=False)
+
+
+@dataclass
+class DuplicateEntityException(NovaAPIException):
+    status_code: int = field(default=409, init=False)
+    message: str = field(default="Entity already exists in database",
+                         init=False)
+
+
+@dataclass
+class EntityNotFoundException(NovaAPIException):
+    status_code: int = field(default=404, init=False)
+    message: str = field(default="The requested entity was not "
+                                 "found in database", init=False)
+
+
+@dataclass
+class NoRowsAffectedException(NovaAPIException):
+    status_code: int = field(default=304, init=False)
+    message: str = field(default="No rows were affected by the "
+                                 "desired operation", init=False)
+    error_code: int = field(default=304, init=False)

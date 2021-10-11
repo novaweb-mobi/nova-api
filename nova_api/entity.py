@@ -1,4 +1,4 @@
-"""Base entity for modeling of API's"""
+"""Base entity for modeling of API's entities"""
 import logging
 from abc import ABC
 from dataclasses import dataclass, field, fields
@@ -59,7 +59,7 @@ class Entity(ABC):
 
         Post init goes through the parameters passed to init and makes some
         validations. Fields that are subclasses of Entity will be instantiated
-        (but only with id_ set). Datetime formats also will be cast if
+        (but only with `id_` set). Datetime formats also will be cast if
         received as strings. Strings will have trailing and leading white
         spaces removed.
 
@@ -74,7 +74,7 @@ class Entity(ABC):
         for field_ in fields(self):
             try:
                 field_value = self.__getattribute__(field_.name)
-                if issubclass(field_.type, Entity) \
+                if issubclass(field_.type, (Entity, Enum)) \
                         and \
                         not isinstance(field_value, field_.type):
                     # pylint: disable=W0511
@@ -109,20 +109,21 @@ class Entity(ABC):
                             field_.metadata.get("date_format",
                                                 "%Y-%m-%d")
                         ).date())
+                elif field_.type == date \
+                        and \
+                        isinstance(field_value, datetime):
+                    logger.debug(received_log,
+                                 type(field_value),
+                                 field_.type)
+                    self.__setattr__(
+                        field_.name,
+                        field_value.date())
                 elif issubclass(field_.type, str) \
                         and field_value is not None:
                     logger.debug("Stripping string field")
                     self.__setattr__(
                         field_.name,
                         str(field_value).strip())
-                elif issubclass(field_.type, Enum) \
-                        and \
-                        not isinstance(field_value, field_.type):
-                    logger.debug(received_log,
-                                 type(field_value),
-                                 field_.type)
-                    self.__setattr__(field_.name,
-                                     field_.type(field_value))
             except TypeError:
                 logger.debug("Unable to check field %s type",
                              field_.name, exc_info=True)
@@ -133,22 +134,32 @@ class Entity(ABC):
             raise NotImplementedError("Abstract class can't be instantiated")
 
     def __iter__(self):
-        """
+        """Iteration through the Entity receiving the tuple
+        (field_name, field_value_serialized)
 
-        :return:
+        Iterates through the fields in the entity and yields a tuple with the
+        field_name and the serialized field_value. For fields that are
+        instances of Entities, the key will have `_id_` appended and the value
+        will be the `id_`, as stated in `_serialize_field`.
+
+        :return key, value: The tuple with the field_name and field_value
         """
         for key, value in self.__dict__.items():
             if isinstance(value, Entity):
-                yield key + '_id_', Entity._serialize_field(value)
+                yield key + '_id_', Entity.serialize_field(value)
             else:
-                yield key, Entity._serialize_field(value)
+                yield key, Entity.serialize_field(value)
 
     @staticmethod
-    def _serialize_field(field_value):
-        """
+    def serialize_field(field_value):
+        """Returns the value of a field formatted to be saved in the database.
 
-        :param field_value: Value of the field to be serialized
-        :return: Serialized value
+        For fields that are subclasses of Entity, returns only the id_ to save
+        in the database. For datetime and date fields, values are transformed
+        into strings with strftime function from datetime.
+
+        :param field_value: Value of the field in the entity being serialized.
+        :return: The serialized value of the field for database insertion.
         """
         serialized_value = field_value
         if issubclass(field_value.__class__, Entity):
@@ -161,7 +172,7 @@ class Entity(ABC):
             serialized_value = field_value.value
         return serialized_value
 
-    def get_db_values(self) -> list:
+    def get_db_values(self, field_serializer=None) -> list:
         """Returns all attributes to save in database with formatted values.
 
         Goes through the fields in the entity and converts them to the
@@ -171,8 +182,11 @@ class Entity(ABC):
         Also verifies if a field contains in metadata `database=False` and
         excludes it from the list if so. Default for `database` is True.
 
+        :param field_serializer: Custom function to define serialization of
+        fields
         :return: Serialized values to save in database
         """
-        return [Entity._serialize_field(self.__getattribute__(field_.name))
+        field_serializer = field_serializer or Entity.serialize_field
+        return [field_serializer(self.__getattribute__(field_.name))
                 for field_ in fields(self)
                 if field_.metadata.get("database", True)]

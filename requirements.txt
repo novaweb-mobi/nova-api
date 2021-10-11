@@ -5,9 +5,11 @@ mock
 pytest-ordering
 mysql-connector
 psycopg2
+pymongo
 flask
 setuptools
 wheel
 connexion
 python-jose
 makefun
+python-dateutil

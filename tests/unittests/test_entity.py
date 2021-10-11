@@ -84,6 +84,11 @@ class TestEntity:
         assert isinstance(entity.creation_datetime, datetime) \
                and isinstance(entity.last_modified_datetime, datetime)
 
+    def test_received_datetime_should_turn_date(self):
+        ent = EntityForTestWithDateFormat(my_date=datetime(1, 1, 1, 12, 1))
+        assert not isinstance(ent.my_date, datetime)
+        assert ent.my_date == date(1, 1, 1)
+
     def test_to_dict(self, entity):
         entity_dict = dict(entity)
         assert entity_dict == {"id_": "12345678901234567890123456789012",
@@ -98,6 +103,7 @@ class TestEntity:
             EntityForTestWithEnum2("12345678901234567890123456789012",
                                    datetime(2020, 1, 1, 0, 0, 0),
                                    datetime(2020, 1, 1, 0, 0, 0)))
+
         assert entity_dict == {"id_": "12345678901234567890123456789012",
                                "creation_datetime": "2020-01-01 00:00:00",
                                "last_modified_datetime": "2020-01-01 00:00:00",
