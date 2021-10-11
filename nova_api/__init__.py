@@ -33,14 +33,14 @@ JWT_SECRET = os.environ.get('JWT_SECRET', "1234567890a")
 DEBUG = bool(os.environ.get('NOVAAPI_DEBUG', False))
 
 
-def close_if_still_open(dao: GenericDAO) -> None:
+def close_if_still_open(entity_dao: GenericDAO) -> None:
     """Closes a DAO connection if it's still open.
 
-    :param dao: DAO instance to be closed
+    :param entity_dao: DAO instance to be closed
     :return:
     """
-    if dao:
-        dao.close()
+    if entity_dao:
+        entity_dao.close()
 
 
 def default_response(success: bool, status_code: int,
@@ -122,7 +122,7 @@ def success_response(status_code: int = 200, message: str = "OK",
 
 
 def use_dao(dao_class: Type[GenericDAO],
-            error_message: str = "Erro",
+            error_message: str = "Error",
             dao_parameters: dict = None,
             retry_delay: float = float(os.environ.get("NOVAAPI_RETRY_DELAY",
                                                       "1.0")),
@@ -158,7 +158,7 @@ def use_dao(dao_class: Type[GenericDAO],
         @wraps(function)
         def wrapper(*args, **kwargs):
 
-            dao = None
+            entity_dao = None
             try:
                 logger.info(
                     "API call to %s with dao %s and args: %s, kwargs: %s",
@@ -171,7 +171,7 @@ def use_dao(dao_class: Type[GenericDAO],
                 attempted_retries = retries
                 while attempted_retries:
                     try:
-                        dao = dao_class(**dao_parameters)
+                        entity_dao = dao_class(**dao_parameters)
                         break
                     except ConnectionError as con_error:
                         logger.debug("Connection failed, will retry "
@@ -183,7 +183,7 @@ def use_dao(dao_class: Type[GenericDAO],
                     finally:
                         attempted_retries -= 1
 
-                return function(dao=dao, *args, **kwargs)
+                return function(dao=entity_dao, *args, **kwargs)
             except NovaAPIException as nova_api_exception:
                 response_data = {"error_code": nova_api_exception.error_code}
                 if DEBUG:
@@ -204,7 +204,7 @@ def use_dao(dao_class: Type[GenericDAO],
                 return error_response(message=error_message,
                                       data={"error": error_description})
             finally:
-                close_if_still_open(dao)
+                close_if_still_open(entity_dao)
 
         return wrapper
 
@@ -228,9 +228,9 @@ def generate_api():
 
     :return: None.
     """
-    entity = ''
+    entity_name = ''
     version = ''
-    dao_class = ''
+    dao_name = ''
     auth = None
     overwrite = False
     usage = 'Usage: %s generate_api -e entity ' \
@@ -239,9 +239,9 @@ def generate_api():
         options, _ = getopt.getopt(sys.argv[1:], "e:d:v:a:o")
         for option, value in options:
             if option == '-e':
-                entity = value
+                entity_name = value
             elif option == '-d':
-                dao_class = value
+                dao_name = value
             elif option == '-v':
                 version = value
             elif option == '-a':
@@ -254,22 +254,22 @@ def generate_api():
                      exc_info=True)
         print(usage % (sys.argv[0]))
         sys.exit(os.EX_DATAERR)
-    if entity == '':
+    if entity_name == '':
         logger.critical("Entity not passed in the arguments! Call: %s",
                         sys.argv)
         print(usage % (sys.argv[0]))
         sys.exit(os.EX_USAGE)
     try:
         sys.path.insert(0, '')
-        mod = __import__(entity, fromlist=[entity])
-        ent = getattr(mod, entity)
+        mod = __import__(entity_name, fromlist=[entity_name])
+        ent = getattr(mod, entity_name)
         logger.debug("Entity found and successfully imported. Entity: %s", ent)
-        if dao_class == '':
-            dao_class = entity + 'DAO'
-            logger.debug("DAO class name not passed, infering as %s",
-                         dao_class)
-        mod = __import__(dao_class, fromlist=[dao_class])
-        dao = getattr(mod, dao_class)
+        if dao_name == '':
+            dao_name = entity_name + 'DAO'
+            logger.debug("DAO class name not passed, inferring as %s",
+                         dao_name)
+        mod = __import__(dao_name, fromlist=[dao_name])
+        dao_class = getattr(mod, dao_name)
         logger.debug("DAO class found and successfully imported. DAO: %s",
                      dao_class)
     except ModuleNotFoundError:
@@ -287,7 +287,7 @@ def generate_api():
         sys.exit(os.EX_DATAERR)
 
     try:
-        create_api_files(ent, dao, version, overwrite=overwrite,
+        create_api_files(ent, dao_class, version, overwrite=overwrite,
                          auth_schema=AUTHENTICATION_SCHEMAS.get(auth, None))
     except (OSError, EOFError) as err:
         print("Something went wrong while creating the API files...", err)
@@ -314,8 +314,9 @@ def get_auth_schema_yml(schema: int = None) -> Optional[str]:
     return baseapi.SECURITY_DEFINITIONS[schema]
 
 
-def create_api_files(entity: Entity, dao_class: GenericDAO, version: str, *,
-                     overwrite: bool = False, auth_schema: int = None) -> None:
+def create_api_files(entity_class: Type[Entity], dao_class: Type[GenericDAO],
+                     version: str, *, overwrite: bool = False,
+                     auth_schema: int = None) -> None:
     """Write api files for the entity informed with the dao_class informed.
 
     Generated the api.py and api.yml with the informed entity, dao and version.
@@ -323,27 +324,26 @@ def create_api_files(entity: Entity, dao_class: GenericDAO, version: str, *,
     overwrite is True and the files already exist, they'll be replaced.
     Adds the Authorization schema informed.
 
-    :param entity: The entity to generate api files for.
+    :param entity_class: The entity to generate api files for.
     :param dao_class: The dao class for the entity
     :param version: The version of the api
     :param overwrite: Whether to overwrite existing files or not
     :param auth_schema: The authorization schema to apply to api methods.
     :return: None
     """
-    entity_lower = entity.__name__.lower()
+    entity_lower = entity_class.__name__.lower()
 
     if python_api_exists(entity_lower) and not overwrite:
         logger.debug("API already exists. Skipping generation...")
     else:
-        write_api_implementation(get_python_api_filename(entity_lower),
-                                 dao_class, entity)
+        write_api_implementation(get_python_api_filename(entity_lower), dao_class, entity_class)
 
     if version == '':
         version = '1'
     logger.info("Version for api is %s", version)
 
     parameters = []
-    for field in fields(entity):
+    for field in fields(entity_class):
         if not field.metadata.get("database", True):
             continue
         parameters.append(format_parameter(field))
@@ -360,9 +360,10 @@ def create_api_files(entity: Entity, dao_class: GenericDAO, version: str, *,
             logger.info("Writing api documentation for entity %s...",
                         entity_lower)
             api_documentation.write(baseapi.API_SWAGGER.format(
-                ENTITY=entity.__name__,
+                ENTITY=entity_class.__name__,
                 ENTITY_LOWER=entity_lower,
                 VERSION=version,
+                ENTITY_PROPS=formatted_properties(entity_class),
                 PARAMETERS=parameters,
                 SECURITY=baseapi.SECURITY_PARAMETERS[auth_schema]
                 if auth_schema is not None
@@ -393,17 +394,41 @@ def get_parameter_format() -> str:
     return baseapi.PARAMETER_FORMAT
 
 
+def formatted_properties(entity_class: Type[Entity]) -> str:
+    """Returns the formatted properties of the entity for the #/definitions/Entity.
+
+    :param entity_class: The entity class
+    :return: Formatted properties of the entity
+    """
+    return ''.join(format_property(field) for field in fields(entity_class)
+                   if field.metadata.get('database', True))
+
+
+def format_property(field: Field) -> str:
+    """Formats the field for the properties of Entity definition.
+
+    :param field: The field of the Entity
+    :return: The formatted property to the YAML Swagger file
+    """
+    default_type = baseapi.SWAGGER_TYPES[str]
+    return baseapi.ENTITY_PROPERTIES_FORMAT.format(
+        prop_name=field.name,
+        prop_type=baseapi.SWAGGER_TYPES.get(field.type, default_type)
+    )
+
+
 def write_api_implementation(api_implementation_file: str,
-                             dao_class: Type, entity: Type) -> None:
+                             dao_class: Type[GenericDAO],
+                             entity_class: Type[Entity]) -> None:
     """Writes the api implementation for the entity and dao_class in the
     api_implementation_file
 
     :param api_implementation_file: File name to write api implementation
     :param dao_class: The dao class for the entity
-    :param entity: The entity class
+    :param entity_class: The entity class
     :return: None
     """
-    entity_lower = entity.__name__.lower()
+    entity_lower = entity_class.__name__.lower()
 
     with open(api_implementation_file,
               'w+', encoding='utf-8') as api_implementation:
@@ -411,22 +436,23 @@ def write_api_implementation(api_implementation_file: str,
                     entity_lower)
 
         api_implementation.write(
-            generate_base_api_for_entity(dao_class, entity))
+            generate_base_api_for_entity(dao_class, entity_class))
 
         logger.info("Done writing api for entity %s.", entity_lower)
 
 
-def generate_base_api_for_entity(dao_class: Type, entity: Type) -> str:
+def generate_base_api_for_entity(dao_class: Type[GenericDAO],
+                                 entity_class: Type[Entity]) -> str:
     """Generates the base API implementation for the dao_class and the entity.
 
     :param dao_class: The dao class for the entity
-    :param entity: The entity
+    :param entity_class: The entity
     :return: The API implementation
     """
     return baseapi.BASE_API.format(
         DAO_CLASS=dao_class.__name__,
-        ENTITY=entity.__name__,
-        ENTITY_LOWER=entity.__name__.lower())
+        ENTITY=entity_class.__name__,
+        ENTITY_LOWER=entity_class.__name__.lower())
 
 
 def get_python_api_filename(entity_lower: str) -> str:
