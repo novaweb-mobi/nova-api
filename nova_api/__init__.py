@@ -396,7 +396,8 @@ def get_parameter_format() -> str:
 
 
 def formatted_properties(entity_class: Type[Entity]) -> str:
-    """Returns the formatted properties of the entity for the #/definitions/Entity.
+    """Returns the formatted properties of the entity for the #/definitions/Entity
+    used in swagger.
 
     :param entity_class: The entity class
     :return: Formatted properties of the entity
@@ -406,7 +407,7 @@ def formatted_properties(entity_class: Type[Entity]) -> str:
 
 
 def format_property(field: Field) -> str:
-    """Formats the field for the properties of Entity definition.
+    """Formats the field for the properties of Entity definition used in swagger.
 
     :param field: The field of the Entity
     :return: The formatted property to the YAML Swagger file

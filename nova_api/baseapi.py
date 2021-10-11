@@ -119,8 +119,10 @@ definitions:
     properties:
       success:
         type: boolean
+        default: false
       message:
         type: string
+        default: "Error"
       data:
         type: object
         properties:
@@ -131,8 +133,10 @@ definitions:
     properties:
       success:
         type: boolean
+        default: true
       message:
         type: string
+        default: "OK"
       data:
         type: object
         properties:
@@ -251,7 +255,7 @@ paths:
       description: |
         "Select {ENTITY_LOWER} by Id"
       responses:
-        201:
+        200:
           description: "{ENTITY}"
           schema:
             $ref: '#/definitions/DefaultSuccessResponse'
