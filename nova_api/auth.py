@@ -1,14 +1,36 @@
 import logging
 from inspect import Parameter, Signature, signature
+from os import environ
 
 from flask import abort
 from jose import JWTError, jwt
 from makefun import add_signature_parameters, wraps
 from werkzeug.exceptions import HTTPException
 
-from nova_api import JWT_SECRET
-
 logger = logging.getLogger(__name__)
+
+ALLOWED_JWT_ALGORITHMS = ["HS256", "HS384", "HS512",
+                          "RS256", "RS384", "RS512",
+                          "ES256", "ES384", "ES512"]
+
+
+def read_decode_algorithms() -> list:
+    """
+    Reads the `JWT_ALGORITHMS` environment variable and builds the list \
+    that should be used as the decoding algorithms for the JWT tokens.
+    This function also validates that the algorithm informed is valid \
+    and supported and ignores it otherwise.
+
+    :return: The algorithms list
+    """
+    algorithms = environ.get("JWT_ALGORITHMS", "HS256").strip().split(',')
+    algorithms = [alg.strip() for alg in algorithms
+                  if alg.strip() in ALLOWED_JWT_ALGORITHMS]
+    return algorithms
+
+
+JWT_ALGORITHMS = read_decode_algorithms()
+JWT_SECRET = environ.get('JWT_SECRET', "1234567890a")
 
 
 # pylint: disable=R1710
@@ -28,7 +50,7 @@ def decode_jwt_token(token: str) -> dict:
     try:
         logger.info("Decoding Token %s", token)
         return jwt.decode(
-            token, JWT_SECRET, algorithms=['HS256'],
+            token, JWT_SECRET, algorithms=JWT_ALGORITHMS,
             options={'verify_aud': False, 'verify_iss': False,
                      'verify_sub': False, 'verify_jti': False,
                      'verify_at_hash': False})
