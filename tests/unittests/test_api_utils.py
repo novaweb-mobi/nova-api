@@ -225,7 +225,7 @@ class TestAPIUtils:
 
         ret = test()
         assert my_mock.mock_calls == [call(), call().close()]
-        assert ret == {"message": "Erro", "data": {"error": SAMPLE_ERROR_MESSAGE}}
+        assert ret == {"message": "Error", "data": {"error": SAMPLE_ERROR_MESSAGE}}
 
     @staticmethod
     def test_use_dao_exception_no_debug(mocker):
@@ -241,7 +241,7 @@ class TestAPIUtils:
 
         ret = test()
         assert my_mock.mock_calls == [call(), call().close()]
-        assert ret == {"message": "Erro", "data":
+        assert ret == {"message": "Error", "data":
             {"error": "Something went wrong... Please try again later."}}
 
     def test_generate_valid_api_yml(self):
@@ -262,8 +262,7 @@ class TestAPIUtils:
         assert nova_api.get_auth_schema_yml(schema_name) == schema_text
 
     def test_generate_valid_api_yml_with_jwt(self):
-        nova_api.create_api_files(EntityForTest, EntityDAO,
-                                  '1', auth_schema=nova_api.JWT)
+        nova_api.create_api_files(EntityForTest, EntityDAO, '1', auth_schema=nova_api.JWT)
         gen_spec = Specification.load('entityfortest_api.yml')
         base_spec = Specification.load(
             'tests/unittests/entityfortest_api_jwt_result.yml'

@@ -113,6 +113,39 @@ produces:
 
 basePath: "/v{VERSION}/{ENTITY_LOWER}"
 
+definitions:
+  DefaultErrorResponse:
+    type: object
+    properties:
+      success:
+        type: boolean
+        default: false
+      message:
+        type: string
+        default: "Error"
+      data:
+        type: object
+        properties:
+          error:
+            type: string
+  DefaultSuccessResponse:
+    type: object
+    properties:
+      success:
+        type: boolean
+        default: true
+      message:
+        type: string
+        default: "OK"
+      data:
+        type: object
+        properties:
+          entity:
+            $ref: '#/definitions/Entity'
+  Entity:
+    type: object
+    properties:{ENTITY_PROPS}
+
 paths:
   /health:
     get:
@@ -129,6 +162,7 @@ paths:
             properties:
               message:
                 type: string
+                default: "OK"
               data:
                 type: object
                 properties:
@@ -136,6 +170,8 @@ paths:
                     type: integer
         500:
           description: "API not ready"
+          schema:
+            $ref: '#/definitions/DefaultErrorResponse'
 
   /:
     get:
@@ -176,21 +212,11 @@ paths:
                     type: array
                     properties:
                       entities:
-                        type: object
+                        $ref: '#/definitions/Entity'
         500:
-          description: "An error ocurred"
+          description: "An error occurred"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  error:
-                    type: string
+            $ref: '#/definitions/DefaultErrorResponse'
     post:
       operationId: {ENTITY_LOWER}_api.create{SECURITY}
       tags:
@@ -199,7 +225,7 @@ paths:
         - name: entity
           in: body
           schema:
-            type: object
+            $ref: '#/definitions/Entity'
           required: true
           description: "{ENTITY} to add"
       summary: "Create a new {ENTITY}."
@@ -209,31 +235,11 @@ paths:
         201:
           description: "{ENTITY} created"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  entity:
-                    type: object
+            $ref: '#/definitions/DefaultSuccessResponse'
         500:
-          description: "An error ocurred"
+          description: "An error occurred"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  error:
-                    type: string
+            $ref: '#/definitions/DefaultErrorResponse'
 
   /{{id_}}:
     get:
@@ -250,34 +256,14 @@ paths:
       description: |
         "Select {ENTITY_LOWER} by Id"
       responses:
-        201:
+        200:
           description: "{ENTITY}"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  entity:
-                    type: object
+            $ref: '#/definitions/DefaultSuccessResponse'
         500:
-          description: "An error ocurred"
+          description: "An error occurred"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  error:
-                    type: string
+            $ref: '#/definitions/DefaultErrorResponse'
     put:
       operationId: {ENTITY_LOWER}_api.update{SECURITY}
       tags:
@@ -291,7 +277,7 @@ paths:
         - name: entity
           in: body
           schema:
-            type: object
+            $ref: '#/definitions/Entity'
           required: true
           description: "{ENTITY} to add"
       summary: "Update {ENTITY}"
@@ -301,31 +287,11 @@ paths:
         200:
           description: "{ENTITY}"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  entity:
-                    type: object
+            $ref: '#/definitions/DefaultSuccessResponse'
         500:
-          description: "An error ocurred"
+          description: "An error occurred"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  error:
-                    type: string
+            $ref: '#/definitions/DefaultErrorResponse'
     delete:
       operationId: {ENTITY_LOWER}_api.delete{SECURITY}
       tags:
@@ -343,31 +309,11 @@ paths:
         200:
           description: "{ENTITY}"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  entity:
-                    type: object
+            $ref: '#/definitions/DefaultSuccessResponse'
         500:
-          description: "An error ocurred"
+          description: "An error occurred"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  error:
-                    type: string
+            $ref: '#/definitions/DefaultErrorResponse'
 """
 
 PARAMETER_FORMAT = \
@@ -390,3 +336,16 @@ securityDefinitions:
     x-authentication-scheme: Bearer
     x-bearerInfoFunc: nova_api.auth.decode_jwt_token
 """]
+
+ENTITY_PROPERTIES_FORMAT = """
+      {prop_name}:
+        type: {prop_type}"""
+
+SWAGGER_TYPES = {
+    int: 'integer',
+    str: 'string',
+    list: 'array',
+    tuple: 'array',
+    bool: 'boolean',
+    dict: 'object'
+}
