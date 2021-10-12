@@ -1,4 +1,3 @@
-
 swagger: "2.0"
 info:
   description: EntityForTest API
@@ -10,6 +9,47 @@ produces:
   - "application/json"
 
 basePath: "/v1/entityfortest"
+
+definitions:
+  DefaultErrorResponse:
+    type: object
+    properties:
+      success:
+        type: boolean
+        default: false
+      message:
+        type: string
+        default: "Error"
+      data:
+        type: object
+        properties:
+          error:
+            type: string
+  DefaultSuccessResponse:
+    type: object
+    properties:
+      success:
+        type: boolean
+        default: true
+      message:
+        type: string
+        default: "OK"
+      data:
+        type: object
+        properties:
+          entity:
+            $ref: '#/definitions/Entity'
+  Entity:
+    type: object
+    properties:
+      id_:
+        type: string
+      creation_datetime:
+        type: string
+      last_modified_datetime:
+        type: string
+      test_field:
+        type: integer
 
 paths:
   /health:
@@ -27,6 +67,7 @@ paths:
             properties:
               message:
                 type: string
+                default: "OK"
               data:
                 type: object
                 properties:
@@ -34,6 +75,8 @@ paths:
                     type: integer
         500:
           description: "API not ready"
+          schema:
+            $ref: '#/definitions/DefaultErrorResponse'
 
   /:
     get:
@@ -89,21 +132,11 @@ paths:
                     type: array
                     properties:
                       entities:
-                        type: object
+                        $ref: '#/definitions/Entity'
         500:
-          description: "An error ocurred"
+          description: "An error occurred"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  error:
-                    type: string
+            $ref: '#/definitions/DefaultErrorResponse'
     post:
       operationId: entityfortest_api.create
       tags:
@@ -112,7 +145,7 @@ paths:
         - name: entity
           in: body
           schema:
-            type: object
+            $ref: '#/definitions/Entity'
           required: true
           description: "EntityForTest to add"
       summary: "Create a new EntityForTest."
@@ -122,31 +155,11 @@ paths:
         201:
           description: "EntityForTest created"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  entity:
-                    type: object
+            $ref: '#/definitions/DefaultSuccessResponse'
         500:
-          description: "An error ocurred"
+          description: "An error occurred"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  error:
-                    type: string
+            $ref: '#/definitions/DefaultErrorResponse'
 
   /{id_}:
     get:
@@ -163,34 +176,14 @@ paths:
       description: |
         "Select entityfortest by Id"
       responses:
-        201:
+        200:
           description: "EntityForTest"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  entity:
-                    type: object
+            $ref: '#/definitions/DefaultSuccessResponse'
         500:
-          description: "An error ocurred"
+          description: "An error occurred"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  error:
-                    type: string
+            $ref: '#/definitions/DefaultErrorResponse'
     put:
       operationId: entityfortest_api.update
       tags:
@@ -204,7 +197,7 @@ paths:
         - name: entity
           in: body
           schema:
-            type: object
+            $ref: '#/definitions/Entity'
           required: true
           description: "EntityForTest to add"
       summary: "Update EntityForTest"
@@ -214,31 +207,11 @@ paths:
         200:
           description: "EntityForTest"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  entity:
-                    type: object
+            $ref: '#/definitions/DefaultSuccessResponse'
         500:
-          description: "An error ocurred"
+          description: "An error occurred"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  error:
-                    type: string
+            $ref: '#/definitions/DefaultErrorResponse'
     delete:
       operationId: entityfortest_api.delete
       tags:
@@ -256,28 +229,8 @@ paths:
         200:
           description: "EntityForTest"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  entity:
-                    type: object
+            $ref: '#/definitions/DefaultSuccessResponse'
         500:
-          description: "An error ocurred"
+          description: "An error occurred"
           schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-              message:
-                type: string
-              data:
-                type: object
-                properties:
-                  error:
-                    type: string
+            $ref: '#/definitions/DefaultErrorResponse'
