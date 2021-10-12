@@ -1,4 +1,6 @@
+import os
 from inspect import signature
+from unittest.mock import patch
 
 from jose import jwt
 from pytest import mark, raises
@@ -12,7 +14,7 @@ class TestAuth:
     def test_decode_token(self):
         token_info = {"name": "test", "id": 123}
         token = jwt.encode(token_info,
-                           nova_api.JWT_SECRET)
+                           nova_api.auth.JWT_SECRET)
         assert auth.decode_jwt_token(token) == token_info
 
     def test_fail_decode(self):
@@ -25,7 +27,7 @@ class TestAuth:
     def test_decode_expired(self):
         token_info = {"name": "test", "id": 123, "exp": "914241600"}
         token = jwt.encode(token_info,
-                           nova_api.JWT_SECRET)
+                           nova_api.auth.JWT_SECRET)
         with raises(Unauthorized):
             auth.decode_jwt_token(token)
 
@@ -39,8 +41,47 @@ class TestAuth:
     def test_decode_with_reserved_claims(self, claim_name, claim_value):
         token_info = {"name": "test", "id": 123, claim_name: claim_value}
         token = jwt.encode(token_info,
-                           nova_api.JWT_SECRET)
+                           nova_api.auth.JWT_SECRET)
         assert auth.decode_jwt_token(token) == token_info
+
+    @staticmethod
+    def test_decode_should_use_algorithms(mocker):
+        mock = mocker.patch("nova_api.auth.jwt").decode
+        mock.return_value = "OK"
+        token = "SimpleToken"
+        res = auth.decode_jwt_token(token)
+        assert res == "OK"
+        mock.assert_called_with(token, nova_api.auth.JWT_SECRET,
+                                algorithms=nova_api.auth.JWT_ALGORITHMS,
+                                options={'verify_aud': False,
+                                         'verify_iss': False,
+                                         'verify_sub': False,
+                                         'verify_jti': False,
+                                         'verify_at_hash': False})
+
+    @staticmethod
+    @patch.dict(os.environ, {"JWT_ALGORITHMS": "HS256"})
+    def test_read_decode_algorithm_should_generate_algorithm_list_with_one():
+        assert auth.read_decode_algorithms() == ["HS256"]
+
+    @staticmethod
+    @patch.dict(os.environ, {"JWT_ALGORITHMS": "HS256,RS256"})
+    def test_read_decode_algorithm_should_generate_algorithm_list():
+        assert auth.read_decode_algorithms() == ["HS256", "RS256"]
+
+    @staticmethod
+    @patch.dict(os.environ, {"JWT_ALGORITHMS": "HS256, RS256"})
+    def test_read_decode_algorithm_should_tolerate_spaces():
+        assert auth.read_decode_algorithms() == ["HS256", "RS256"]
+
+    @staticmethod
+    @patch.dict(os.environ, {"JWT_ALGORITHMS": "HS256, HS384, HS512  ,RS256,"
+                                               "RS384, RS512,  ES256, ES384,"
+                                               " ES512, TEST_ALG"})
+    def test_read_decode_algorithm_should_ignore_unknown_algs():
+        assert auth.read_decode_algorithms() == ["HS256", "HS384", "HS512",
+                                                 "RS256", "RS384", "RS512",
+                                                 "ES256", "ES384", "ES512"]
 
     @mark.parametrize("claim_name, claim_value, valid", [
         ("iss", "novaweb.teste", True),
@@ -51,9 +92,9 @@ class TestAuth:
         token_info = {"iss": "novaweb.teste",
                       "sub": "tester2@novaweb",
                       "custom_claim": "testing"}
-        kwargs = {claim_name: claim_value}
+        claims = {claim_name: claim_value}
 
-        @auth.validate_jwt_claims(claims=kwargs)
+        @auth.validate_jwt_claims(claims=claims)
         def test_function(keyword=None, token_info=token_info, **kwargs):
             return "token_info" in kwargs.keys()
 
