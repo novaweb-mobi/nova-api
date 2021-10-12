@@ -6,7 +6,8 @@ Quick Start
 
 As of this version, NovaAPI supports authentication and authorization with JWT tokens. To use JWT tokens, it
 is necessary necessary to set the environment variable `JWT_SECRET` with the key used to validate the JWS
-signature.
+signature and the variable `JWT_ALGORITHMS` with a comma separated list of the signing algorithms to use.
+The algorithms must be one of the supported algorithms or they'll be ignored.
 
 If you are using the file generation functionalities, you may call it with `auth_schema=nova_api.JWT` to
 automatically add the JWT validation to all endpoints except health check. This
