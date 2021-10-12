@@ -210,6 +210,7 @@ jobs:
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)/nova_api:$(pwd)/tests
           export DB_NAME=TEST
+          export JWT_ALGORITHMS=HS256,RS256
           mkdir -p xunit-reports
           mkdir -p coverage-reports
           mkdir -p reports

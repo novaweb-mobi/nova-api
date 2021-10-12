@@ -29,7 +29,6 @@ possible_level = {"DEBUG": logging.DEBUG,
 
 logger = logging.getLogger(__name__)
 
-JWT_SECRET = os.environ.get('JWT_SECRET', "1234567890a")
 DEBUG = bool(os.environ.get('NOVAAPI_DEBUG', False))
 
 
