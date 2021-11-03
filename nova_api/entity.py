@@ -1,10 +1,12 @@
 """Base entity for modeling of API's entities"""
 import logging
 from abc import ABC
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field, fields, Field
 from datetime import date, datetime
 from enum import Enum
 from uuid import uuid4
+
+from nova_api.exceptions import InvalidAttributeException
 
 
 def generate_id() -> str:
@@ -45,93 +47,46 @@ class Entity(ABC):
                      metadata={"type": "CHAR(32)",
                                "primary_key": True,
                                "default": "NOT NULL"})
-    creation_datetime: datetime = field(init=True,
-                                        default_factory=get_time,
+    creation_datetime: datetime = field(default_factory=get_time,
                                         compare=False,
                                         metadata={"type": "TIMESTAMP"})
-    last_modified_datetime: datetime = field(init=True,
-                                             default_factory=get_time,
+    last_modified_datetime: datetime = field(default_factory=get_time,
                                              compare=False,
                                              metadata={"type": "TIMESTAMP"})
 
-    def __post_init__(self):
-        """Post processing of fields
+    def __new__(cls, *args, **kwargs):
+        """Prevents the instantiation of the abstract class Entity
 
-        Post init goes through the parameters passed to init and makes some
-        validations. Fields that are subclasses of Entity will be instantiated
+        :raises NotImplementedError: When trying to instantiate Entity directly.
+        """
+        if cls is Entity:
+            logging.getLogger(__name__).error("Trying to instantiate Entity!")
+            raise NotImplementedError("Abstract class can't be instantiated")
+        return super().__new__(cls)
+
+    def __setattr__(self, key: str, value) -> None:
+        """Sets and validates Entity attributes. Parsing then when necessary.
+
+        Fields that are subclasses of Entity will be instantiated
         (but only with `id_` set). Datetime formats also will be cast if
         received as strings. Strings will have trailing and leading white
         spaces removed.
 
-        __post_init__ may be overridden to include validations required by
-        any use case. In such case, it's important to include a super call
-        to maintain the aforementioned functionalities.
-
+        :param key: The attribute name
+        :param value: The attribute value
         :return: None
         """
-        logger = logging.getLogger(__name__)
-        received_log = "Received %s field as %s. Converting."
-        for field_ in fields(self):
-            try:
-                field_value = self.__getattribute__(field_.name)
-                if issubclass(field_.type, (Entity, Enum)) \
-                        and \
-                        not isinstance(field_value, field_.type):
-                    # pylint: disable=W0511
-                    # TODO call dao.get
-                    logger.debug(received_log,
-                                 type(field_value),
-                                 field_.type)
-                    self.__setattr__(field_.name, field_.type(field_value))
-                elif issubclass(field_.type, datetime) \
-                        and \
-                        not isinstance(field_value, field_.type):
-                    logger.debug(received_log,
-                                 type(field_value), field_.type)
-                    self.__setattr__(
-                        field_.name,
-                        datetime.strptime(
-                            field_value,
-                            field_.metadata.get("datetime_format",
-                                                "%Y-%m-%d %H:%M:%S")
-                        ))
-                elif issubclass(field_.type, date) \
-                        and \
-                        not isinstance(field_value,
-                                       field_.type):
-                    logger.debug(received_log,
-                                 type(field_value),
-                                 field_.type)
-                    self.__setattr__(
-                        field_.name,
-                        datetime.strptime(
-                            field_value,
-                            field_.metadata.get("date_format",
-                                                "%Y-%m-%d")
-                        ).date())
-                elif field_.type == date \
-                        and \
-                        isinstance(field_value, datetime):
-                    logger.debug(received_log,
-                                 type(field_value),
-                                 field_.type)
-                    self.__setattr__(
-                        field_.name,
-                        field_value.date())
-                elif issubclass(field_.type, str) \
-                        and field_value is not None:
-                    logger.debug("Stripping string field")
-                    self.__setattr__(
-                        field_.name,
-                        str(field_value).strip())
-            except TypeError:
-                logger.debug("Unable to check field %s type",
-                             field_.name, exc_info=True)
-            finally:
-                logger.debug("Processed field %s", field_.name)
-        if self.__class__ == Entity:
-            logger.error("Trying to instantiate Entity!")
-            raise NotImplementedError("Abstract class can't be instantiated")
+        field_ = getattr(self, '__dataclass_fields__').get(key)
+        if not field_:
+            raise AttributeError
+
+        parsed_value = self.__try_parse_field_value(field_, value)
+        validation_function = field_.metadata.get('validation', lambda v: True)
+        if not validation_function(parsed_value):
+            raise InvalidAttributeException(
+                debug=f'Attribute {key!r} received an invalid value {value!r}'
+            )
+        super().__setattr__(key, parsed_value)
 
     def __iter__(self):
         """Iteration through the Entity receiving the tuple
@@ -190,3 +145,43 @@ class Entity(ABC):
         return [field_serializer(self.__getattribute__(field_.name))
                 for field_ in fields(self)
                 if field_.metadata.get("database", True)]
+
+    @staticmethod
+    def __try_parse_field_value(field_: Field, value):
+        """Returns the parsed value
+
+        :param field_: The field
+        :param value:
+        :return: The parsed value
+        """
+        try:
+            if issubclass(field_.type, (Entity, Enum)) \
+                    and \
+                    not isinstance(value, field_.type):
+                # pylint: disable=W0511
+                # TODO call dao.get
+                value = field_.type(value)
+            elif issubclass(field_.type, datetime) \
+                    and \
+                    not isinstance(value, field_.type):
+                value = datetime.strptime(
+                    value,
+                    field_.metadata.get("datetime_format",
+                                        "%Y-%m-%d %H:%M:%S")
+                )
+            elif issubclass(field_.type, date) \
+                    and \
+                    not isinstance(value,
+                                   field_.type):
+                value = datetime.strptime(
+                    value,
+                    field_.metadata.get("date_format",
+                                        "%Y-%m-%d")
+                ).date()
+            elif field_.type == date and isinstance(value, datetime):
+                value = value.date()
+            elif issubclass(field_.type, str) and value is not None:
+                value = str(value).strip()
+        except TypeError:
+            pass
+        return value

@@ -80,3 +80,9 @@ class NoRowsAffectedException(NovaAPIException):
     message: str = field(default="No rows were affected by the "
                                  "desired operation", init=False)
     error_code: int = field(default=304, init=False)
+
+
+@dataclass
+class InvalidAttributeException(NovaAPIException):
+    status_code: int = field(default=400)
+    message: str = field(default='Invalid attribute value')
