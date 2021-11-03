@@ -84,6 +84,16 @@ class EntityForTestWithValidation(Entity):
                          metadata={'validation': is_valid_json})
 
 
+class MyCustomException(Exception):
+    ...
+
+
+def validate_with_custom_exception(value):
+    if value != 'valid':
+        raise MyCustomException
+    return True
+
+
 @dataclass
 class EntityForTestWithDefaultValidations(Entity):
     name: str = field(default='', metadata={'validation': has_max_length})
@@ -96,6 +106,8 @@ class EntityForTestWithDefaultValidations(Entity):
         metadata={'validation': partial(is_less_than,
                                         upper_bound=datetime.now())}
     )
+    status: str = field(default='valid',
+                        metadata={'validation': validate_with_custom_exception})
 
 
 class TestEntity:
@@ -232,5 +244,5 @@ class TestEntity:
         with raises(InvalidAttributeException):
             ent.password = 'pass'
 
-        with raises(InvalidAttributeException):
-            EntityForTestWithDefaultValidations(name='This name is invalid')
+        with raises(MyCustomException):
+            EntityForTestWithDefaultValidations(status='invalid')
