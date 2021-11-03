@@ -119,6 +119,31 @@ This works like the datetime_format. This property should be set according to th
 function in the datetime module. For example: `{"datetime_format":"%Y-%m-%d"}`, which is
 the default format.
 
+validation
+^^^^^^^^^^
+This may be used to validate the attribute values in the `__setattr__` method.
+It expects a callable object that receives an argument, the attribute's value,
+and returns a boolean value indicating whether the value is valid or not. Generic
+validation functions that expects more than one argument could be converted to
+`functools.partial` object so it acts as a function that expects a single argument. ::
+
+    def is_between(value, min_value, max_value) -> bool:
+        return min_value <= value <= max_value
+
+    @dataclass
+    class Contact(Entity):
+        name: str = 'Anom'
+        birthday: datetime = field(default_factory=datetime.now)
+        age: int = field(default=0, compare=False,
+                         metadata={"database": False,
+                                   "validation": partial(is_between,
+                                                         min_value=0,
+                                                         max_value=122)})
+        height: float = field(default=0, compare=False,
+                              metadata={"database": False,
+                                        "validation": partial(is_between,
+                                                              min_value=0.5464,
+                                                              max_value=2.52)})
 
 Next Steps
 ==========
