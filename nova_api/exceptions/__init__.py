@@ -38,30 +38,35 @@ class NovaAPIException(Exception):
 
 @dataclass
 class NotEntityException(NovaAPIException):
+    """ Argument is not an Entity """
     status_code: int = field(default=400, init=False)
     message: str = field(default="Argument is not an Entity", init=False)
 
 
 @dataclass
 class InvalidFiltersException(NovaAPIException):
+    """ Filters is not a dictionary """
     status_code: int = field(default=400, init=False)
     message: str = field(default="Filters are not valid", init=False)
 
 
 @dataclass
 class InvalidIDTypeException(NovaAPIException):
+    """ ID is not a string """
     status_code: int = field(default=400, init=False)
     message: str = field(default="ID type is not string", init=False)
 
 
 @dataclass
 class InvalidIDException(NovaAPIException):
+    """ ID is not a valid UUID v4 """
     status_code: int = field(default=400, init=False)
     message: str = field(default="ID is not a valid UUID v4", init=False)
 
 
 @dataclass
 class DuplicateEntityException(NovaAPIException):
+    """ Entity UUID already exists on database. """
     status_code: int = field(default=409, init=False)
     message: str = field(default="Entity already exists in database",
                          init=False)
@@ -69,6 +74,7 @@ class DuplicateEntityException(NovaAPIException):
 
 @dataclass
 class EntityNotFoundException(NovaAPIException):
+    """ Entity not found on database. """
     status_code: int = field(default=404, init=False)
     message: str = field(default="The requested entity was not "
                                  "found in database", init=False)
@@ -76,6 +82,7 @@ class EntityNotFoundException(NovaAPIException):
 
 @dataclass
 class NoRowsAffectedException(NovaAPIException):
+    """ No rows affected on database. """
     status_code: int = field(default=304, init=False)
     message: str = field(default="No rows were affected by the "
                                  "desired operation", init=False)
@@ -84,5 +91,6 @@ class NoRowsAffectedException(NovaAPIException):
 
 @dataclass
 class InvalidAttributeException(NovaAPIException):
+    """ Attribute failed it's validation. """
     status_code: int = field(default=400, init=False)
     message: str = field(default='Invalid attribute value', init=False)
