@@ -84,5 +84,5 @@ class NoRowsAffectedException(NovaAPIException):
 
 @dataclass
 class InvalidAttributeException(NovaAPIException):
-    status_code: int = field(default=400)
-    message: str = field(default='Invalid attribute value')
+    status_code: int = field(default=400, init=False)
+    message: str = field(default='Invalid attribute value', init=False)

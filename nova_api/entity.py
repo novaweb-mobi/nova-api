@@ -82,9 +82,7 @@ class Entity(ABC):
 
         parsed_value = self.__try_parse_field_value(field_, value)
         validation_function = field_.metadata.get('validation', lambda v: True)
-        function = validation_function(parsed_value)
-        print(key, value, function)
-        if not function:
+        if not validation_function(parsed_value):
             raise InvalidAttributeException(
                 debug=f'Attribute {key!r} received an invalid value {value!r}'
             )

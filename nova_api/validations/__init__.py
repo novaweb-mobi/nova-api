@@ -1,3 +1,6 @@
+"""
+Default validations for NovaAPI
+"""
 from typing import Any
 
 
