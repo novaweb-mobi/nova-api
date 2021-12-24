@@ -127,7 +127,7 @@ and returns a boolean value indicating whether the value is valid or not. It's
 very important to return an object that evaluates to True if the value is valid,
 otherwise the `__setattr__` method will raise an InvalidAttributeException. If
 you would like to return a custom exception when the value is invalid you could do
-this in the validation function. Generic validation functions that expects more
+this in the validation function. Generic validation functions that expect more
 than one argument could be converted to `functools.partial <https://docs.python.org/pt-br/3/library/functools.html#functools.partial>`_
 object so it acts as a function that expects a single argument. ::
 

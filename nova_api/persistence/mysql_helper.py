@@ -33,6 +33,7 @@ class MySQLHelper(PersistenceHelper):
     UPDATE_QUERY = "UPDATE `{table}` SET {fields} WHERE {column} = %s;"
     QUERY_TOTAL_COLUMN = "SELECT count(`{column}`) FROM {table};"
 
+    # pylint: disable=R0913
     def __init__(self, host: str = os.environ.get('DB_URL'),
                  user: str = os.environ.get('DB_USER'),
                  password: str = os.environ.get('DB_PASSWORD'),
@@ -40,7 +41,7 @@ class MySQLHelper(PersistenceHelper):
                  pooled: bool = True, database_args: dict = None):
         super().__init__(host, user, password, database, pooled, database_args)
 
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger("NovaAPILogger")
 
         if host is None:
             host = 'localhost'
@@ -57,7 +58,7 @@ class MySQLHelper(PersistenceHelper):
             database = "default"
 
         if database_args is None:
-            database_args = dict()
+            database_args = {}
 
         try:
             self.logger.info("Connecting to database %s at %s "
@@ -81,7 +82,7 @@ class MySQLHelper(PersistenceHelper):
             self.logger.critical("Unable to connect to database!",
                                  exc_info=True)
             raise ConnectionError("\nSomething went wrong when connecting "
-                                  "to mysql: {err}\n\n".format(err=err)) \
+                                  f"to mysql: {err}\n\n") \
                 from err
 
     def query(self, query: str, params: List = None) -> (int, int):
@@ -107,7 +108,7 @@ class MySQLHelper(PersistenceHelper):
             self.logger.critical("Unable to execute query in database!",
                                  exc_info=True)
             raise RuntimeError(
-                "\nSomething went wrong with the query: {}\n\n".format(err)
+                f"\nSomething went wrong with the query: {err}\n\n"
             ) from err
 
     def close(self):

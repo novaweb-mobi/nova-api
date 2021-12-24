@@ -27,7 +27,7 @@ possible_level = {"DEBUG": logging.DEBUG,
                   "ERROR": logging.ERROR,
                   "CRITICAL": logging.CRITICAL}
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("NovaAPILogger")
 
 DEBUG = bool(os.environ.get('NOVAAPI_DEBUG', False))
 

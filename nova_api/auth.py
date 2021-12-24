@@ -7,7 +7,7 @@ from jose import JWTError, jwt
 from makefun import add_signature_parameters, wraps
 from werkzeug.exceptions import HTTPException
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("NovaAPILogger")
 
 ALLOWED_JWT_ALGORITHMS = ["HS256", "HS384", "HS512",
                           "RS256", "RS384", "RS512",

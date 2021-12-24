@@ -54,13 +54,15 @@ class Entity(ABC):
                                              compare=False,
                                              metadata={"type": "TIMESTAMP"})
 
+    # pylint: disable=W0613
     def __new__(cls, *args, **kwargs):
         """Prevents the instantiation of the abstract class Entity
 
         :raises NotImplementedError: When trying to instantiate Entity directly.
         """
         if cls is Entity:
-            logging.getLogger(__name__).error("Trying to instantiate Entity!")
+            logging.getLogger("NovaAPILogger")\
+                .error("Trying to instantiate Entity!")
             raise NotImplementedError("Abstract class can't be instantiated")
         return super().__new__(cls)
 

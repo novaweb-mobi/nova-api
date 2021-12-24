@@ -15,7 +15,6 @@ class NovaAPIException(Exception):
         returned to the user. It is also possible to add a debug \
         message which is only sent if DEBUG is set to True.
 
-
         :param status_code: The integer HTTP status code to send in the \
         response. Defaults to 500.
         :param message: The message to send in the message field of the \
