@@ -222,5 +222,5 @@ class TestPostgreSQLHelper:
         class MyTypedDict(TypedDict):
             test: str
 
-        a = MyTypedDict("test")
+        a = MyTypedDict(test="test")
         assert db_.custom_serializer(a) == '{"test": "test"}'
