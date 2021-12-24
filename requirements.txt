@@ -5,7 +5,7 @@ mock
 pytest-ordering
 mysql-connector
 psycopg2
-pymongo
+pymongo==3.12.0
 flask
 setuptools
 wheel
