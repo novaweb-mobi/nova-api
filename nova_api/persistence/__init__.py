@@ -25,6 +25,10 @@ class PersistenceHelper(ABC):
         self.cursor = None
         self.logger = logging.getLogger("NovaAPILogger")
 
+    @staticmethod
+    def custom_serializer(field_: Any) -> Any:
+        return Entity.serialize_field(field_)
+
     @abstractmethod
     def query(self, query: str, params: List) -> (int, int):
         pass
@@ -51,9 +55,6 @@ class PersistenceHelper(ABC):
         :param cls_to_predict: Class to predict the db type.
         :return: The db type.
         """
-        print(issubclass(cls_to_predict, Entity))
-        print(cls_to_predict)
-        print(cls_to_predict.__mro__)
         if issubclass(cls_to_predict, Entity):
             return "CHAR(32)"
         return self.TYPE_MAPPING.get(cls_to_predict.__name__) \

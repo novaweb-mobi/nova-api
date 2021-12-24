@@ -4,6 +4,7 @@ from time import sleep
 from mock import call
 from pytest import fixture, mark, raises
 
+from nova_api import Entity
 from nova_api.dao.generic_sql_dao import GenericSQLDAO
 from nova_api.exceptions import DuplicateEntityException, \
     EntityNotFoundException, InvalidFiltersException, InvalidIDException, \
@@ -55,6 +56,8 @@ class TestGenericSQLDAO:
             return TYPE_MAPPING.get(cls.__name__)
 
         props.predict_db_type.side_effect = predict
+        mysql_mock.return_value.custom_serializer.side_effect = \
+            Entity.serialize_field
         return mysql_mock
 
     @fixture
@@ -527,10 +530,13 @@ class TestGenericSQLDAO:
 
         id_ = generic_dao.create(entity)
 
-        assert mysql_mock.mock_calls[3] == call().query(
-            'INSERT INTO test_table (id, creation_datetime,'
-            ' last_modified_datetime, name, birthday) '
-            'VALUES (%s, %s, %s, %s, %s);', list(dict(entity).values()))
+        mysql_mock.assert_has_calls([
+            call().custom_serializer.__bool__(),
+            call().query(
+                'INSERT INTO test_table (id, creation_datetime,'
+                ' last_modified_datetime, name, birthday) '
+                'VALUES (%s, %s, %s, %s, %s);', list(dict(entity).values()))],
+            any_order=True)
         assert id_ == entity.id_
 
     def test_create_with_child(self, generic_dao_with_child,
@@ -549,10 +555,13 @@ class TestGenericSQLDAO:
 
         id_ = generic_dao_with_child.create(entity)
 
-        assert mysql_mock.mock_calls[3] == call().query(
-            'INSERT INTO test_table (id_, creation_datetime,'
-            ' last_modified_datetime, name, birthday, child_id_) '
-            'VALUES (%s, %s, %s, %s, %s, %s);', entity.get_db_values())
+        mysql_mock.assert_has_calls([
+            call().custom_serializer.__bool__(),
+            call().query(
+                'INSERT INTO test_table (id_, creation_datetime,'
+                ' last_modified_datetime, name, birthday, child_id_) '
+                'VALUES (%s, %s, %s, %s, %s, %s);', entity.get_db_values())],
+            any_order=True)
         assert id_ == entity.id_
 
     def test_create_exist(self, generic_dao, mysql_mock, entity):
@@ -589,11 +598,14 @@ class TestGenericSQLDAO:
         entity.name = "MyTestName"
         sleep(1)
         generic_dao.update(entity)
-        assert mysql_mock.mock_calls[5] == call().query(
-            'UPDATE test_table SET id=%s, creation_datetime=%s, '
-            'last_modified_datetime=%s, name=%s, birthday=%s '
-            'WHERE id = %s;', list(dict(entity).values()) + [entity.id_]
-        )
+
+        mysql_mock.assert_has_calls([
+            call().custom_serializer.__bool__(),
+            call().query(
+                'UPDATE test_table SET id=%s, creation_datetime=%s, '
+                'last_modified_datetime=%s, name=%s, birthday=%s '
+                'WHERE id = %s;', list(dict(entity).values()) + [entity.id_]
+            )], any_order=True)
         assert entity.creation_datetime < entity.last_modified_datetime
 
     def test_update_with_child(self, generic_dao_with_child,
@@ -606,11 +618,15 @@ class TestGenericSQLDAO:
         entity.name = "MyTestName"
         sleep(1)
         generic_dao_with_child.update(entity)
-        assert mysql_mock.mock_calls[5] == call().query(
-            'UPDATE test_table SET id_=%s, creation_datetime=%s, '
-            'last_modified_datetime=%s, name=%s, birthday=%s, child_id_=%s '
-            'WHERE id_ = %s;', entity.get_db_values() + [entity.id_]
-        )
+
+        mysql_mock.assert_has_calls([
+            call().custom_serializer.__bool__(),
+            call().query(
+                'UPDATE test_table SET id_=%s, creation_datetime=%s, '
+                'last_modified_datetime=%s, name=%s, birthday=%s, '
+                'child_id_=%s '
+                'WHERE id_ = %s;', entity.get_db_values() + [entity.id_]
+            )], any_order=True)
         assert entity.creation_datetime < entity.last_modified_datetime
 
     def test_update_no_rows_affected(self, generic_dao, mysql_mock, entity):

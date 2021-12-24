@@ -1,12 +1,13 @@
+import json
 import os
-from typing import List
+from typing import Any, List
 
 import psycopg2
 from psycopg2 import DatabaseError, Error, InterfaceError, ProgrammingError
 from psycopg2.pool import PoolError
 
-from nova_api.persistence.postgresql_pool import PostgreSQLPool
 from nova_api.persistence import PersistenceHelper
+from nova_api.persistence.postgresql_pool import PostgreSQLPool
 
 
 class PostgreSQLHelper(PersistenceHelper):
@@ -77,6 +78,17 @@ class PostgreSQLHelper(PersistenceHelper):
             raise ConnectionError("\nSomething went wrong when connecting "
                                   f"to postgresql: {err}\n\n") \
                 from err
+
+    @staticmethod
+    def custom_serializer(field_: Any) -> Any:
+        if issubclass(field_.__class__, dict):
+            return json.dumps(field_)
+        return super().custom_serializer(field_)
+
+    def predict_db_type(self, cls_to_predict) -> str:
+        if issubclass(cls_to_predict, dict):
+            return "jsonb"
+        return super().predict_db_type(cls_to_predict)
 
     def query(self, query: str, params: List = None) -> (int, int):
         super().query(query, params)

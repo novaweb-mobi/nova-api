@@ -1,13 +1,19 @@
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import TypedDict
 
 import psycopg2
 from mock import Mock, call
-from psycopg2._psycopg import DatabaseError, Error, InterfaceError
+from psycopg2 import DatabaseError, Error, InterfaceError
 from pytest import fixture, mark, raises
 
 from nova_api.entity import Entity
 from nova_api.persistence.postgresql_helper import PostgreSQLHelper
+
+
+class MyTestTypedDict(TypedDict):
+    test: str
+    another: str
 
 
 @dataclass
@@ -109,7 +115,8 @@ class TestPostgreSQLHelper:
         (int, "INT"),
         (float, "DECIMAL"),
         (date, "DATE"),
-        (TestEntity, "CHAR(32)")
+        (TestEntity, "CHAR(32)"),
+        (MyTestTypedDict, "jsonb")
     ])
     def test_predict_db_type_pghelper(self, cls, type_, postgresql_mock):
         helper = PostgreSQLHelper(pooled=False)
@@ -207,3 +214,13 @@ class TestPostgreSQLHelper:
 
         with raises(RuntimeError):
             db_.get_results()
+
+    def test_custom_serializer_json(self, postgresql_mock, db_):
+        test_dict = {"test": "test"}
+        assert db_.custom_serializer(test_dict) == '{"test": "test"}'
+
+        class MyTypedDict(TypedDict):
+            test: str
+
+        a = MyTypedDict("test")
+        assert db_.custom_serializer(a) == '{"test": "test"}'

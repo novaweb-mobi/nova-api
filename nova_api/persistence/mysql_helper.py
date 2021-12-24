@@ -3,11 +3,11 @@ import os
 from typing import List
 
 import mysql.connector
-from mysql.connector import Error, InterfaceError, DatabaseError, PoolError, \
+from mysql.connector import DatabaseError, Error, InterfaceError, PoolError, \
     ProgrammingError
 
-from nova_api.persistence.mysql_pool import MySQLPool
 from nova_api.persistence import PersistenceHelper
+from nova_api.persistence.mysql_pool import MySQLPool
 
 
 class MySQLHelper(PersistenceHelper):

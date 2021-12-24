@@ -203,7 +203,7 @@ class GenericSQLDAO(GenericDAO):
         """
         super().create(entity)
 
-        ent_values = entity.get_db_values()
+        ent_values = entity.get_db_values(self.database.custom_serializer)
 
         query = self.database.INSERT_QUERY.format(
             table=self.table,
@@ -240,7 +240,7 @@ class GenericSQLDAO(GenericDAO):
 
         entity.last_modified_datetime = datetime.now()
 
-        ent_values = entity.get_db_values()
+        ent_values = entity.get_db_values(self.database.custom_serializer)
 
         query = self.database.UPDATE_QUERY.format(
             table=self.table,
