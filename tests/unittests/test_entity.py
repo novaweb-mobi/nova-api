@@ -1,11 +1,15 @@
+import json
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from enum import Enum
+from functools import partial
 from typing import List
 
 from pytest import fixture, raises
 
+from nova_api.validations import *
 from nova_api.entity import Entity
+from nova_api.exceptions import InvalidAttributeException
 
 
 # pylint: disable=R0201
@@ -65,6 +69,45 @@ class TestEnum(Enum):
 class EntityForTestWithEnum2(Entity):
     name: str = None
     value: TestEnum = TestEnum.VALUE1
+
+
+def is_valid_json(value) -> bool:
+    try:
+        return isinstance(json.loads(value), dict)
+    except ValueError:
+        return False
+
+
+@dataclass
+class EntityForTestWithValidation(Entity):
+    my_json: str = field(default='',
+                         metadata={'validation': is_valid_json})
+
+
+class MyCustomException(Exception):
+    ...
+
+
+def validate_with_custom_exception(value):
+    if value != 'valid':
+        raise MyCustomException
+    return True
+
+
+@dataclass
+class EntityForTestWithDefaultValidations(Entity):
+    name: str = field(default='', metadata={'validation': has_max_length})
+    password: str = field(default='some really good password',
+                          metadata={'validation': partial(has_min_length,
+                                                          min_length=8)})
+    age: int = field(default=10, metadata={'validation': is_greater_than})
+    birth: datetime = field(
+        default=datetime.today() - timedelta(weeks=10),
+        metadata={'validation': partial(is_less_than,
+                                        upper_bound=datetime.now())}
+    )
+    status: str = field(default='valid',
+                        metadata={'validation': validate_with_custom_exception})
 
 
 class TestEntity:
@@ -164,3 +207,42 @@ class TestEntity:
         assert ent.get_db_values() == ['0' * 32,
                                        *['2021-09-21 00:00:00'] * 2,
                                        0]
+
+    def test_fields_are_parsed_when_setting_attribute(self):
+        ent = EntityForTestWithDatetime()
+
+        ent.my_date = '2020-1-12 00:00:00'
+
+        assert isinstance(ent.my_date, datetime)
+
+    def test_set_attribute_fail_validation(self):
+        with raises(InvalidAttributeException):
+            EntityForTestWithValidation()
+
+    def test_set_attribute_pass_validation(self):
+        ent = EntityForTestWithValidation(my_json='{"name": "value"}')
+
+        assert ent.my_json == '{"name": "value"}'
+
+    def test_set_attribute_that_doesnt_exists_raise_attribute_error(self):
+        ent = EntityForTest()
+
+        with raises(AttributeError):
+            ent.not_here = True
+
+    def test_set_attribute_with_default_validations(self):
+        ent = EntityForTestWithDefaultValidations()
+        with raises(InvalidAttributeException):
+            ent.name = 'some loooong name'
+
+        with raises(InvalidAttributeException):
+            ent.age = -1
+
+        with raises(InvalidAttributeException):
+            ent.birth = datetime.now() + timedelta(1)
+
+        with raises(InvalidAttributeException):
+            ent.password = 'pass'
+
+        with raises(MyCustomException):
+            EntityForTestWithDefaultValidations(status='invalid')

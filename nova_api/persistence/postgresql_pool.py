@@ -13,9 +13,10 @@ from psycopg2 import pool
 class PostgreSQLPool:
     instances: ClassVar[Dict[PostgreSQLPool]] = field(default={})
     logger: ClassVar[logging.Logger] = field(
-        default=logging.getLogger(__name__))
+        default=logging.getLogger("NovaAPILogger"))
 
     @classmethod
+    # pylint: disable=R0913
     def get_instance(cls, host: str = os.environ.get('DB_URL'),
                      user: str = os.environ.get('DB_USER'),
                      password: str = os.environ.get('DB_PASSWORD'),
@@ -43,7 +44,7 @@ class PostgreSQLPool:
         :return: The connection pool instance
         """
         if database_args is None:
-            database_args = dict()
+            database_args = {}
 
         if database_args.get("minconn", None) is None:
             database_args.update({"minconn": size})

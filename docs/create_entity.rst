@@ -119,6 +119,41 @@ This works like the datetime_format. This property should be set according to th
 function in the datetime module. For example: `{"datetime_format":"%Y-%m-%d"}`, which is
 the default format.
 
+validation
+^^^^^^^^^^
+This may be used to validate the attribute values in the `__setattr__` method.
+It expects a callable object that receives an argument, the attribute's value,
+and returns a boolean value indicating whether the value is valid or not. It's
+very important to return an object that evaluates to True if the value is valid,
+otherwise the `__setattr__` method will raise an InvalidAttributeException. If
+you would like to return a custom exception when the value is invalid you could do
+this in the validation function. Generic validation functions that expect more
+than one argument could be converted to `functools.partial <https://docs.python.org/pt-br/3/library/functools.html#functools.partial>`_
+object so it acts as a function that expects a single argument. ::
+
+    def is_between(value, min_value, max_value) -> bool:
+        return min_value <= value <= max_value
+
+    def is_valid_name(value) -> bool:
+        if len(value) < 3:
+            raise MyCustomException
+        return True
+
+    @dataclass
+    class Contact(Entity):
+        name: str = field(default='Anom',
+                          metadata={'validation': is_valid_name})
+        birthday: datetime = field(default_factory=datetime.now)
+        age: int = field(default=0, compare=False,
+                         metadata={"database": False,
+                                   "validation": partial(is_between,
+                                                         min_value=0,
+                                                         max_value=122)})
+        height: float = field(default=0, compare=False,
+                              metadata={"database": False,
+                                        "validation": partial(is_between,
+                                                              min_value=0.5464,
+                                                              max_value=2.52)})
 
 Next Steps
 ==========

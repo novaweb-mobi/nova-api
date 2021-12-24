@@ -24,7 +24,7 @@ setuptools.setup(
     ],
     extras_require={
         'postgresql': ['psycopg2-binary'],
-        'mongo': ['pymongo', 'python-dateutil']
+        'mongo': ['pymongo >= 3.12, < 4.0', 'python-dateutil']
     },
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -35,3 +35,4 @@ setuptools.setup(
         'console_scripts': ['generate_nova_api=nova_api:generate_api']
     }
 )
+

@@ -1,10 +1,8 @@
-import logging
 import os
-from typing import Any, List
+from typing import List
 
 import psycopg2
-from psycopg2._psycopg import DatabaseError, Error, InterfaceError, \
-    ProgrammingError
+from psycopg2 import DatabaseError, Error, InterfaceError, ProgrammingError
 from psycopg2.pool import PoolError
 
 from nova_api.persistence.postgresql_pool import PostgreSQLPool
@@ -33,14 +31,14 @@ class PostgreSQLHelper(PersistenceHelper):
     UPDATE_QUERY = "UPDATE {table} SET {fields} WHERE {column} = %s;"
     QUERY_TOTAL_COLUMN = "SELECT count({column}) FROM {table};"
 
+    # pylint: disable=R0913
     def __init__(self, host: str = os.environ.get('DB_URL'),
                  user: str = os.environ.get('DB_USER'),
                  password: str = os.environ.get('DB_PASSWORD'),
                  database: str = os.environ.get('DB_NAME'),
                  pooled: bool = True,
                  database_args: dict = None):
-
-        self.logger = logging.getLogger(__name__)
+        super().__init__(host, user, password, database, pooled, database_args)
 
         self.host = str(host) if host is not None else 'localhost'
         self.user = str(user) if user is not None else 'root'
@@ -51,7 +49,7 @@ class PostgreSQLHelper(PersistenceHelper):
             password = 'root'
 
         self.database_args = database_args \
-            if database_args is not None else dict()
+            if database_args is not None else {}
 
         self.pooled = pooled
 
@@ -77,11 +75,11 @@ class PostgreSQLHelper(PersistenceHelper):
             self.logger.critical("Unable to connect to database!",
                                  exc_info=True)
             raise ConnectionError("\nSomething went wrong when connecting "
-                                  "to postgresql: {err}\n\n".format(err=err)) \
+                                  f"to postgresql: {err}\n\n") \
                 from err
 
     def query(self, query: str, params: List = None) -> (int, int):
-        super(PostgreSQLHelper, self).query(query, params)
+        super().query(query, params)
         try:
             self.logger.debug("Query to execute is %s, params %s",
                               query,
@@ -99,11 +97,11 @@ class PostgreSQLHelper(PersistenceHelper):
             self.logger.critical("Unable to execute query in database!",
                                  exc_info=True)
             raise RuntimeError(
-                "\nSomething went wrong with the query: {}\n\n".format(err)
+                f"\nSomething went wrong with the query: {err}\n\n"
             ) from err
 
     def close(self) -> None:
-        super(PostgreSQLHelper, self).close()
+        super().close()
         self.logger.info("Closing connection to database!")
         self.cursor.close()
         if self.pooled:

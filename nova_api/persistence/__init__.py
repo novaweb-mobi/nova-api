@@ -19,10 +19,11 @@ class PersistenceHelper(ABC):
     QUERY_TOTAL_COLUMN: str
 
     @abstractmethod
+    # pylint: disable=R0913
     def __init__(self, host: str, user: str, password: str,
                  database: str, pooled: bool, database_args: dict):
         self.cursor = None
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger("NovaAPILogger")
 
     @abstractmethod
     def query(self, query: str, params: List) -> (int, int):
@@ -36,7 +37,7 @@ class PersistenceHelper(ABC):
         except Exception as err:
             self.logger.critical("Unable to get query results!",
                                  exc_info=True)
-            raise RuntimeError("\nSomething went wrong: {}\n\n".format(err)) \
+            raise RuntimeError(f"\nSomething went wrong: {err}\n\n") \
                 from err
 
     @abstractmethod
